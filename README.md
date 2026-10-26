@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 26.10.2026 · Status: V0.1 (Design-Shell) in Arbeit · Datenformat: v1
+Stand: 27.10.2026 · Status: V0.1 (Design-Shell) in Arbeit · Datenformat: v2
 
 ## 1. Ziel
 
@@ -48,6 +48,10 @@ Hinweis iPhone: Die installierte PWA hat einen eigenen Speicher, getrennt von Sa
 
 **Geschenkidee (gehört zu einer Person):** Name, Link, Preis, Bild, Notiz, Status "gekauft".
 
+**Listen:** Eigene Wünsche und die Ideen für jede Person lassen sich in benannte Listen sortieren (z. B. "Weihnachten", "Geburtstag"). Jeder Eintrag gehört zu genau einer Liste, jeder Eigentümer hat immer mindestens die Standardliste "Allgemein". Pro Liste und insgesamt gibt es Kennzahlen (Anzahl, Gesamtwert, offen, gekauft, Durchschnittspreis). Löscht man eine Liste, landen ihre Einträge im Papierkorb.
+
+**Art (Objekt):** Jeder Eintrag hat ein optionales Feld "Art", z. B. "Grafikkarte". Es wird beim Tippen des Namens automatisch erkannt (lokales Stichwortverzeichnis) und lässt sich von Hand ändern. Es dient dem Doppelungs-Filter (siehe 5a).
+
 **Datenformat:**
 - Von Anfang an mit Versionsnummer (`schemaVersion`).
 - Die App wandelt alte Daten beim Start automatisch um.
@@ -59,6 +63,8 @@ Hinweis iPhone: Die installierte PWA hat einen eigenen Speicher, getrennt von Sa
 - Geteilt wird nur die **eigene Wunschliste**, nie Geschenkideen.
 - **Notizen** bleiben standardmäßig privat. Beim Teilen lassen sie sich per Schalter mitsenden.
 - **Unauffälliges "Schon vorhanden":** Gekaufte Artikel gehen im Hintergrund mit (Markierung `owned`), ohne in der Liste des Empfängers aufzutauchen. Legt der Empfänger eine Geschenkidee für diese Person an, die dort schon als gekauft markiert ist, zeigt die Idee den Hinweis "Schon vorhanden". Abgeglichen wird über Link, sonst über den normalisierten Namen. Dafür muss die empfangene Liste mit einer Person verknüpft sein.
+- **Listen beim Teilen:** Im Teilen-Fenster wählt man, welche eigenen Listen mitgehen. Ein erhaltenes Paket kann mehrere Listen enthalten. Geschenkideen für andere werden nie geteilt.
+- **Gekauftes bei erhaltenen Listen:** In einer erhaltenen Liste bleibt Gekauftes standardmäßig verborgen. Ein unscheinbarer Knopf am Ende ("Schon Vorhandenes anzeigen") blendet es bei Bedarf ein, mit dem Kaufdatum.
 - **Option "Gekaufte Artikel"** beim Teilen: *Unauffällig* (Standard) · *Nur gekauft* (es geht nur der Abgleich mit, keine sichtbaren Wünsche) · *Ohne* (gekaufte Artikel bleiben ganz bei mir).
 - Export als Datei, Teilen-Button öffnet das Share-Menü des Handys (z. B. WhatsApp).
 - Import über "Importieren" und Dateiauswahl.
@@ -69,12 +75,27 @@ Hinweis iPhone: Die installierte PWA hat einen eigenen Speicher, getrennt von Sa
 - iPhone-Empfang: Datei aus WhatsApp in "Dateien" speichern, dann in der App importieren.
 - QR-Code ist gestrichen: Größenlimit pro Code, Scannen in iOS-Web-Apps unzuverlässig.
 
+## 5a. Doppelungs-Filter
+
+Beim Anlegen oder Bearbeiten eines Eintrags vergleicht die App ihn live mit allem, was bei demselben Eigentümer schon "im Spiel" ist:
+- offene Ideen oder Wünsche,
+- selbst Gekauftes (mit Kaufdatum),
+- bei Personen: das, was sie laut erhaltener Liste schon besitzen (Hintergrund-Abgleich).
+
+Als Treffer gilt ein ähnlicher Name (gemeinsames, nicht zu generisches Wort, z. B. "Kindle", "RTX", "4060") oder die gleiche Art. Die Vergleichskarte zeigt den auffälligen Eintrag mit Status und Datum. Der Speichern-Knopf heißt dann "Trotzdem hinzufügen", die Entscheidung bleibt beim Nutzer.
+
+**Sichtbarkeit der "Art":** Die Art bleibt privat. Bei Ideen wird sie nie geteilt. Bei eigenen Wünschen geht sie nur im unauffälligen Gekauft-Teil (und mit sichtbaren Wünschen) mit, damit der Filter bei anderen auch bei abweichenden Namen greift. Sie wird dort nie als eigene Information angezeigt.
+
+## 5b. Statistik
+
+Eigener Tab mit Auswertungen über alles: Gesamtausgaben (für mich und für andere), Kennzahlen, Ausgaben pro Monat der letzten sechs Monate, Ausgaben pro Person im Vergleich zum Budget, Werte pro Liste, häufigste Arten sowie Kuriosa (teuerster und günstigster Eintrag, erkannte Doppelte, Anlässe der nächsten 30 Tage, Papierkorb und mehr).
+
 ## 6. Backup
 
 - Backup enthält **alles**: Wünsche, Personen, Geschenkideen, Papierkorb, Archiv.
 - **Android:** automatisch, höchstens einmal täglich beim Öffnen und nur bei Änderungen, Ziel ist der Ordner "Dokumente". Die letzten 5 bleiben, ältere löscht die App selbst (nur eigene Dateien). Nach einer Neuinstallation bleiben alte Backups liegen. Fallback: Ordnerauswahl.
 - **iPhone:** Backup-Button (Teilen-Menü, dann "Dateien", am besten iCloud Drive). Dateiname enthält das Datum.
-- **Beide:** Anzeige "Letztes Backup vor X Tagen". Der Hinweis erscheint ab 14 Tagen, aber nur, wenn sich seitdem etwas geändert hat.
+- **Beide:** Anzeige "Letztes Backup vor X Tagen". Der Hinweis erscheint ab 14 Tagen, aber nur, wenn sich seitdem etwas geändert hat, und nur direkt beim Start der App (nicht bei jedem Tab-Wechsel).
 - Wiederherstellen immer über die Dateiauswahl.
 
 ## 7. Speicherschutz (`storage.persist()`)
@@ -190,3 +211,10 @@ Technische Leitplanken für Animationen (nach Fehlersuche in V0.1):
 - Seitenwechsel (`components/Stage.tsx`) und Fenster (`components/Presence.tsx`) werden per Timer ausgehängt, nicht per `AnimatePresence`. So kann nie eine unsichtbare Seite oder ein unsichtbarer Hintergrund liegen bleiben und Klicks abfangen.
 - Keine `layout`/`layoutId`-Animationen innerhalb von Seiten und Fenstern (Segmentwahl und Schalter laufen per CSS). Ausnahme ist nur die Tab-Leiste.
 - Wischen vs. Antippen einer Karte: Antippen zählt nur ohne nennenswerte Bewegung.
+
+## 18. Einstellungen und Sprache
+
+- **Sprache:** Deutsch oder Englisch (Standard: Browser-Sprache). Der deutsche Text ist der Übersetzungsschlüssel, die Übersetzungen stehen in `src/lib/en.ts`. Neue Texte immer mit `t('…')` ausgeben.
+- **Darstellung:** Auto, Dunkel oder Hell, dazu Akzentfarbe und Effekt-Stufe.
+- **Offene Ideen im Budget zeigen:** Schaltet die helle Zusatzleiste im Budget (Summe der noch offenen Ideen) ein, standardmäßig aus.
+- Die Kreise um die Profilbilder sind entfernt.

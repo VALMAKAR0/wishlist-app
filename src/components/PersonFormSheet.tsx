@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { CalendarPlus, Trash2, X } from 'lucide-react'
+import { defaultList } from '../lib/demoData'
 import { parseMonthDay, toInputDate, uid } from '../lib/format'
 import type { Occasion, Person } from '../lib/types'
 import { useStore } from '../state/store'
-import { useUI } from '../state/ui'
+import { useT, useUI } from '../state/ui'
 import { Avatar } from './Primitives'
 import { Sheet } from './Sheet'
 
@@ -24,6 +25,7 @@ interface Props {
 }
 
 export function PersonFormSheet({ person, onClose, onDeleted }: Props) {
+  const t = useT()
   const { dispatch } = useStore()
   const ui = useUI()
   const editing = !!person
@@ -51,10 +53,11 @@ export function PersonFormSheet({ person, onClose, onDeleted }: Props) {
     const data = { name: name.trim(), hue, budget: Number(budget.replace(',', '.')) || 0, occasions }
     if (person) {
       dispatch({ type: 'updatePerson', id: person.id, patch: data })
-      ui.toast({ message: 'Person aktualisiert', emoji: '✨' })
+      ui.toast({ message: t('Person aktualisiert'), emoji: '✨' })
     } else {
-      dispatch({ type: 'addPerson', person: { id: uid(), ...data } })
-      ui.toast({ message: `${data.name} wurde hinzugefügt`, emoji: '🎉' })
+      const id = uid()
+      dispatch({ type: 'addPerson', person: { id, ...data }, list: { ...defaultList(id, uid()), hue } })
+      ui.toast({ message: t('{name} wurde hinzugefügt', { name: data.name }), emoji: '🎉' })
     }
     ui.haptic(18)
     onClose()
@@ -63,13 +66,13 @@ export function PersonFormSheet({ person, onClose, onDeleted }: Props) {
   const remove = () => {
     if (!person) return
     ui.confirm({
-      title: `${person.name} löschen?`,
-      text: 'Alle Geschenkideen dieser Person werden mitgelöscht. Das lässt sich nicht rückgängig machen.',
-      confirmLabel: 'Endgültig löschen',
+      title: t('{name} löschen?', { name: person.name }),
+      text: t('Alle Geschenkideen und Listen dieser Person werden mitgelöscht. Das lässt sich nicht rückgängig machen.'),
+      confirmLabel: t('Endgültig löschen'),
       tone: 'danger',
       onConfirm: () => {
         dispatch({ type: 'deletePerson', id: person.id })
-        ui.toast({ message: `${person.name} gelöscht` })
+        ui.toast({ message: t('{name} gelöscht', { name: person.name }) })
         onClose()
         onDeleted?.()
       },
@@ -78,18 +81,18 @@ export function PersonFormSheet({ person, onClose, onDeleted }: Props) {
 
   return (
     <Sheet
-      title={editing ? 'Person bearbeiten' : 'Neue Person'}
-      subtitle="Geschenkideen für diese Person bleiben immer privat"
+      title={editing ? t('Person bearbeiten') : t('Neue Person')}
+      subtitle={t('Geschenkideen für diese Person bleiben immer privat')}
       onClose={onClose}
       footer={
         <div className="row row--gap">
           {editing && (
-            <button className="btn btn--ghost btn--icon" onClick={remove} aria-label="Person löschen">
-              <Trash2 size={18} />
+            <button className="btn btn--ghost btn--icon" onClick={remove} aria-label={t('Person löschen')}>
+              <Trash2 size={17} />
             </button>
           )}
           <button className="btn btn--primary btn--grow" onClick={save}>
-            {editing ? 'Speichern' : 'Hinzufügen'}
+            {editing ? t('Speichern') : t('Hinzufügen')}
           </button>
         </div>
       }
@@ -100,19 +103,19 @@ export function PersonFormSheet({ person, onClose, onDeleted }: Props) {
         </motion.div>
       </div>
 
-      <div className="swatches" role="radiogroup" aria-label="Farbe">
+      <div className="swatches" role="radiogroup" aria-label={t('Farbe')}>
         {HUES.map((h) => (
-          <button key={h} role="radio" aria-checked={h === hue} aria-label={`Farbton ${h}`} data-active={h === hue} className="swatch swatch--color" style={{ ['--h' as string]: h }} onClick={() => setHue(h)} />
+          <button key={h} role="radio" aria-checked={h === hue} aria-label={`${h}`} data-active={h === hue} className="swatch swatch--color" style={{ ['--h' as string]: h }} onClick={() => setHue(h)} />
         ))}
       </div>
 
       <motion.label key={shake} className="field" animate={shake ? { x: [0, -9, 9, -6, 6, 0] } : undefined} transition={{ duration: 0.4 }}>
-        <span>Name</span>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Für wen?" autoFocus={!editing} data-invalid={shake > 0 && !name.trim()} />
+        <span>{t('Name')}</span>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('Für wen?')} autoFocus={!editing} data-invalid={shake > 0 && !name.trim()} />
       </motion.label>
 
       <label className="field">
-        <span>Budget pro Anlass</span>
+        <span>{t('Budget pro Anlass')}</span>
         <div className="field__row field__row--suffix">
           <input value={budget} onChange={(e) => setBudget(e.target.value.replace(/[^0-9.,]/g, ''))} placeholder="0" inputMode="decimal" />
           <b>€</b>
@@ -120,7 +123,7 @@ export function PersonFormSheet({ person, onClose, onDeleted }: Props) {
       </label>
 
       <div className="field">
-        <span>Anlässe</span>
+        <span>{t('Anlässe')}</span>
         <ul className="occ-list">
           <AnimatePresence initial={false}>
             {rows.map((r) => (
@@ -132,13 +135,15 @@ export function PersonFormSheet({ person, onClose, onDeleted }: Props) {
                 exit={{ opacity: 0, height: 0, scale: 0.96 }}
                 transition={{ type: 'spring', stiffness: 380, damping: 32 }}
               >
-                <select value={r.label} onChange={(e) => patchRow(r.id, { label: e.target.value })} aria-label="Art des Anlasses">
+                <select value={r.label} onChange={(e) => patchRow(r.id, { label: e.target.value })} aria-label={t('Art des Anlasses')}>
                   {LABELS.map((l) => (
-                    <option key={l}>{l}</option>
+                    <option key={l} value={l}>
+                      {t(l)}
+                    </option>
                   ))}
                 </select>
-                <input type="date" value={r.date} onChange={(e) => patchRow(r.id, { date: e.target.value })} aria-label="Datum" />
-                <button className="icon-btn icon-btn--sm" onClick={() => setRows((x) => x.filter((y) => y.id !== r.id))} aria-label="Anlass entfernen">
+                <input type="date" value={r.date} onChange={(e) => patchRow(r.id, { date: e.target.value })} aria-label={t('Datum')} />
+                <button className="icon-btn icon-btn--sm" onClick={() => setRows((x) => x.filter((y) => y.id !== r.id))} aria-label={t('Anlass entfernen')}>
                   <X size={16} />
                 </button>
               </motion.li>
@@ -146,7 +151,7 @@ export function PersonFormSheet({ person, onClose, onDeleted }: Props) {
           </AnimatePresence>
         </ul>
         <button className="chip chip--button chip--wide" onClick={() => setRows((r) => [...r, { id: uid(), label: 'Geburtstag', date: '' }])}>
-          <CalendarPlus size={15} /> Anlass hinzufügen
+          <CalendarPlus size={15} /> {t('Anlass hinzufügen')}
         </button>
       </div>
     </Sheet>

@@ -3,6 +3,7 @@ import { motion, useDragControls } from 'motion/react'
 import { X } from 'lucide-react'
 import { useEscape } from './Dialog'
 import { useClosing } from './Presence'
+import { useT } from '../state/ui'
 
 interface SheetProps {
   title: string
@@ -14,6 +15,7 @@ interface SheetProps {
 
 /** Bottom-Sheet, am Griff nach unten ziehbar, mit Feder-Animation. */
 export function Sheet({ title, subtitle, onClose, children, footer }: SheetProps) {
+  const t = useT()
   const closing = useClosing()
   useEscape(closing ? () => {} : onClose)
   const controls = useDragControls()
@@ -52,7 +54,7 @@ export function Sheet({ title, subtitle, onClose, children, footer }: SheetProps
             <h2>{title}</h2>
             {subtitle && <p>{subtitle}</p>}
           </div>
-          <button className="icon-btn" onClick={onClose} aria-label="Schließen" onPointerDown={(e) => e.stopPropagation()}>
+          <button className="icon-btn" onClick={onClose} aria-label={t('Schließen')} onPointerDown={(e) => e.stopPropagation()}>
             <X size={18} />
           </button>
         </header>

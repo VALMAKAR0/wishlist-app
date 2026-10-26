@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import {
   Archive, Bell, CalendarClock, Check, ChevronRight, DatabaseBackup, Flame, HardDriveDownload, Map, Palette, RefreshCw, RotateCcw, ShieldCheck, Smartphone, Trash2, Undo2,
@@ -6,16 +6,16 @@ import {
 import { Page, Section } from '../components/Page'
 import { Chip, Cover, EmptyState, Ring, Segmented, Switch } from '../components/Primitives'
 import { APP_NAME, APP_VERSION, BACKUP_NUDGE_DAYS, TRASH_DAYS } from '../lib/brand'
-import { daysAgo, plural, timeLabel } from '../lib/format'
+import { daysAgo, timeLabel } from '../lib/format'
 import { roadmap } from '../lib/plannedFeatures'
-import type { FxSetting, ThemeSetting } from '../lib/types'
+import type { FxSetting, Lang, ThemeSetting } from '../lib/types'
 import { useNav } from '../state/nav'
 import { useLists, useStore } from '../state/store'
-import { useUI } from '../state/ui'
+import { useT, useUI } from '../state/ui'
 
 const HUES = [14, 45, 150, 200, 265, 330]
 
-function Row({ icon, title, text, right, onClick }: { icon: React.ReactNode; title: string; text?: string; right?: React.ReactNode; onClick?: () => void }) {
+function Row({ icon, title, text, right, onClick }: { icon: ReactNode; title: string; text?: string; right?: ReactNode; onClick?: () => void }) {
   const Tag = onClick ? 'button' : 'div'
   return (
     <Tag className="row-item" onClick={onClick}>
@@ -30,16 +30,18 @@ function Row({ icon, title, text, right, onClick }: { icon: React.ReactNode; tit
 }
 
 export function MoreScreen() {
+  const t = useT()
   const ui = useUI()
   const { settings, setSettings } = ui
   const { open, setTab } = useNav()
   const { lastBackupAt, dispatch, items } = useStore()
-  const { trash, wishesDone } = useLists()
+  const { trash, mine } = useLists()
   const [checking, setChecking] = useState(false)
   const [persist, setPersist] = useState<{ ok: boolean; at: number }>({ ok: true, at: Date.now() - 3_600_000 })
 
   const days = lastBackupAt ? daysAgo(lastBackupAt) : null
   const stale = days === null || days >= BACKUP_NUDGE_DAYS
+  const archived = mine.filter((i) => i.bought).length
 
   // Vorschau: Die echte Abfrage von storage.persisted() kommt in V0.5.
   const checkPersist = () => {
@@ -53,47 +55,47 @@ export function MoreScreen() {
 
   const wipe = () =>
     ui.confirm({
-      title: 'Alle Daten löschen?',
-      text: 'Wünsche, Personen, Ideen, Papierkorb, Archiv und erhaltene Listen werden endgültig entfernt. Mach vorher ein Backup.',
-      confirmLabel: 'Alles löschen',
+      title: t('Alle Daten löschen?'),
+      text: t('Wünsche, Personen, Ideen, Papierkorb, Archiv und erhaltene Listen werden endgültig entfernt. Mach vorher ein Backup.'),
+      confirmLabel: t('Alles löschen'),
       tone: 'danger',
       hold: true,
       onConfirm: () => {
         dispatch({ type: 'wipe' })
-        ui.toast({ message: 'Alle Daten gelöscht', emoji: '🧹' })
+        ui.toast({ message: t('Alle Daten gelöscht'), emoji: '🧹' })
       },
     })
 
   return (
-    <Page title="Mehr" eyebrow={`${APP_NAME} · V${APP_VERSION}`} subtitle="Sicherheit, Aussehen und alles andere">
+    <Page title={t('Mehr')} eyebrow={`${APP_NAME} · V${APP_VERSION}`} subtitle={t('Sicherheit, Aussehen und alles andere')}>
       <motion.aside className="preview-note" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
         <Flame size={18} />
         <p>
-          <strong>Design-Vorschau (V0.1).</strong> Bedienen und Animationen sind echt, gespeichert wird noch nichts.{' '}
-          <button onClick={() => ui.planned('save-persist')}>Mehr dazu</button>
+          <strong>{t('Design-Vorschau (V0.1).')}</strong> {t('Bedienen und Animationen sind echt, gespeichert wird noch nichts.')}{' '}
+          <button onClick={() => ui.planned('save-persist')}>{t('Mehr dazu')}</button>
         </p>
       </motion.aside>
 
-      <Section title="Sicherung">
+      <Section title={t('Sicherung')}>
         <div className="card spot">
           <div className="backup">
             <Ring value={days === null ? 0.04 : Math.max(0.06, 1 - Math.min(days, 30) / 30)} size={56} stroke={6} hue={stale ? 20 : 150}>
               <DatabaseBackup size={22} />
             </Ring>
             <div className="backup__text">
-              <strong>{days === null ? 'Noch kein Backup' : days === 0 ? 'Heute gesichert' : `Letztes Backup vor ${days} Tagen`}</strong>
-              <span>{stale ? `Ab ${BACKUP_NUDGE_DAYS} Tagen erinnert dich die App, sofern sich etwas geändert hat.` : 'Alles im grünen Bereich.'}</span>
+              <strong>{days === null ? t('Noch kein Backup') : days === 0 ? t('Heute gesichert') : t('Letztes Backup vor {n} Tagen', { n: days })}</strong>
+              <span>{stale ? t('Ab {n} Tagen erinnert dich die App beim Start, sofern sich etwas geändert hat.', { n: BACKUP_NUDGE_DAYS }) : t('Alles im grünen Bereich.')}</span>
             </div>
           </div>
           <div className="row row--gap">
             <button className="btn btn--primary btn--grow" onClick={() => ui.planned('backup-now')}>
-              <HardDriveDownload size={18} /> Jetzt sichern
+              <HardDriveDownload size={17} /> {t('Jetzt sichern')}
             </button>
             <button className="btn btn--ghost btn--grow" onClick={() => ui.planned('backup-restore')}>
-              <RotateCcw size={18} /> Wiederherstellen
+              <RotateCcw size={17} /> {t('Wiederherstellen')}
             </button>
           </div>
-          <Row icon={<RefreshCw size={18} />} title="Automatisch sichern" text="Nur auf Android, täglich bei Änderungen" right={<Chip tone="accent">V0.7</Chip>} onClick={() => ui.planned('backup-auto')} />
+          <Row icon={<RefreshCw size={18} />} title={t('Automatisch sichern')} text={t('Nur auf Android, täglich bei Änderungen')} right={<Chip tone="accent">V0.7</Chip>} onClick={() => ui.planned('backup-auto')} />
         </div>
 
         <div className="card spot">
@@ -106,97 +108,138 @@ export function MoreScreen() {
               </AnimatePresence>
             </span>
             <div className="backup__text">
-              <strong>Speicherschutz: {persist.ok ? 'aktiv' : 'nicht aktiv'}</strong>
-              <span>zuletzt geprüft: {timeLabel(persist.at)} · <em className="demo-tag">Demo-Wert</em></span>
+              <strong>{t('Speicherschutz: {state}', { state: persist.ok ? t('aktiv') : t('nicht aktiv') })}</strong>
+              <span>
+                {t('zuletzt geprüft: {date}', { date: timeLabel(persist.at) })} · <em className="demo-tag">{t('Demo-Wert')}</em>
+              </span>
             </div>
           </div>
           <div className="row">
             <button className="btn btn--ghost btn--block" onClick={checkPersist} disabled={checking}>
-              <RefreshCw size={16} className={checking ? 'spin' : undefined} /> Status prüfen
+              <RefreshCw size={16} className={checking ? 'spin' : undefined} /> {t('Status prüfen')}
             </button>
           </div>
-          <p className="hint">Der Schutz hilft nur gegen automatisches Aufräumen bei Speichermangel. Das Backup bleibt Pflicht.</p>
+          <p className="hint">{t('Der Schutz hilft nur gegen automatisches Aufräumen bei Speichermangel. Das Backup bleibt Pflicht.')}</p>
         </div>
       </Section>
 
-      <Section title="Aufbewahrung">
+      <Section title={t('Aufbewahrung')}>
         <div className="card">
-          <Row icon={<Archive size={18} />} title="Archiv" text={`${plural(wishesDone.length, 'gekaufter Wunsch', 'gekaufte Wünsche')}`} onClick={() => setTab('wishes')} />
-          <Row icon={<Trash2 size={18} />} title="Papierkorb" text={`${plural(trash.length, 'Eintrag', 'Einträge')} · wird nach ${TRASH_DAYS} Tagen geleert`} onClick={() => open({ type: 'trash' })} />
+          <Row icon={<Archive size={18} />} title={t('Archiv')} text={t.n(archived, 'gekaufter Wunsch', 'gekaufte Wünsche')} onClick={() => setTab('wishes')} />
+          <Row icon={<Trash2 size={18} />} title={t('Papierkorb')} text={t('{count} · wird nach {n} Tagen geleert', { count: t.n(trash.length, 'Eintrag', 'Einträge'), n: TRASH_DAYS })} onClick={() => open({ type: 'trash' })} />
         </div>
       </Section>
 
-      <Section title="Aussehen">
+      <Section title={t('Aussehen')}>
         <div className="card">
           <div className="setting setting--col">
-            <div><strong>Darstellung</strong></div>
-            <Segmented<ThemeSetting> id="theme" value={settings.theme} onChange={(theme) => setSettings({ theme })} options={[{ value: 'system', label: 'Auto' }, { value: 'dark', label: 'Dunkel' }, { value: 'light', label: 'Hell' }]} />
+            <div>
+              <strong>{t('Sprache')}</strong>
+            </div>
+            <Segmented<Lang> id="lang" value={settings.lang} onChange={(lang) => setSettings({ lang })} options={[{ value: 'de', label: 'Deutsch' }, { value: 'en', label: 'English' }]} />
           </div>
           <div className="setting setting--col">
-            <div><strong>Akzentfarbe</strong></div>
-            <div className="swatches swatches--left" role="radiogroup" aria-label="Akzentfarbe">
+            <div>
+              <strong>{t('Darstellung')}</strong>
+            </div>
+            <Segmented<ThemeSetting> id="theme" value={settings.theme} onChange={(theme) => setSettings({ theme })} options={[{ value: 'system', label: t('Auto') }, { value: 'dark', label: t('Dunkel') }, { value: 'light', label: t('Hell') }]} />
+          </div>
+          <div className="setting setting--col">
+            <div>
+              <strong>{t('Akzentfarbe')}</strong>
+            </div>
+            <div className="swatches swatches--left" role="radiogroup" aria-label={t('Akzentfarbe')}>
               {HUES.map((h) => (
-                <button key={h} role="radio" aria-checked={settings.hue === h} aria-label={`Akzent ${h}`} data-active={settings.hue === h} className="swatch swatch--color" style={{ ['--h' as string]: h }} onClick={() => setSettings({ hue: h })} />
+                <button key={h} role="radio" aria-checked={settings.hue === h} aria-label={`${t('Akzentfarbe')} ${h}`} data-active={settings.hue === h} className="swatch swatch--color" style={{ ['--h' as string]: h }} onClick={() => setSettings({ hue: h })} />
               ))}
             </div>
           </div>
           <div className="setting setting--col">
             <div>
-              <strong>Effekte</strong>
-              <p>Weniger Bewegung spart Akku und ist ruhiger.</p>
+              <strong>{t('Effekte')}</strong>
+              <p>{t('Weniger Bewegung spart Akku und ist ruhiger.')}</p>
             </div>
-            <Segmented<FxSetting> id="fx" value={settings.fx} onChange={(fx) => setSettings({ fx })} options={[{ value: 'full', label: 'Voll' }, { value: 'calm', label: 'Dezent' }, { value: 'off', label: 'Aus' }]} />
+            <Segmented<FxSetting> id="fx" value={settings.fx} onChange={(fx) => setSettings({ fx })} options={[{ value: 'full', label: t('Voll') }, { value: 'calm', label: t('Dezent') }, { value: 'off', label: t('Aus') }]} />
+          </div>
+          <div className="setting">
+            <div>
+              <strong>{t('Offene Ideen im Budget zeigen')}</strong>
+              <p>{t('Blendet in der Budget-Leiste einen hellen Balken mit der Summe der noch offenen Ideen ein.')}</p>
+            </div>
+            <Switch checked={settings.showPlanned} onChange={(showPlanned) => setSettings({ showPlanned })} label={t('Offene Ideen im Budget zeigen')} />
           </div>
         </div>
       </Section>
 
-      <Section title="Erinnerungen">
+      <Section title={t('Erinnerungen')}>
         <div className="card">
           <div className="setting">
             <div>
               <strong>
-                Vor Anlässen erinnern <Chip tone="accent">V0.7</Chip>
+                {t('Vor Anlässen erinnern')} <Chip tone="accent">V0.7</Chip>
               </strong>
-              <p>Android per Benachrichtigung, iPhone per Kalenderdatei. Die Einstellung ist schon da, die Erinnerungen folgen.</p>
+              <p>{t('Android per Benachrichtigung, iPhone per Kalenderdatei. Die Einstellung ist schon da, die Erinnerungen folgen.')}</p>
             </div>
-            <Switch checked={settings.remind} onChange={(remind) => setSettings({ remind })} label="Erinnerungen" />
+            <Switch checked={settings.remind} onChange={(remind) => setSettings({ remind })} label={t('Erinnerungen')} />
           </div>
           <AnimatePresence initial={false}>
             {settings.remind && (
               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden' }}>
                 <div className="setting">
-                  <div><strong>Vorlauf</strong></div>
+                  <div>
+                    <strong>{t('Vorlauf')}</strong>
+                  </div>
                   <div className="stepper">
-                    <button onClick={() => setSettings({ remindDays: Math.max(1, settings.remindDays - 1) })} aria-label="Weniger Tage">−</button>
-                    <b>{settings.remindDays} Tage</b>
-                    <button onClick={() => setSettings({ remindDays: Math.min(30, settings.remindDays + 1) })} aria-label="Mehr Tage">+</button>
+                    <button onClick={() => setSettings({ remindDays: Math.max(1, settings.remindDays - 1) })} aria-label={t('Weniger Tage')}>
+                      −
+                    </button>
+                    <b>{t('{n} Tage', { n: settings.remindDays })}</b>
+                    <button onClick={() => setSettings({ remindDays: Math.min(30, settings.remindDays + 1) })} aria-label={t('Mehr Tage')}>
+                      +
+                    </button>
                   </div>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
-          <Row icon={<CalendarClock size={18} />} title="Kalenderdatei erzeugen" text="Funktioniert auf iPhone und Android" onClick={() => ui.planned('ics-export')} />
+          <Row icon={<CalendarClock size={18} />} title={t('Kalenderdatei erzeugen')} text={t('Funktioniert auf iPhone und Android')} onClick={() => ui.planned('ics-export')} />
         </div>
       </Section>
 
-      <Section title="App">
+      <Section title={t('App')}>
         <div className="card">
-          <Row icon={<Smartphone size={18} />} title="Auf dem Home-Bildschirm installieren" onClick={() => ui.planned('install-hint')} />
-          <Row icon={<Bell size={18} />} title="Auf Updates prüfen" text={`Version ${APP_VERSION}`} onClick={() => ui.planned('update-check')} />
-          <Row icon={<Map size={18} />} title="Roadmap" text="Was als Nächstes kommt" onClick={() => open({ type: 'roadmap' })} />
+          <Row icon={<Smartphone size={18} />} title={t('Auf dem Home-Bildschirm installieren')} onClick={() => ui.planned('install-hint')} />
+          <Row icon={<Bell size={18} />} title={t('Auf Updates prüfen')} text={t('Version {v}', { v: APP_VERSION })} onClick={() => ui.planned('update-check')} />
+          <Row icon={<Map size={18} />} title={t('Roadmap')} text={t('Was als Nächstes kommt')} onClick={() => open({ type: 'roadmap' })} />
         </div>
       </Section>
 
-      <Section title="Vorschau-Werkzeuge">
+      <Section title={t('Vorschau-Werkzeuge')}>
         <div className="card">
-          <Row icon={<Palette size={18} />} title="Demo-Daten laden" text="Setzt alles auf die Beispieldaten zurück" onClick={() => { dispatch({ type: 'loadDemo' }); ui.toast({ message: 'Demo-Daten geladen', emoji: '🎁' }) }} />
-          <Row icon={<Undo2 size={18} />} title="Leere App ansehen" text={`${items.length} Einträge werden ausgeblendet`} onClick={() => { dispatch({ type: 'wipe' }); ui.toast({ message: 'Leere App geladen' , emoji: '🧹' }) }} />
+          <Row
+            icon={<Palette size={18} />}
+            title={t('Demo-Daten laden')}
+            text={t('Setzt alles auf die Beispieldaten zurück')}
+            onClick={() => {
+              dispatch({ type: 'loadDemo' })
+              ui.toast({ message: t('Demo-Daten geladen'), emoji: '🎁' })
+            }}
+          />
+          <Row
+            icon={<Undo2 size={18} />}
+            title={t('Leere App ansehen')}
+            text={t('{count} werden ausgeblendet', { count: t.n(items.length, 'Eintrag', 'Einträge') })}
+            onClick={() => {
+              dispatch({ type: 'wipe' })
+              ui.toast({ message: t('Leere App geladen'), emoji: '🧹' })
+            }}
+          />
         </div>
       </Section>
 
-      <Section title="Gefahrenzone">
+      <Section title={t('Gefahrenzone')}>
         <button className="btn btn--danger-soft btn--block" onClick={wipe}>
-          <Trash2 size={18} /> Alle Daten löschen
+          <Trash2 size={17} /> {t('Alle Daten löschen')}
         </button>
       </Section>
     </Page>
@@ -204,6 +247,7 @@ export function MoreScreen() {
 }
 
 export function TrashScreen() {
+  const t = useT()
   const { trash } = useLists()
   const { dispatch } = useStore()
   const { back } = useNav()
@@ -213,26 +257,26 @@ export function TrashScreen() {
 
   const empty = () =>
     ui.confirm({
-      title: 'Papierkorb leeren?',
-      text: `${plural(trash.length, 'Eintrag wird', 'Einträge werden')} endgültig gelöscht.`,
-      confirmLabel: 'Leeren',
+      title: t('Papierkorb leeren?'),
+      text: t('{count} endgültig gelöscht.', { count: t.n(trash.length, 'Eintrag wird', 'Einträge werden') }),
+      confirmLabel: t('Leeren'),
       tone: 'danger',
       onConfirm: () => {
         dispatch({ type: 'emptyTrash' })
-        ui.toast({ message: 'Papierkorb geleert', emoji: '🧹' })
+        ui.toast({ message: t('Papierkorb geleert'), emoji: '🧹' })
       },
     })
 
   return (
     <Page
-      title="Papierkorb"
-      eyebrow={`Automatisch nach ${TRASH_DAYS} Tagen`}
-      subtitle={trash.length ? plural(trash.length, 'Eintrag', 'Einträge') : undefined}
+      title={t('Papierkorb')}
+      eyebrow={t('Automatisch nach {n} Tagen', { n: TRASH_DAYS })}
+      subtitle={trash.length ? t.n(trash.length, 'Eintrag', 'Einträge') : undefined}
       onBack={back}
       actions={
         trash.length > 0 && (
           <button className="btn btn--small btn--ghost" onClick={empty}>
-            Leeren
+            {t('Leeren')}
           </button>
         )
       }
@@ -248,14 +292,33 @@ export function TrashScreen() {
                   <div className="item__main">
                     <span className="item__name">{it.name}</span>
                     <div className="item__meta">
-                      <Chip tone={d <= 5 ? 'warn' : 'neutral'}>noch {plural(d, 'Tag', 'Tage')}</Chip>
+                      <Chip tone={d <= 5 ? 'warn' : 'neutral'}>{t('noch {n}', { n: t.n(d, 'Tag', 'Tage') })}</Chip>
                     </div>
                   </div>
-                  <button className="icon-btn" aria-label="Wiederherstellen" onClick={() => { dispatch({ type: 'restoreItem', id: it.id }); ui.toast({ message: `„${it.name}“ wiederhergestellt`, emoji: '♻️' }) }}>
-                    <Undo2 size={18} />
+                  <button
+                    className="icon-btn"
+                    aria-label={t('Wiederherstellen')}
+                    onClick={() => {
+                      dispatch({ type: 'restoreItem', id: it.id })
+                      ui.toast({ message: t('„{name}“ wiederhergestellt', { name: it.name }), emoji: '♻️' })
+                    }}
+                  >
+                    <Undo2 size={17} />
                   </button>
-                  <button className="icon-btn icon-btn--danger" aria-label="Endgültig löschen" onClick={() => ui.confirm({ title: 'Endgültig löschen?', text: `„${it.name}“ lässt sich danach nicht mehr wiederherstellen.`, confirmLabel: 'Löschen', tone: 'danger', onConfirm: () => dispatch({ type: 'purgeItem', id: it.id }) })}>
-                    <Trash2 size={18} />
+                  <button
+                    className="icon-btn icon-btn--danger"
+                    aria-label={t('Endgültig löschen')}
+                    onClick={() =>
+                      ui.confirm({
+                        title: t('Endgültig löschen?'),
+                        text: t('„{name}“ lässt sich danach nicht mehr wiederherstellen.', { name: it.name }),
+                        confirmLabel: t('Löschen'),
+                        tone: 'danger',
+                        onConfirm: () => dispatch({ type: 'purgeItem', id: it.id }),
+                      })
+                    }
+                  >
+                    <Trash2 size={17} />
                   </button>
                 </motion.li>
               )
@@ -263,16 +326,17 @@ export function TrashScreen() {
           </AnimatePresence>
         </ul>
       ) : (
-        <EmptyState emoji="🍃" title="Der Papierkorb ist leer" text="Gelöschte Einträge bleiben hier 30 Tage, bevor sie endgültig verschwinden." />
+        <EmptyState emoji="🍃" title={t('Der Papierkorb ist leer')} text={t('Gelöschte Einträge bleiben hier 30 Tage, bevor sie endgültig verschwinden.')} />
       )}
     </Page>
   )
 }
 
 export function RoadmapScreen() {
+  const t = useT()
   const { back } = useNav()
   return (
-    <Page title="Roadmap" eyebrow="Vom Design zur App" subtitle="Erst das Gefühl, dann die Logik" onBack={back}>
+    <Page title={t('Roadmap')} eyebrow={t('Vom Design zur App')} subtitle={t('Erst das Gefühl, dann die Logik')} onBack={back}>
       <ol className="timeline">
         {roadmap.map((s, i) => {
           const current = i === 0
@@ -282,9 +346,9 @@ export function RoadmapScreen() {
               <div className="timeline__card spot">
                 <div className="timeline__head">
                   <Chip tone={current ? 'accent' : 'neutral'}>{s.version}</Chip>
-                  <strong>{s.title}</strong>
+                  <strong>{t(s.title)}</strong>
                 </div>
-                <p>{s.text}</p>
+                <p>{t(s.text)}</p>
               </div>
             </motion.li>
           )

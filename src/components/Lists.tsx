@@ -1,0 +1,205 @@
+import { useState } from 'react'
+import { motion } from 'motion/react'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { eur } from '../lib/format'
+import { listTitle } from '../lib/lists'
+import type { ListStats } from '../lib/stats'
+import type { Owner, Wishlist } from '../lib/types'
+import { uid } from '../lib/format'
+import { useStore } from '../state/store'
+import { useT, useUI } from '../state/ui'
+import { CountUp } from './Primitives'
+import { Presence } from './Presence'
+import { Sheet } from './Sheet'
+
+export type ListSelection = 'all' | string
+
+interface ListBarProps {
+  lists: Wishlist[]
+  counts: Record<string, number>
+  total: number
+  value: ListSelection
+  onChange: (v: ListSelection) => void
+  onAdd: () => void
+}
+
+/** Waagerechte Auswahl der Listen: "Alle", jede Liste mit Anzahl und "Neue Liste". */
+export function ListBar({ lists, counts, total, value, onChange, onAdd }: ListBarProps) {
+  const t = useT()
+  return (
+    <div className="listbar" role="tablist" aria-label={t('Listen')}>
+      <button className="listchip" role="tab" aria-selected={value === 'all'} data-active={value === 'all'} onClick={() => onChange('all')}>
+        {t('Alle')} <em>{total}</em>
+      </button>
+      {lists.map((l) => (
+        <button key={l.id} className="listchip" role="tab" aria-selected={value === l.id} data-active={value === l.id} onClick={() => onChange(l.id)}>
+          <span aria-hidden>{l.emoji}</span> {listTitle(l, t)} <em>{counts[l.id] ?? 0}</em>
+        </button>
+      ))}
+      <button className="listchip listchip--add" onClick={onAdd} aria-label={t('Neue Liste')}>
+        <Plus size={15} strokeWidth={2.6} /> {t('Neue Liste')}
+      </button>
+    </div>
+  )
+}
+
+interface StatsCardProps {
+  title: string
+  emoji?: string
+  stats: ListStats
+  onEdit?: () => void
+}
+
+/** Kleine Kennzahlen zu einer Liste: Anzahl, Gesamtwert, offen, gekauft und Durchschnitt. */
+export function ListStatsCard({ title, emoji, stats, onEdit }: StatsCardProps) {
+  const t = useT()
+  const done = stats.count ? stats.bought / stats.count : 0
+  return (
+    <section className="lstats spot">
+      <div className="lstats__head">
+        <strong>
+          {emoji && <span aria-hidden>{emoji}</span>} {title}
+        </strong>
+        {onEdit && (
+          <button className="icon-btn icon-btn--sm" onClick={onEdit} aria-label={t('Liste bearbeiten')}>
+            <Pencil size={14} />
+          </button>
+        )}
+      </div>
+      <div className="lstats__total">
+        <CountUp value={stats.total} format={(n) => eur(Math.round(n))} />
+        <span>{t('Gesamtwert')}</span>
+      </div>
+      <div className="lstats__bar" aria-hidden>
+        <motion.span initial={{ width: 0 }} animate={{ width: `${done * 100}%` }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }} />
+      </div>
+      <dl className="lstats__grid">
+        <div>
+          <dt>{t('Einträge')}</dt>
+          <dd>{stats.count}</dd>
+        </div>
+        <div>
+          <dt>{t('Offen')}</dt>
+          <dd>{eur(stats.openValue)}</dd>
+        </div>
+        <div>
+          <dt>{t('Gekauft')}</dt>
+          <dd>{eur(stats.boughtValue)}</dd>
+        </div>
+        <div>
+          <dt>{t('Ø Preis')}</dt>
+          <dd>{stats.avg ? eur(Math.round(stats.avg)) : '–'}</dd>
+        </div>
+      </dl>
+    </section>
+  )
+}
+
+const EMOJIS = ['📌', '🎄', '🎂', '💝', '🏠', '✈️', '🎓', '🍼', '💍', '🎁', '🛒', '⭐']
+const HUES = [14, 45, 100, 150, 190, 230, 275, 320]
+
+interface ListSheetProps {
+  owner: Owner
+  list?: Wishlist | null
+  onClose: () => void
+  onCreated?: (id: string) => void
+  onDeleted?: () => void
+}
+
+export function ListSheet({ owner, list, onClose, onCreated, onDeleted }: ListSheetProps) {
+  const t = useT()
+  const ui = useUI()
+  const { dispatch, lists, items } = useStore()
+  const editing = !!list
+  const [name, setName] = useState(list && !list.isDefault ? list.name : '')
+  const [emoji, setEmoji] = useState(list?.emoji ?? '⭐')
+  const [hue, setHue] = useState(list?.hue ?? HUES[Math.floor(Math.random() * HUES.length)])
+  const [shake, setShake] = useState(0)
+  const canDelete = editing && lists.filter((l) => l.owner === owner).length > 1
+
+  const save = () => {
+    const finalName = name.trim()
+    if (!finalName && !(list?.isDefault)) {
+      setShake((s) => s + 1)
+      ui.haptic(30)
+      return
+    }
+    if (list) {
+      // Ein Standardname bleibt "Allgemein", sonst wird die Liste zu einer eigenen.
+      dispatch({ type: 'updateList', id: list.id, patch: { name: finalName, emoji, hue, isDefault: finalName ? undefined : list.isDefault } })
+      ui.toast({ message: t('Liste aktualisiert'), emoji: '✨' })
+    } else {
+      const id = uid()
+      dispatch({ type: 'addList', list: { id, owner, name: finalName, emoji, hue, createdAt: Date.now() } })
+      ui.toast({ message: t('Liste „{name}“ angelegt', { name: finalName }), emoji })
+      onCreated?.(id)
+    }
+    ui.haptic(18)
+    onClose()
+  }
+
+  const remove = () => {
+    if (!list) return
+    const n = items.filter((i) => i.listId === list.id && !i.deletedAt).length
+    ui.confirm({
+      title: t('Liste löschen?'),
+      text: n ? t('Die Liste wird gelöscht, ihre {count} landen im Papierkorb.', { count: t.n(n, 'Eintrag', 'Einträge') }) : t('Die leere Liste wird gelöscht.'),
+      confirmLabel: t('Löschen'),
+      tone: 'danger',
+      onConfirm: () => {
+        dispatch({ type: 'deleteList', id: list.id })
+        ui.toast({ message: t('Liste gelöscht') })
+        onClose()
+        onDeleted?.()
+      },
+    })
+  }
+
+  return (
+    <Sheet
+      title={editing ? t('Liste bearbeiten') : t('Neue Liste')}
+      subtitle={owner === 'me' ? t('Wünsche lassen sich in Listen sortieren und einzeln teilen') : t('Ideen lassen sich in Listen sortieren, z. B. nach Anlass')}
+      onClose={onClose}
+      footer={
+        <div className="row row--gap">
+          {canDelete && (
+            <button className="btn btn--ghost btn--icon" onClick={remove} aria-label={t('Liste löschen')}>
+              <Trash2 size={17} />
+            </button>
+          )}
+          <button className="btn btn--primary btn--grow" onClick={save}>
+            {editing ? t('Speichern') : t('Anlegen')}
+          </button>
+        </div>
+      }
+    >
+      <motion.label key={shake} className="field" animate={shake ? { x: [0, -9, 9, -6, 6, 0] } : undefined} transition={{ duration: 0.4 }}>
+        <span>{t('Name')}</span>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder={list?.isDefault ? t('Allgemein') : t('z. B. Weihnachten')} autoFocus={!editing} data-invalid={shake > 0 && !name.trim() && !list?.isDefault} />
+      </motion.label>
+      <div className="field">
+        <span>{t('Symbol')}</span>
+        <div className="swatches swatches--left" role="radiogroup" aria-label={t('Symbol')}>
+          {EMOJIS.map((e) => (
+            <button key={e} role="radio" aria-checked={e === emoji} data-active={e === emoji} className="swatch swatch--emoji" onClick={() => setEmoji(e)}>
+              {e}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="field">
+        <span>{t('Farbe')}</span>
+        <div className="swatches swatches--left" role="radiogroup" aria-label={t('Farbe')}>
+          {HUES.map((h) => (
+            <button key={h} role="radio" aria-checked={h === hue} aria-label={`${h}`} data-active={h === hue} className="swatch swatch--color" style={{ ['--h' as string]: h }} onClick={() => setHue(h)} />
+          ))}
+        </div>
+      </div>
+    </Sheet>
+  )
+}
+
+/** Hilfsbaustein: Sheet zum Anlegen/Bearbeiten einer Liste mit eigener Presence. */
+export function ListSheetHost({ open, ...props }: ListSheetProps & { open: boolean }) {
+  return <Presence show={open}>{open && <ListSheet {...props} />}</Presence>
+}

@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { MotionConfig } from 'motion/react'
 import type { PlannedId } from '../lib/plannedFeatures'
+import { detectLang, makeT, type TFn } from '../lib/i18n'
+import { setLocale } from '../lib/format'
 import type { UiSettings } from '../lib/types'
 import { Overlays } from '../components/Overlays'
 
@@ -28,6 +30,7 @@ export interface Burst {
 }
 
 interface UI {
+  t: TFn
   settings: UiSettings
   setSettings: (patch: Partial<UiSettings>) => void
   planned: (id: PlannedId) => void
@@ -40,13 +43,13 @@ interface UI {
 const Ctx = createContext<UI | null>(null)
 
 const STORAGE_KEY = 'wl.ui'
-const defaults: UiSettings = { theme: 'system', fx: 'full', hue: 14, remind: true, remindDays: 7 }
+const defaults = (): UiSettings => ({ theme: 'system', fx: 'full', lang: detectLang(), hue: 14, remind: true, remindDays: 7, showPlanned: false })
 
 function loadSettings(): UiSettings {
   try {
-    return { ...defaults, ...JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') }
+    return { ...defaults(), ...JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') }
   } catch {
-    return defaults
+    return defaults()
   }
 }
 
@@ -57,6 +60,9 @@ export function UIProvider({ children }: { children: ReactNode }) {
   const [confirm, setConfirm] = useState<ConfirmOpts | null>(null)
   const [bursts, setBursts] = useState<Burst[]>([])
   const seq = useRef(0)
+  const t = useMemo(() => makeT(settings.lang), [settings.lang])
+  // Zahlen- und Datumsformat gelten ab dem nächsten Rendern der Kinder.
+  setLocale(t.locale)
 
   // Theme, Effekt-Stufe und Akzentfarbe auf das Dokument übertragen.
   useEffect(() => {
@@ -70,6 +76,7 @@ export function UIProvider({ children }: { children: ReactNode }) {
     }
     apply()
     root.dataset.fx = settings.fx
+    root.lang = settings.lang
     root.style.setProperty('--hue', String(settings.hue))
     mq.addEventListener('change', apply)
     return () => mq.removeEventListener('change', apply)
@@ -96,6 +103,7 @@ export function UIProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<UI>(
     () => ({
+      t,
       settings,
       setSettings,
       haptic,
@@ -109,7 +117,7 @@ export function UIProvider({ children }: { children: ReactNode }) {
         setTimeout(() => setBursts((b) => b.filter((e) => e.id !== id)), 1600)
       },
     }),
-    [settings, setSettings, haptic],
+    [t, settings, setSettings, haptic],
   )
 
   return (
@@ -135,3 +143,6 @@ export function useUI(): UI {
   if (!v) throw new Error('UIProvider fehlt')
   return v
 }
+
+/** Kurzform für Übersetzungen in Komponenten. */
+export const useT = (): TFn => useUI().t

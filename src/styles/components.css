@@ -122,7 +122,7 @@
   --ring-b: oklch(0.72 0.17 calc(var(--h) + 40));
 }
 
-.ring svg {
+.ring > svg {
   position: absolute;
   inset: 0;
   overflow: visible;

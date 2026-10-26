@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
-export type Tab = 'wishes' | 'ideas' | 'received' | 'more'
-export const TAB_ORDER: Tab[] = ['wishes', 'ideas', 'received', 'more']
+export type Tab = 'wishes' | 'ideas' | 'received' | 'stats' | 'more'
+export const TAB_ORDER: Tab[] = ['wishes', 'ideas', 'received', 'stats', 'more']
 
 export type View =
   | { type: 'person'; id: string }

@@ -1,17 +1,21 @@
 import { createContext, useContext, useMemo, useReducer, type ReactNode } from 'react'
-import { demoItems, demoPersons, demoReceived } from '../lib/demoData'
-import { dayAgoTs, normalize } from '../lib/format'
-import type { Item, Person, ReceivedList } from '../lib/types'
+import { defaultList, demoItems, demoLists, demoPersons, demoReceived } from '../lib/demoData'
+import { dayAgoTs } from '../lib/format'
+import { similarNames } from '../lib/match'
+import type { Item, Owner, Person, ReceivedList, Wishlist } from '../lib/types'
 
 // V0.1: reiner Arbeitsspeicher. Der Zustand dient nur dazu, Animationen und Übergänge
 // mit echtem Verhalten zu zeigen. Dauerhaftes Speichern kommt in V0.2.
 
 interface State {
   items: Item[]
+  lists: Wishlist[]
   persons: Person[]
   received: ReceivedList[]
   lastBackupAt: number | null
   changedSinceBackup: boolean
+  /** Backup-Hinweis: nur direkt nach dem Start der App sichtbar. */
+  nudgeOpen: boolean
   dirty: boolean
 }
 
@@ -23,29 +27,36 @@ type Action =
   | { type: 'restoreItem'; id: string }
   | { type: 'purgeItem'; id: string }
   | { type: 'emptyTrash' }
-  | { type: 'addPerson'; person: Person }
+  | { type: 'addList'; list: Wishlist }
+  | { type: 'updateList'; id: string; patch: Partial<Wishlist> }
+  | { type: 'deleteList'; id: string }
+  | { type: 'addPerson'; person: Person; list: Wishlist }
   | { type: 'updatePerson'; id: string; patch: Partial<Person> }
   | { type: 'deletePerson'; id: string }
   | { type: 'deleteReceived'; id: string }
   | { type: 'wipe' }
   | { type: 'loadDemo' }
-  | { type: 'ackBackupNudge' }
+  | { type: 'ackNudge' }
 
 const demoState = (): State => ({
   items: demoItems(),
+  lists: demoLists(),
   persons: demoPersons(),
   received: demoReceived(),
   lastBackupAt: dayAgoTs(16),
   changedSinceBackup: true,
+  nudgeOpen: true,
   dirty: false,
 })
 
 const emptyState = (): State => ({
   items: [],
+  lists: [defaultList('me', 'l-me-1')],
   persons: [],
   received: [],
   lastBackupAt: null,
   changedSinceBackup: false,
+  nudgeOpen: false,
   dirty: false,
 })
 
@@ -58,26 +69,41 @@ function reducer(s: State, a: Action): State {
       return touch({ items: s.items.map((i) => (i.id === a.id ? { ...i, ...a.patch } : i)) })
     case 'toggleBought':
       return touch({
-        items: s.items.map((i) =>
-          i.id === a.id ? { ...i, bought: !i.bought, boughtAt: i.bought ? undefined : Date.now() } : i,
-        ),
+        items: s.items.map((i) => (i.id === a.id ? { ...i, bought: !i.bought, boughtAt: i.bought ? undefined : Date.now() } : i)),
       })
     case 'trashItem':
       return touch({ items: s.items.map((i) => (i.id === a.id ? { ...i, deletedAt: Date.now() } : i)) })
     case 'restoreItem':
-      return touch({ items: s.items.map((i) => (i.id === a.id ? { ...i, deletedAt: undefined } : i)) })
+      return touch({
+        items: s.items.map((i) => {
+          if (i.id !== a.id) return i
+          // Gibt es die Liste nicht mehr, wandert der Eintrag in die erste Liste des Eigentümers.
+          const listId = s.lists.some((l) => l.id === i.listId) ? i.listId : (s.lists.find((l) => l.owner === i.owner)?.id ?? i.listId)
+          return { ...i, deletedAt: undefined, listId }
+        }),
+      })
     case 'purgeItem':
       return touch({ items: s.items.filter((i) => i.id !== a.id) })
     case 'emptyTrash':
       return touch({ items: s.items.filter((i) => !i.deletedAt) })
+    case 'addList':
+      return touch({ lists: [...s.lists, a.list] })
+    case 'updateList':
+      return touch({ lists: s.lists.map((l) => (l.id === a.id ? { ...l, ...a.patch } : l)) })
+    case 'deleteList':
+      return touch({
+        lists: s.lists.filter((l) => l.id !== a.id),
+        items: s.items.map((i) => (i.listId === a.id && !i.deletedAt ? { ...i, deletedAt: Date.now() } : i)),
+      })
     case 'addPerson':
-      return touch({ persons: [...s.persons, a.person] })
+      return touch({ persons: [...s.persons, a.person], lists: [...s.lists, a.list] })
     case 'updatePerson':
       return touch({ persons: s.persons.map((p) => (p.id === a.id ? { ...p, ...a.patch } : p)) })
     case 'deletePerson':
       return touch({
         persons: s.persons.filter((p) => p.id !== a.id),
         items: s.items.filter((i) => i.owner !== a.id),
+        lists: s.lists.filter((l) => l.owner !== a.id),
         received: s.received.map((r) => (r.personId === a.id ? { ...r, personId: undefined } : r)),
       })
     case 'deleteReceived':
@@ -86,14 +112,14 @@ function reducer(s: State, a: Action): State {
       return { ...emptyState(), dirty: true }
     case 'loadDemo':
       return demoState()
-    case 'ackBackupNudge':
-      return { ...s, changedSinceBackup: false }
+    case 'ackNudge':
+      return { ...s, nudgeOpen: false }
   }
 }
 
 interface Store extends State {
   dispatch: (a: Action) => void
-  /** Idee-Eintrag -> ist der Artikel bei der Person schon vorhanden? (unauffällig mitgesendet) */
+  /** Ist der Artikel bei der Person laut Hintergrund-Abgleich schon vorhanden? (strenger Abgleich für das Badge) */
   alreadyOwned: (idea: Item) => boolean
 }
 
@@ -103,24 +129,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, undefined, demoState)
 
   const value = useMemo<Store>(() => {
-    const ownedByPerson = new Map<string, { names: Set<string>; links: Set<string> }>()
-    for (const list of state.received) {
-      if (!list.personId) continue
-      const entry = ownedByPerson.get(list.personId) ?? { names: new Set(), links: new Set() }
-      for (const it of list.items) {
-        if (!it.owned) continue
-        entry.names.add(normalize(it.name))
-        if (it.link) entry.links.add(it.link)
-      }
-      ownedByPerson.set(list.personId, entry)
+    const ownedByPerson = new Map<string, { name: string; link?: string }[]>()
+    for (const r of state.received) {
+      if (!r.personId) continue
+      const arr = ownedByPerson.get(r.personId) ?? []
+      for (const l of r.lists) for (const it of l.items) if (it.owned) arr.push({ name: it.name, link: it.link })
+      ownedByPerson.set(r.personId, arr)
     }
     return {
       ...state,
       dispatch,
       alreadyOwned: (idea) => {
-        const e = ownedByPerson.get(idea.owner)
-        if (!e || idea.bought) return false
-        return e.names.has(normalize(idea.name)) || (!!idea.link && e.links.has(idea.link))
+        const owned = ownedByPerson.get(idea.owner)
+        if (!owned || idea.bought) return false
+        return owned.some((o) => similarNames(o.name, idea.name) || (!!idea.link && o.link === idea.link))
       },
     }
   }, [state])
@@ -134,18 +156,18 @@ export function useStore(): Store {
   return v
 }
 
-/** Abgeleitete Listen, damit die Screens schlank bleiben. */
+/** Abgeleitete Auswertungen, damit die Screens schlank bleiben. */
 export function useLists() {
-  const { items, persons } = useStore()
+  const { items, persons, lists } = useStore()
   return useMemo(() => {
     const live = items.filter((i) => !i.deletedAt)
-    const wishes = live.filter((i) => i.owner === 'me')
     return {
-      wishesOpen: wishes.filter((i) => !i.bought),
-      wishesDone: wishes.filter((i) => i.bought).sort((a, b) => (b.boughtAt ?? 0) - (a.boughtAt ?? 0)),
+      live,
+      mine: live.filter((i) => i.owner === 'me'),
       trash: items.filter((i) => i.deletedAt).sort((a, b) => (a.deletedAt ?? 0) - (b.deletedAt ?? 0)),
-      ideasOf: (personId: string) => live.filter((i) => i.owner === personId),
+      listsOf: (owner: Owner) => lists.filter((l) => l.owner === owner),
+      itemsOf: (owner: Owner) => live.filter((i) => i.owner === owner),
       personById: (id: string) => persons.find((p) => p.id === id),
     }
-  }, [items, persons])
+  }, [items, persons, lists])
 }

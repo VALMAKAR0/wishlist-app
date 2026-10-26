@@ -2,34 +2,35 @@ import { useEffect, useMemo, useRef } from 'react'
 import { animate, motion, useMotionValue, useTransform } from 'motion/react'
 import { Check, Sparkles } from 'lucide-react'
 import { planned, type PlannedId } from '../lib/plannedFeatures'
-import type { Burst, ConfirmOpts, ToastOpts } from '../state/ui'
+import { useT, type Burst, type ConfirmOpts, type ToastOpts } from '../state/ui'
 import { Dialog } from './Dialog'
 import { Presence, useClosing } from './Presence'
 
-const platformLabel = { beide: 'Android und iPhone', android: 'Nur Android', iphone: 'Nur iPhone' } as const
-
 function PlannedDialog({ id, onClose }: { id: PlannedId; onClose: () => void }) {
+  const t = useT()
   const f = planned[id]
+  const platform = { beide: t('Android und iPhone'), android: t('Nur Android'), iphone: t('Nur iPhone') }[f.platform]
   return (
-    <Dialog label={f.title} onClose={onClose} className="dialog--planned">
+    <Dialog label={t(f.title)} onClose={onClose} className="dialog--planned">
       <div className="orb" aria-hidden>
         <span className="orb__ring" />
         <span className="orb__emoji">{f.emoji}</span>
         <Sparkles className="orb__spark orb__spark--a" size={16} />
         <Sparkles className="orb__spark orb__spark--b" size={12} />
       </div>
-      <div className="chip chip--accent">Geplant für {f.version}</div>
-      <h2 className="dialog__title">{f.title}</h2>
-      <p className="dialog__text">{f.text}</p>
-      <p className="dialog__meta">{platformLabel[f.platform]}</p>
+      <div className="chip chip--accent">{t('Geplant für {version}', { version: f.version })}</div>
+      <h2 className="dialog__title">{t(f.title)}</h2>
+      <p className="dialog__text">{t(f.text)}</p>
+      <p className="dialog__meta">{platform}</p>
       <button className="btn btn--primary btn--block" onClick={onClose} autoFocus>
-        Alles klar
+        {t('Alles klar')}
       </button>
     </Dialog>
   )
 }
 
 function ConfirmDialog({ c, onClose }: { c: ConfirmOpts; onClose: () => void }) {
+  const t = useT()
   const progress = useMotionValue(0)
   const width = useTransform(progress, (v) => `${v * 100}%`)
   const ctrl = useRef<ReturnType<typeof animate> | null>(null)
@@ -57,7 +58,7 @@ function ConfirmDialog({ c, onClose }: { c: ConfirmOpts; onClose: () => void }) 
       <p className="dialog__text">{c.text}</p>
       <div className="dialog__actions">
         <button className="btn btn--ghost" onClick={onClose}>
-          Abbrechen
+          {t('Abbrechen')}
         </button>
         {c.hold ? (
           <button
@@ -71,7 +72,7 @@ function ConfirmDialog({ c, onClose }: { c: ConfirmOpts; onClose: () => void }) 
           >
             <motion.span className="btn__fill" style={{ width }} />
             <span className="btn__label">{c.confirmLabel}</span>
-            <span className="btn__hint">gedrückt halten</span>
+            <span className="btn__hint">{t('gedrückt halten')}</span>
           </button>
         ) : (
           <button className={`btn ${c.tone === 'danger' ? 'btn--danger' : 'btn--primary'}`} onClick={finish}>
@@ -83,14 +84,14 @@ function ConfirmDialog({ c, onClose }: { c: ConfirmOpts; onClose: () => void }) 
   )
 }
 
-function Toast({ t, onClose }: { t: ToastOpts & { id: number }; onClose: () => void }) {
+function Toast({ t: toast, onClose }: { t: ToastOpts & { id: number }; onClose: () => void }) {
   const closing = useClosing()
   const closeRef = useRef(onClose)
   closeRef.current = onClose
   useEffect(() => {
     const timer = setTimeout(() => closeRef.current(), 5200)
     return () => clearTimeout(timer)
-  }, [t.id])
+  }, [toast.id])
 
   return (
     <motion.div
@@ -101,17 +102,17 @@ function Toast({ t, onClose }: { t: ToastOpts & { id: number }; onClose: () => v
       animate={closing ? { y: -24, opacity: 0, scale: 0.96 } : { y: 0, opacity: 1, scale: 1 }}
       transition={closing ? { duration: 0.18 } : { type: 'spring', stiffness: 420, damping: 30 }}
     >
-      <span className="toast__check">{t.emoji ?? <Check size={14} />}</span>
-      <span className="toast__msg">{t.message}</span>
-      {t.actionLabel && (
+      <span className="toast__check">{toast.emoji ?? <Check size={14} />}</span>
+      <span className="toast__msg">{toast.message}</span>
+      {toast.actionLabel && (
         <button
           className="toast__action"
           onClick={() => {
-            t.onAction?.()
+            toast.onAction?.()
             onClose()
           }}
         >
-          {t.actionLabel}
+          {toast.actionLabel}
         </button>
       )}
       <motion.span className="toast__timer" initial={{ scaleX: 1 }} animate={{ scaleX: 0 }} transition={{ duration: 5.2, ease: 'linear' }} />

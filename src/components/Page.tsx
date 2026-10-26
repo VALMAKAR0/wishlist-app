@@ -1,6 +1,8 @@
 import { useRef, useState, type ReactNode } from 'react'
 import { motion, useMotionValueEvent, useScroll, useTransform } from 'motion/react'
 import { ChevronLeft, Plus } from 'lucide-react'
+import { cap } from '../lib/i18n'
+import { useT } from '../state/ui'
 
 interface PageProps {
   title: string
@@ -13,6 +15,7 @@ interface PageProps {
 
 /** Seite mit eigenem Scroll-Container und schrumpfender Kopfzeile. Den Übergang zwischen Seiten übernimmt die Bühne. */
 export function Page({ title, eyebrow, subtitle, actions, onBack, children }: PageProps) {
+  const t = useT()
   const ref = useRef<HTMLDivElement>(null)
   const [scrolled, setScrolled] = useState(false)
   const { scrollY } = useScroll({ container: ref })
@@ -28,7 +31,7 @@ export function Page({ title, eyebrow, subtitle, actions, onBack, children }: Pa
         <div className="page__bar-bg" data-on={scrolled} />
         <div className="page__bar-row">
           {onBack ? (
-            <button className="icon-btn" onClick={onBack} aria-label="Zurück">
+            <button className="icon-btn" onClick={onBack} aria-label={t('Zurück')}>
               <ChevronLeft size={22} />
             </button>
           ) : (
@@ -64,14 +67,14 @@ export function AddButton({ label, onClick }: { label: string; onClick: () => vo
   return (
     <motion.button
       className="add-btn"
-      aria-label={`${label} hinzufügen`}
+      aria-label={label}
       onClick={onClick}
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: 0.15, type: 'spring', stiffness: 380, damping: 22 }}
     >
       <Plus size={17} strokeWidth={2.8} />
-      {label}
+      {cap(label)}
     </motion.button>
   )
 }

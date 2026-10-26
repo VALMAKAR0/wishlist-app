@@ -5,25 +5,31 @@ import { AddButton, Page } from '../components/Page'
 import { Presence } from '../components/Presence'
 import { Avatar, Chip, CountUp, EmptyState } from '../components/Primitives'
 import { PersonFormSheet } from '../components/PersonFormSheet'
-import { dateLabel, eur, plural, untilLabel } from '../lib/format'
-import { closeness, nextOccasion } from '../lib/occasions'
+import { dateLabel, eur, untilLabel } from '../lib/format'
+import { nextOccasion } from '../lib/occasions'
 import { useNav } from '../state/nav'
 import { useStore } from '../state/store'
+import { useT, useUI } from '../state/ui'
 
 export function BudgetBar({ spent, planned, budget, hideText }: { spent: number; planned: number; budget: number; hideText?: boolean }) {
+  const t = useT()
+  const { settings } = useUI()
   // Offene Ideen sind nur Optionen: Die Leiste skaliert am Budget, erst echte Käufe können es überschreiten.
+  // Die helle Zusatzleiste (Summe der offenen Ideen) ist in den Einstellungen abschaltbar.
   const max = Math.max(budget, spent, 1)
   const over = spent > budget && budget > 0
   return (
     <div className="budget" data-over={over}>
       <div className="budget__bar">
-        <motion.span className="budget__planned" initial={{ width: 0 }} animate={{ width: `${(Math.min(spent + planned, max) / max) * 100}%` }} transition={{ duration: 0.9, delay: 0.3, ease: [0.22, 1, 0.36, 1] }} />
+        {settings.showPlanned && (
+          <motion.span className="budget__planned" initial={{ width: 0 }} animate={{ width: `${(Math.min(spent + planned, max) / max) * 100}%` }} transition={{ duration: 0.9, delay: 0.3, ease: [0.22, 1, 0.36, 1] }} />
+        )}
         <motion.span className="budget__spent" initial={{ width: 0 }} animate={{ width: `${(spent / max) * 100}%` }} transition={{ duration: 0.9, delay: 0.2, ease: [0.22, 1, 0.36, 1] }} />
       </div>
       {!hideText && (
         <span className="budget__text">
-          {eur(spent)} <em>von {eur(budget)}</em>
-          {over && <strong> · über Budget</strong>}
+          {eur(spent)} <em>{t('von {total}', { total: eur(budget) })}</em>
+          {over && <strong> · {t('über Budget')}</strong>}
         </span>
       )}
     </div>
@@ -31,6 +37,7 @@ export function BudgetBar({ spent, planned, budget, hideText }: { spent: number;
 }
 
 export function IdeasScreen() {
+  const t = useT()
   const { persons, items, alreadyOwned } = useStore()
   const { open } = useNav()
   const [adding, setAdding] = useState(false)
@@ -58,10 +65,10 @@ export function IdeasScreen() {
   return (
     <>
       <Page
-        title="Geschenkideen"
-        eyebrow="Privat"
-        subtitle={persons.length ? plural(persons.length, 'Person', 'Personen') : 'Nur für dich sichtbar, wird nie geteilt'}
-        actions={<AddButton label="Person" onClick={() => setAdding(true)} />}
+        title={t('Geschenkideen')}
+        eyebrow={t('Privat')}
+        subtitle={persons.length ? t.n(persons.length, 'Person', 'Personen') : t('Nur für dich sichtbar, wird nie geteilt')}
+        actions={<AddButton label={t('Person')} onClick={() => setAdding(true)} />}
       >
         {hero && hero.next && (
           <motion.button
@@ -74,25 +81,23 @@ export function IdeasScreen() {
           >
             <div className="hero__text">
               <span className="hero__label">
-                <Sparkles size={13} /> Als Nächstes
+                <Sparkles size={13} /> {t('Als Nächstes')}
               </span>
               <strong className="hero__value hero__value--big">
                 {hero.next.days === 0 ? (
-                  'Heute!'
+                  t('Heute!')
                 ) : (
                   <>
-                    <CountUp value={hero.next.days} /> <small>{hero.next.days === 1 ? 'Tag' : 'Tage'}</small>
+                    <CountUp value={hero.next.days} /> <small>{hero.next.days === 1 ? t('Tag') : t('Tage')}</small>
                   </>
                 )}
               </strong>
-              <span className="hero__note">
-                {hero.next.o.label} von {hero.person.name} · {dateLabel(hero.next.o)}
-              </span>
+              <span className="hero__note">{t('{occasion} von {name} · {date}', { occasion: t(hero.next.o.label), name: hero.person.name, date: dateLabel(hero.next.o) })}</span>
               <span className="hero__cta">
-                {plural(hero.ideas.length, 'Idee', 'Ideen')} ansehen <ArrowRight size={14} />
+                {t('{ideas} ansehen', { ideas: t.n(hero.ideas.length, 'Idee', 'Ideen') })} <ArrowRight size={14} />
               </span>
             </div>
-            <Avatar name={hero.person.name} hue={hero.person.hue} size={60} ring={closeness(hero.next.days)} />
+            <Avatar name={hero.person.name} hue={hero.person.hue} size={56} />
           </motion.button>
         )}
 
@@ -108,17 +113,17 @@ export function IdeasScreen() {
                   transition={{ type: 'spring', stiffness: 300, damping: 28, delay: 0.1 + Math.min(i, 6) * 0.05 }}
                 >
                   <button className="person-row spot" onClick={() => open({ type: 'person', id: person.id })}>
-                    <Avatar name={person.name} hue={person.hue} size={46} ring={next ? closeness(next.days) : 0.06} />
+                    <Avatar name={person.name} hue={person.hue} size={44} />
                     <div className="person-row__main">
                       <div className="person-row__top">
                         <strong>{person.name}</strong>
-                        {next && <span>{untilLabel(next.days)}</span>}
+                        {next && <span>{untilLabel(next.days, t)}</span>}
                       </div>
                       <div className="person-row__sub">
                         <span>
-                          {next ? next.o.label : 'Kein Anlass'} · {plural(ideas.length, 'Idee', 'Ideen')}
+                          {next ? t(next.o.label) : t('Kein Anlass')} · {t.n(ideas.length, 'Idee', 'Ideen')}
                         </span>
-                        {dupes > 0 && <Chip tone="accent">{dupes}× schon vorhanden</Chip>}
+                        {dupes > 0 && <Chip tone="accent">{t('{n}× schon vorhanden', { n: dupes })}</Chip>}
                       </div>
                       <BudgetBar spent={spent} planned={planned} budget={person.budget} hideText />
                     </div>
@@ -131,11 +136,11 @@ export function IdeasScreen() {
         ) : (
           <EmptyState
             emoji="🎁"
-            title="Für wen suchst du Geschenke?"
-            text="Lege Personen mit Anlass und Budget an. Deine Ideen dazu bleiben komplett privat."
+            title={t('Für wen suchst du Geschenke?')}
+            text={t('Lege Personen mit Anlass und Budget an. Deine Ideen dazu bleiben komplett privat.')}
             action={
               <button className="btn btn--primary" onClick={() => setAdding(true)}>
-                <Plus size={17} /> Erste Person anlegen
+                <Plus size={17} /> {t('Erste Person anlegen')}
               </button>
             }
           />

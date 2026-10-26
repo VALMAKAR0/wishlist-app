@@ -1,19 +1,26 @@
+import type { TFn } from './i18n'
 import type { Occasion } from './types'
 
 const DAY = 86_400_000
 
+// Sprache für Zahlen und Datumsangaben. Der UIProvider setzt sie vor jedem Rendern.
+let locale = 'de-DE'
+export const setLocale = (l: string) => {
+  locale = l
+}
+
 export const eur = (n: number) =>
-  new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: n % 1 ? 2 : 0 }).format(n)
+  new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR', maximumFractionDigits: n % 1 ? 2 : 0 }).format(n)
 
 export const daysBetween = (a: number, b: number) => Math.round((b - a) / DAY)
 
 export const daysAgo = (ts: number) => Math.max(0, daysBetween(ts, Date.now()))
 
-export function agoLabel(ts: number): string {
+export function agoLabel(ts: number, t: TFn): string {
   const d = daysAgo(ts)
-  if (d === 0) return 'heute'
-  if (d === 1) return 'gestern'
-  return `vor ${d} Tagen`
+  if (d === 0) return t('heute')
+  if (d === 1) return t('gestern')
+  return t('vor {n} Tagen', { n: d })
 }
 
 /** Nächstes Vorkommen eines Anlasses (Monat/Tag) ab heute. */
@@ -30,27 +37,28 @@ export function daysUntil(o: Pick<Occasion, 'month' | 'day'>): number {
   return daysBetween(start.getTime(), nextOccurrence(o, now).getTime())
 }
 
-export function untilLabel(days: number): string {
-  if (days === 0) return 'heute'
-  if (days === 1) return 'morgen'
-  return `in ${days} Tagen`
+export function untilLabel(days: number, t: TFn): string {
+  if (days === 0) return t('heute')
+  if (days === 1) return t('morgen')
+  return t('in {n} Tagen', { n: days })
 }
 
 export const dateLabel = (o: Pick<Occasion, 'month' | 'day'>) =>
-  nextOccurrence(o).toLocaleDateString('de-DE', { day: 'numeric', month: 'long' })
+  nextOccurrence(o).toLocaleDateString(locale, { day: 'numeric', month: 'long' })
 
-export const shortDate = (ts: number) =>
-  new Date(ts).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })
+export const shortDate = (ts: number) => new Date(ts).toLocaleDateString(locale, { day: 'numeric', month: 'short' })
+
+export const longDate = (ts: number) => new Date(ts).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })
+
+export const monthShort = (ts: number) => new Date(ts).toLocaleDateString(locale, { month: 'short' })
 
 export const timeLabel = (ts: number) =>
-  new Date(ts).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  new Date(ts).toLocaleString(locale, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 
 export const normalize = (s: string) =>
-  s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, ' ').trim()
+  s.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim()
 
 export const uid = () => Math.random().toString(36).slice(2, 10)
-
-export const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
 export const initial = (name: string) => (name.trim()[0] ?? '?').toUpperCase()
 
@@ -65,4 +73,18 @@ export function parseMonthDay(iso: string): { month: number; day: number } | nul
 export function toInputDate(o: Pick<Occasion, 'month' | 'day'>): string {
   const y = new Date().getFullYear()
   return `${y}-${String(o.month).padStart(2, '0')}-${String(o.day).padStart(2, '0')}`
+}
+
+/** Macht aus einer Eingabe einen öffnebaren Link (ergänzt https://, falls es fehlt). */
+export function toHref(link: string): string {
+  const l = link.trim()
+  return /^[a-z][a-z0-9+.-]*:/i.test(l) ? l : `https://${l}`
+}
+
+export const hostOf = (link: string) => {
+  try {
+    return new URL(toHref(link)).hostname.replace(/^www\./, '')
+  } catch {
+    return link
+  }
 }

@@ -1,49 +1,85 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { EyeOff, Lock, Send } from 'lucide-react'
+import { Check, EyeOff, Lock, Send } from 'lucide-react'
+import { listTitle } from '../lib/lists'
 import type { ShareBought } from '../lib/types'
-import { useLists } from '../state/store'
-import { useUI } from '../state/ui'
+import { useStore } from '../state/store'
+import { useT, useUI } from '../state/ui'
 import { Cover, CountUp, Segmented, Switch } from './Primitives'
 import { Sheet } from './Sheet'
 
-const MODE_TEXT: Record<ShareBought, { title: string; text: string }> = {
-  hidden: {
-    title: 'Unauffällig mitsenden',
-    text: 'Gekaufte Artikel gehen im Hintergrund mit. In deiner Liste tauchen sie für andere nicht auf, aber wer dir etwas schenken will, wird unauffällig gewarnt, wenn du es schon hast.',
-  },
-  only: {
-    title: 'Nur Gekauftes teilen',
-    text: 'Es geht nur die Liste der Dinge mit, die du schon hast. Andere sehen keine Wünsche, werden aber vor doppelten Geschenken gewarnt.',
-  },
-  exclude: {
-    title: 'Gekauftes ausschließen',
-    text: 'Gekaufte Artikel bleiben ganz bei dir. Es gibt keinen Hinweis auf Doppelungen.',
-  },
-}
-
-export function ShareSheet({ onClose }: { onClose: () => void }) {
-  const { wishesOpen, wishesDone } = useLists()
+export function ShareSheet({ onClose, initialList }: { onClose: () => void; initialList?: string }) {
+  const t = useT()
   const ui = useUI()
+  const { items, lists } = useStore()
+  const myLists = lists.filter((l) => l.owner === 'me')
+  const [picked, setPicked] = useState<Set<string>>(() => new Set(initialList && myLists.some((l) => l.id === initialList) ? [initialList] : myLists.map((l) => l.id)))
   const [notes, setNotes] = useState(false)
   const [mode, setMode] = useState<ShareBought>('hidden')
 
-  const visible = mode === 'only' ? [] : wishesOpen
-  const hidden = mode === 'exclude' ? [] : wishesDone
+  const toggle = (id: string) =>
+    setPicked((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+
+  const MODE_TEXT: Record<ShareBought, { title: string; text: string }> = {
+    hidden: {
+      title: t('Unauffällig mitsenden'),
+      text: t('Gekaufte Artikel gehen im Hintergrund mit. In deiner Liste tauchen sie für andere nicht auf, aber wer dir etwas schenken will, wird unauffällig gewarnt, wenn du es schon hast.'),
+    },
+    only: {
+      title: t('Nur Gekauftes teilen'),
+      text: t('Es geht nur die Liste der Dinge mit, die du schon hast. Andere sehen keine Wünsche, werden aber vor doppelten Geschenken gewarnt.'),
+    },
+    exclude: {
+      title: t('Gekauftes ausschließen'),
+      text: t('Gekaufte Artikel bleiben ganz bei dir. Es gibt keinen Hinweis auf Doppelungen.'),
+    },
+  }
+
+  const { open, done } = useMemo(() => {
+    const sel = items.filter((i) => i.owner === 'me' && !i.deletedAt && picked.has(i.listId))
+    return { open: sel.filter((i) => !i.bought), done: sel.filter((i) => i.bought) }
+  }, [items, picked])
+
+  const visible = mode === 'only' ? [] : open
+  const hidden = mode === 'exclude' ? [] : done
   const noteCount = notes ? visible.filter((w) => w.note).length : 0
-  const strip = (mode === 'only' ? wishesDone : wishesOpen).slice(0, 5)
+  const strip = (mode === 'only' ? done : open).slice(0, 5)
+  const nothing = picked.size === 0
 
   return (
     <Sheet
-      title="Wunschliste teilen"
-      subtitle="Du schickst einen Schnappschuss deiner Liste"
+      title={t('Wunschlisten teilen')}
+      subtitle={t('Du schickst einen Schnappschuss der gewählten Listen')}
       onClose={onClose}
       footer={
-        <button className="btn btn--primary btn--block" onClick={() => ui.planned('share-export')}>
-          <Send size={18} /> Datei teilen
+        <button className="btn btn--primary btn--block" disabled={nothing} onClick={() => ui.planned('share-export')}>
+          <Send size={17} /> {t('Datei teilen')}
         </button>
       }
     >
+      <div className="field">
+        <span>{t('Welche Listen?')}</span>
+        <div className="sharelists">
+          {myLists.map((l) => {
+            const on = picked.has(l.id)
+            const n = items.filter((i) => i.listId === l.id && !i.deletedAt).length
+            return (
+              <button key={l.id} className="sharelist" data-on={on} role="checkbox" aria-checked={on} onClick={() => toggle(l.id)}>
+                <span className="sharelist__box">{on && <Check size={13} strokeWidth={3.4} />}</span>
+                <span aria-hidden>{l.emoji}</span>
+                <b>{listTitle(l, t)}</b>
+                <em>{n}</em>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       <div className="parcel">
         <div className="parcel__strip">
           <AnimatePresence initial={false}>
@@ -53,42 +89,48 @@ export function ShareSheet({ onClose }: { onClose: () => void }) {
               </motion.div>
             ))}
           </AnimatePresence>
-          {strip.length === 0 && <span className="parcel__empty">Noch nichts zum Teilen</span>}
+          {strip.length === 0 && <span className="parcel__empty">{t('Noch nichts zum Teilen')}</span>}
         </div>
         <div className="stats">
           <div className="stat">
-            <b><CountUp value={visible.length} duration={0.5} /></b>
-            <span>sichtbar</span>
+            <b>
+              <CountUp value={visible.length} duration={0.5} />
+            </b>
+            <span>{t('sichtbar')}</span>
           </div>
           <div className="stat">
-            <b><CountUp value={hidden.length} duration={0.5} /></b>
-            <span>unauffällig</span>
+            <b>
+              <CountUp value={hidden.length} duration={0.5} />
+            </b>
+            <span>{t('unauffällig')}</span>
           </div>
           <div className="stat">
-            <b><CountUp value={noteCount} duration={0.5} /></b>
-            <span>Notizen</span>
+            <b>
+              <CountUp value={noteCount} duration={0.5} />
+            </b>
+            <span>{t('Notizen')}</span>
           </div>
         </div>
       </div>
 
       <div className="setting">
         <div>
-          <strong>Notizen mitsenden</strong>
-          <p>Standardmäßig bleiben sie bei dir.</p>
+          <strong>{t('Notizen mitsenden')}</strong>
+          <p>{t('Standardmäßig bleiben sie bei dir.')}</p>
         </div>
-        <Switch checked={notes} onChange={setNotes} label="Notizen mitsenden" />
+        <Switch checked={notes} onChange={setNotes} label={t('Notizen mitsenden')} />
       </div>
 
       <div className="field">
-        <span>Gekaufte Artikel</span>
+        <span>{t('Gekaufte Artikel')}</span>
         <Segmented
           id="share-bought"
           value={mode}
           onChange={setMode}
           options={[
-            { value: 'hidden', label: 'Unauffällig' },
-            { value: 'only', label: 'Nur gekauft' },
-            { value: 'exclude', label: 'Ohne' },
+            { value: 'hidden', label: t('Unauffällig') },
+            { value: 'only', label: t('Nur gekauft') },
+            { value: 'exclude', label: t('Ohne') },
           ]}
         />
         <AnimatePresence mode="wait" initial={false}>
@@ -103,7 +145,7 @@ export function ShareSheet({ onClose }: { onClose: () => void }) {
       </div>
 
       <p className="hint hint--lock">
-        <Lock size={14} /> Geschenkideen für andere werden nie geteilt.
+        <Lock size={14} /> {t('Geschenkideen für andere werden nie geteilt.')}
       </p>
     </Sheet>
   )

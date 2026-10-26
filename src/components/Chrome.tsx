@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { motion } from 'motion/react'
-import { Inbox, Lightbulb, SlidersHorizontal, Sparkles, type LucideIcon } from 'lucide-react'
+import { ChartNoAxesColumn, Inbox, Lightbulb, SlidersHorizontal, Sparkles, type LucideIcon } from 'lucide-react'
 import { APP_NAME } from '../lib/brand'
+import { cap } from '../lib/i18n'
 import { useNav, type Tab } from '../state/nav'
-import { useUI } from '../state/ui'
+import { useT, useUI } from '../state/ui'
 import { useStore } from '../state/store'
 import { Logo } from './Primitives'
 
@@ -22,18 +23,20 @@ const TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: 'wishes', label: 'Wünsche', icon: Sparkles },
   { id: 'ideas', label: 'Ideen', icon: Lightbulb },
   { id: 'received', label: 'Erhalten', icon: Inbox },
+  { id: 'stats', label: 'Statistik', icon: ChartNoAxesColumn },
   { id: 'more', label: 'Mehr', icon: SlidersHorizontal },
 ]
 
 export function TabBar() {
+  const t = useT()
   const { tab, setTab } = useNav()
   const { haptic } = useUI()
   const { received } = useStore()
-  const index = Math.max(0, TABS.findIndex((t) => t.id === tab))
+  const index = Math.max(0, TABS.findIndex((x) => x.id === tab))
   const style = { '--n': TABS.length, '--i': index } as CSSProperties
 
   return (
-    <nav className="tabbar" aria-label="Hauptnavigation">
+    <nav className="tabbar" aria-label={t('Hauptnavigation')}>
       <div className="tabbar__brand" aria-hidden>
         <Logo size={26} />
         <span>{APP_NAME}</span>
@@ -57,7 +60,7 @@ export function TabBar() {
                 <Icon size={21} strokeWidth={active ? 2.3 : 1.8} />
                 {id === 'received' && received.length > 0 && !active && <i className="tab__dot" />}
               </span>
-              <span className="tab__label">{label}</span>
+              <span className="tab__label">{cap(t(label))}</span>
             </button>
           )
         })}

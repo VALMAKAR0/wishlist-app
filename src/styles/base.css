@@ -174,8 +174,8 @@ select {
 .tabbar__inner {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  max-width: 560px;
+  grid-template-columns: repeat(var(--n, 5), 1fr);
+  max-width: 600px;
   margin: 0 auto;
 }
 
@@ -185,7 +185,7 @@ select {
   left: 0;
   display: flex;
   justify-content: center;
-  width: calc(100% / var(--n, 4));
+  width: calc(100% / var(--n, 5));
   transform: translateX(calc(var(--i, 0) * 100%));
   transition: transform 0.42s cubic-bezier(0.34, 1.25, 0.5, 1);
   pointer-events: none;

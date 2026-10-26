@@ -1,17 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Aurora, Splash, TabBar } from './components/Chrome'
 import { Stage } from './components/Stage'
 import { MoreScreen, RoadmapScreen, TrashScreen } from './screens/MoreScreens'
 import { IdeasScreen } from './screens/IdeasScreen'
 import { PersonScreen } from './screens/PersonScreen'
 import { ReceivedDetailScreen, ReceivedScreen } from './screens/ReceivedScreens'
+import { StatsScreen } from './screens/StatsScreen'
 import { WishesScreen } from './screens/WishesScreen'
 import { NavProvider, useNav } from './state/nav'
-import { StoreProvider } from './state/store'
+import { StoreProvider, useStore } from './state/store'
 import { UIProvider, useUI } from './state/ui'
 
 function Screens() {
   const { tab, view, dir } = useNav()
+  const { dispatch } = useStore()
 
   let screen
   let key: string
@@ -28,8 +30,18 @@ function Screens() {
       tab === 'wishes' ? <WishesScreen /> :
       tab === 'ideas' ? <IdeasScreen /> :
       tab === 'received' ? <ReceivedScreen /> :
+      tab === 'stats' ? <StatsScreen /> :
       <MoreScreen />
   }
+
+  // Der Backup-Hinweis gehört nur zum Start: Sobald man die Startseite verlässt, kommt er nicht mehr.
+  const firstKey = useRef(key)
+  useLayoutEffect(() => {
+    if (firstKey.current !== key) {
+      firstKey.current = key
+      dispatch({ type: 'ackNudge' })
+    }
+  }, [key, dispatch])
 
   return (
     <main className="stage">
