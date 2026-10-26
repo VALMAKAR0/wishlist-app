@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 25.10.2026 · Status: Planung · Datenformat: v1
+Stand: 26.10.2026 · Status: V0.1 (Design-Shell) in Arbeit · Datenformat: v1
 
 ## 1. Ziel
 
@@ -16,6 +16,7 @@ Alles läuft lokal auf dem Gerät. Kein Server, keine Datenbank, keine Accounts,
 | Thema | Entscheidung |
 |---|---|
 | Codebasis | Eine Web-App, mit Capacitor als Android-App verpackt |
+| Framework | Vite + React + TypeScript, Animationen mit Motion (`motion/react`), Icons mit lucide, Schriften lokal gebündelt (offlinefähig) |
 | Android | APK als GitHub-Release, Download per Link, Installation aus unbekannten Quellen |
 | iPhone | PWA über GitHub Pages, Installation per Safari "Zum Home-Bildschirm" |
 | Stores | Keine |
@@ -41,7 +42,7 @@ Hinweis iPhone: Die installierte PWA hat einen eigenen Speicher, getrennt von Sa
 
 ## 4. Datenmodell
 
-**Wunschlisten-Eintrag (Meine Wünsche):** Name, Link, Preis, Bild, Notiz, Status "gekauft".
+**Wunschlisten-Eintrag (Meine Wünsche):** Name, Link, Preis, Bild, Notiz, Status "gekauft". "Gekauft" heißt strikt: Ich habe den Artikel schon gekauft (nicht "erhalten").
 
 **Person (Geschenkideen):** Name, Anlass mit Datum (z. B. Geburtstag, Weihnachten), Budget.
 
@@ -56,6 +57,9 @@ Hinweis iPhone: Die installierte PWA hat einen eigenen Speicher, getrennt von Sa
 ## 5. Teilen
 
 - Geteilt wird nur die **eigene Wunschliste**, nie Geschenkideen.
+- **Notizen** bleiben standardmäßig privat. Beim Teilen lassen sie sich per Schalter mitsenden.
+- **Unauffälliges "Schon vorhanden":** Gekaufte Artikel gehen im Hintergrund mit (Markierung `owned`), ohne in der Liste des Empfängers aufzutauchen. Legt der Empfänger eine Geschenkidee für diese Person an, die dort schon als gekauft markiert ist, zeigt die Idee den Hinweis "Schon vorhanden". Abgeglichen wird über Link, sonst über den normalisierten Namen. Dafür muss die empfangene Liste mit einer Person verknüpft sein.
+- **Option "Gekaufte Artikel"** beim Teilen: *Unauffällig* (Standard) · *Nur gekauft* (es geht nur der Abgleich mit, keine sichtbaren Wünsche) · *Ohne* (gekaufte Artikel bleiben ganz bei mir).
 - Export als Datei, Teilen-Button öffnet das Share-Menü des Handys (z. B. WhatsApp).
 - Import über "Importieren" und Dateiauswahl.
 - Eine empfangene Liste wird als eigene, getrennte Liste gespeichert.
@@ -70,7 +74,7 @@ Hinweis iPhone: Die installierte PWA hat einen eigenen Speicher, getrennt von Sa
 - Backup enthält **alles**: Wünsche, Personen, Geschenkideen, Papierkorb, Archiv.
 - **Android:** automatisch, höchstens einmal täglich beim Öffnen und nur bei Änderungen, Ziel ist der Ordner "Dokumente". Die letzten 5 bleiben, ältere löscht die App selbst (nur eigene Dateien). Nach einer Neuinstallation bleiben alte Backups liegen. Fallback: Ordnerauswahl.
 - **iPhone:** Backup-Button (Teilen-Menü, dann "Dateien", am besten iCloud Drive). Dateiname enthält das Datum.
-- **Beide:** Anzeige "Letztes Backup vor X Tagen" und Hinweis, wenn es zu lange her ist.
+- **Beide:** Anzeige "Letztes Backup vor X Tagen". Der Hinweis erscheint ab 14 Tagen, aber nur, wenn sich seitdem etwas geändert hat.
 - Wiederherstellen immer über die Dateiauswahl.
 
 ## 7. Speicherschutz (`storage.persist()`)
@@ -136,13 +140,15 @@ Hinweis iPhone: Die installierte PWA hat einen eigenen Speicher, getrennt von Sa
 - Link-Import und zeitgesteuerte Push-Benachrichtigungen auf dem iPhone
 - Automatisches Löschen von Backup-Dateien auf dem iPhone
 
-## 14. Offene Entscheidungen
+## 14. Entscheidungen
 
-- [ ] Name und visuelle Identität der App
-- [ ] Framework für die Web-App
-- [ ] Welche Felder werden beim Teilen exportiert (z. B. bleibt die Notiz privat?)
-- [ ] Bedeutung von "gekauft" bei eigenen Wünschen (z. B. "erhalten")
-- [ ] Ab wie vielen Tagen erscheint der Backup-Hinweis (Vorschlag: 14)
+- [x] Framework: Vite + React + TypeScript + Motion
+- [x] Notizen: privat, beim Teilen per Schalter mitsendbar
+- [x] "Gekauft" bei eigenen Wünschen: strikt "habe ich gekauft"
+- [x] Backup-Hinweis ab 14 Tagen, nur bei Änderungen
+- [x] Gekaufte Artikel beim Teilen: unauffällig mitsenden, Option "nur gekauft" / "ohne" (siehe 5)
+- [ ] Name der App (Arbeitstitel "Wunschliste", zentral in `src/lib/brand.ts`)
+- [ ] Endgültige visuelle Identität (wird in V0.1 gemeinsam entschieden)
 
 ## 15. Am echten Gerät testen
 
@@ -160,7 +166,7 @@ Hinweis iPhone: Die installierte PWA hat einen eigenen Speicher, getrennt von Sa
 
 ## 16. Roadmap (Vorschlag)
 
-- **V0.1:** Visuelle Shell. Alle Tabs, Fenster und Buttons vorhanden, keine Logik. Platzhalter für spätere Funktionen zeigen ein Popup mit Funktion und Ziel-Version.
+- **V0.1:** Visuelle Shell, um das Design vollständig zu entscheiden, bevor echte Logik folgt. Alle Tabs, Fenster und Buttons sind da, Animationen, Übergänge und Dynamik (Wischen, Konfetti, Sheets, Zähler) sind schon voll enthalten. Bedienung wirkt im Arbeitsspeicher, gespeichert wird noch nichts. Platzhalter für spätere Funktionen zeigen ein Popup mit Funktion und Ziel-Version (`src/lib/plannedFeatures.ts`).
 - **V0.2:** Datenmodell, lokaler Speicher, Versionsnummer im Datenformat
 - **V0.3:** Wünsche, Personen, Geschenkideen anlegen und bearbeiten
 - **V0.4:** Papierkorb, Archiv, Löschlogik
@@ -169,3 +175,18 @@ Hinweis iPhone: Die installierte PWA hat einen eigenen Speicher, getrennt von Sa
 - **V0.7:** Android-Funktionen (Auto-Backup, Erinnerungen, Link-Import, Update-Hinweis)
 - **V0.8:** PWA-Feinschliff für iPhone (.ics, Update-Hinweis)
 - **V1.0:** Test auf echten Geräten, Release
+
+## 17. Entwicklung
+
+```bash
+npm install
+npm run dev      # lokaler Server mit Hot Reload
+npm run build    # Produktions-Build nach dist/
+```
+
+Struktur: `src/screens` (Seiten), `src/components` (Bausteine), `src/state` (Daten, Navigation, UI), `src/lib` (Datenmodell, Hilfsfunktionen, Platzhalter), `src/styles` (Design-Tokens und Stile).
+
+Technische Leitplanken für Animationen (nach Fehlersuche in V0.1):
+- Seitenwechsel (`components/Stage.tsx`) und Fenster (`components/Presence.tsx`) werden per Timer ausgehängt, nicht per `AnimatePresence`. So kann nie eine unsichtbare Seite oder ein unsichtbarer Hintergrund liegen bleiben und Klicks abfangen.
+- Keine `layout`/`layoutId`-Animationen innerhalb von Seiten und Fenstern (Segmentwahl und Schalter laufen per CSS). Ausnahme ist nur die Tab-Leiste.
+- Wischen vs. Antippen einer Karte: Antippen zählt nur ohne nennenswerte Bewegung.

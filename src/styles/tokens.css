@@ -1,0 +1,86 @@
+/* Design-Tokens. Akzent und Hintergründe hängen an --hue, damit sich die ganze App
+   mit einem Wert umfärben lässt (Einstellungen -> Akzentfarbe). */
+
+:root {
+  --hue: 14;
+
+  --font-display: 'Bricolage Grotesque Variable', 'Bricolage Grotesque', ui-serif, Georgia, serif;
+  --font-body: 'Manrope Variable', 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --r-s: 12px;
+  --r-m: 18px;
+  --r-l: 24px;
+  --r-xl: 32px;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+
+  --z-tabbar: 20;
+  --z-fab: 19;
+  --z-sheet: 50;
+  --z-dialog: 60;
+  --z-toast: 70;
+  --z-confetti: 80;
+  --z-splash: 100;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: oklch(0.165 0.022 285);
+  --surface: oklch(1 0 0 / 0.055);
+  --surface-2: oklch(1 0 0 / 0.085);
+  --surface-hover: oklch(1 0 0 / 0.1);
+  --field: oklch(1 0 0 / 0.07);
+  --border: oklch(1 0 0 / 0.09);
+  --border-strong: oklch(1 0 0 / 0.2);
+  --glass: oklch(0.22 0.03 285 / 0.72);
+  --sheet: oklch(0.2 0.025 285 / 0.94);
+  --text: oklch(0.97 0.006 90);
+  --text-2: oklch(0.8 0.015 285);
+  --text-3: oklch(0.64 0.02 285);
+  --accent: oklch(0.76 0.165 var(--hue));
+  --accent-2: oklch(0.85 0.135 calc(var(--hue) + 45));
+  --accent-text: oklch(0.84 0.13 var(--hue));
+  --accent-ink: oklch(0.2 0.04 var(--hue));
+  --good: oklch(0.8 0.16 155);
+  --warn: oklch(0.82 0.15 75);
+  --bad: oklch(0.72 0.19 25);
+  --seg-pill: oklch(1 0 0 / 0.15);
+  --shadow-card: 0 18px 40px -26px oklch(0 0 0 / 0.8);
+  --shadow-pop: 0 30px 70px -20px oklch(0 0 0 / 0.75);
+  --aur-a: oklch(0.52 0.2 var(--hue) / 0.5);
+  --aur-b: oklch(0.5 0.14 calc(var(--hue) + 150) / 0.38);
+  --aur-c: oklch(0.45 0.17 calc(var(--hue) + 250) / 0.4);
+  --grain: 0.07;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: oklch(0.965 0.014 85);
+  --surface: oklch(1 0 0 / 0.66);
+  --surface-2: oklch(1 0 0 / 0.85);
+  --surface-hover: oklch(1 0 0 / 0.95);
+  --field: oklch(0.2 0.03 285 / 0.05);
+  --border: oklch(0.25 0.03 285 / 0.09);
+  --border-strong: oklch(0.25 0.03 285 / 0.22);
+  --glass: oklch(1 0 0 / 0.74);
+  --sheet: oklch(0.985 0.01 85 / 0.96);
+  --text: oklch(0.22 0.03 285);
+  --text-2: oklch(0.42 0.025 285);
+  --text-3: oklch(0.56 0.02 285);
+  --accent: oklch(0.7 0.18 var(--hue));
+  --accent-2: oklch(0.8 0.15 calc(var(--hue) + 45));
+  --accent-text: oklch(0.5 0.17 var(--hue));
+  --accent-ink: oklch(0.2 0.04 var(--hue));
+  --good: oklch(0.55 0.15 155);
+  --warn: oklch(0.58 0.14 70);
+  --bad: oklch(0.55 0.2 25);
+  --seg-pill: oklch(1 0 0 / 0.95);
+  --shadow-card: 0 16px 36px -26px oklch(0.3 0.05 285 / 0.45);
+  --shadow-pop: 0 30px 70px -24px oklch(0.3 0.05 285 / 0.5);
+  --aur-a: oklch(0.86 0.1 var(--hue) / 0.75);
+  --aur-b: oklch(0.88 0.08 calc(var(--hue) + 150) / 0.6);
+  --aur-c: oklch(0.86 0.09 calc(var(--hue) + 250) / 0.55);
+  --grain: 0.05;
+}
