@@ -84,7 +84,7 @@ export function ItemFormSheet({ owner, item, onClose }: Props) {
     >
       <div className="form-cover">
         <motion.div key={emoji + hue} initial={{ scale: 0.8, rotate: -6 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 420, damping: 16 }}>
-          <Cover emoji={emoji} hue={hue} size={96} radius={30} />
+          <Cover emoji={emoji} hue={hue} size={72} radius={22} />
         </motion.div>
         <button className="chip chip--button" onClick={() => ui.planned('image-pick')}>
           <Camera size={14} /> Bild wählen

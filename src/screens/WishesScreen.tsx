@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Presence } from '../components/Presence'
 import { Plus, Share2, ShieldAlert, X } from 'lucide-react'
-import { Fab, Page } from '../components/Page'
+import { AddButton, Page } from '../components/Page'
 import { CountUp, EmptyState, Ring, Segmented } from '../components/Primitives'
 import { ItemFormSheet } from '../components/ItemFormSheet'
 import { ShareSheet } from '../components/ShareSheet'
@@ -36,7 +36,7 @@ function BackupNudge({ days, onDismiss }: { days: number; onDismiss: () => void 
             Jetzt sichern
           </button>
           <button className="btn btn--small btn--ghost" onClick={() => setTab('more')}>
-            Zu den Einstellungen
+            Einstellungen
           </button>
         </div>
       </div>
@@ -69,11 +69,13 @@ export function WishesScreen() {
         eyebrow="Zum Teilen"
         subtitle={all ? `${plural(wishesOpen.length, 'offener Wunsch', 'offene Wünsche')}` : 'Deine Liste ist noch leer'}
         actions={
-          <button className="icon-btn" onClick={() => setShare(true)} aria-label="Wunschliste teilen">
-            <Share2 size={19} />
-          </button>
+          <>
+            <button className="icon-btn" onClick={() => setShare(true)} aria-label="Wunschliste teilen">
+              <Share2 size={17} />
+            </button>
+            <AddButton label="Wunsch" onClick={() => setForm({ item: null })} />
+          </>
         }
-        fab={<Fab label="Wunsch" icon={<Plus size={22} strokeWidth={2.6} />} onClick={() => setForm({ item: null })} />}
       >
         <AnimatePresence>{showNudge && <BackupNudge days={backupDays!} onDismiss={() => setNudgeHidden(true)} />}</AnimatePresence>
 
@@ -88,8 +90,8 @@ export function WishesScreen() {
                 {wishesDone.length} von {all} schon gekauft
               </span>
             </div>
-            <Ring value={all ? wishesDone.length / all : 0} size={84} stroke={8} delay={0.35}>
-              <span className="ring__num">
+            <Ring value={all ? wishesDone.length / all : 0} size={58} stroke={6} delay={0.35}>
+              <span className="ring__num ring__num--sm">
                 <CountUp value={Math.round((all ? wishesDone.length / all : 0) * 100)} format={(n) => `${Math.round(n)}%`} />
               </span>
             </Ring>
@@ -126,7 +128,7 @@ export function WishesScreen() {
             action={
               seg === 'open' && (
                 <button className="btn btn--primary" onClick={() => setForm({ item: null })}>
-                  <Plus size={18} /> Ersten Wunsch anlegen
+                  <Plus size={17} /> Ersten Wunsch anlegen
                 </button>
               )
             }

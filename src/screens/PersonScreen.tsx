@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { CalendarPlus, ChevronDown, Pencil, Plus } from 'lucide-react'
-import { Fab, Page, Section } from '../components/Page'
+import { AddButton, Page, Section } from '../components/Page'
 import { Presence } from '../components/Presence'
 import { Avatar, Chip, CountUp, EmptyState } from '../components/Primitives'
 import { ItemFormSheet } from '../components/ItemFormSheet'
@@ -45,14 +45,16 @@ export function PersonScreen({ id }: { id: string }) {
         subtitle={plural(open.length, 'offene Idee', 'offene Ideen')}
         onBack={back}
         actions={
-          <button className="icon-btn" onClick={() => setEditing(true)} aria-label="Person bearbeiten">
-            <Pencil size={18} />
-          </button>
+          <>
+            <button className="icon-btn" onClick={() => setEditing(true)} aria-label="Person bearbeiten">
+              <Pencil size={16} />
+            </button>
+            <AddButton label="Idee" onClick={() => setForm({ item: null })} />
+          </>
         }
-        fab={<Fab label="Idee" icon={<Plus size={22} strokeWidth={2.6} />} onClick={() => setForm({ item: null })} />}
       >
         <motion.section className="hero spot" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, type: 'spring', stiffness: 240, damping: 24 }}>
-          <Avatar name={person.name} hue={person.hue} size={92} ring={next ? closeness(next.days) : 0.06} />
+          <Avatar name={person.name} hue={person.hue} size={64} ring={next ? closeness(next.days) : 0.06} />
           <div className="hero__text hero__text--grow">
             <span className="hero__label">Budget</span>
             <strong className="hero__value hero__value--nowrap">
@@ -91,7 +93,7 @@ export function PersonScreen({ id }: { id: string }) {
           {open.length > 0 ? (
             <ItemList items={open} onOpen={(item) => setForm({ item })} badgeFor={(item) => (alreadyOwned(item) ? 'Schon vorhanden' : undefined)} />
           ) : (
-            <EmptyState emoji="💡" title="Noch keine Ideen" text={`Halte fest, was ${person.name} gefallen könnte. Nur du siehst das.`} action={<button className="btn btn--primary" onClick={() => setForm({ item: null })}><Plus size={18} /> Idee notieren</button>} />
+            <EmptyState emoji="💡" title="Noch keine Ideen" text={`Halte fest, was ${person.name} gefallen könnte. Nur du siehst das.`} action={<button className="btn btn--primary" onClick={() => setForm({ item: null })}><Plus size={17} /> Idee notieren</button>} />
           )}
         </Section>
 

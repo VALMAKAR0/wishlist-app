@@ -77,7 +77,7 @@ export function MoreScreen() {
       <Section title="Sicherung">
         <div className="card spot">
           <div className="backup">
-            <Ring value={days === null ? 0.04 : Math.max(0.06, 1 - Math.min(days, 30) / 30)} size={76} stroke={8} hue={stale ? 20 : 150}>
+            <Ring value={days === null ? 0.04 : Math.max(0.06, 1 - Math.min(days, 30) / 30)} size={56} stroke={6} hue={stale ? 20 : 150}>
               <DatabaseBackup size={22} />
             </Ring>
             <div className="backup__text">
@@ -238,13 +238,13 @@ export function TrashScreen() {
       }
     >
       {trash.length > 0 ? (
-        <ul className="stack">
+        <ul className="group">
           <AnimatePresence>
             {trash.map((it, i) => {
               const d = left(it.deletedAt!)
               return (
                 <motion.li key={it.id} className="item item--static" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: 60, height: 0, marginBottom: 0, overflow: 'hidden', pointerEvents: 'none', transition: { duration: 0.22 } }} transition={{ type: 'spring', stiffness: 300, damping: 28, delay: i * 0.05 }}>
-                  <Cover emoji={it.emoji} hue={it.hue} size={52} />
+                  <Cover emoji={it.emoji} hue={it.hue} size={40} />
                   <div className="item__main">
                     <span className="item__name">{it.name}</span>
                     <div className="item__meta">

@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { motion } from 'motion/react'
 import { Inbox, Lightbulb, SlidersHorizontal, Sparkles, type LucideIcon } from 'lucide-react'
 import { APP_NAME } from '../lib/brand'
 import { useNav, type Tab } from '../state/nav'
@@ -29,46 +29,36 @@ export function TabBar() {
   const { tab, setTab } = useNav()
   const { haptic } = useUI()
   const { received } = useStore()
+  const index = Math.max(0, TABS.findIndex((t) => t.id === tab))
+  const style = { '--n': TABS.length, '--i': index } as CSSProperties
 
   return (
     <nav className="tabbar" aria-label="Hauptnavigation">
-      <div className="tabbar__inner">
+      <div className="tabbar__brand" aria-hidden>
+        <Logo size={26} />
+        <span>{APP_NAME}</span>
+      </div>
+      <div className="tabbar__inner" style={style}>
+        <span className="tabbar__ind" aria-hidden />
         {TABS.map(({ id, label, icon: Icon }) => {
           const active = tab === id
           return (
-            <motion.button
+            <button
               key={id}
-              layout
               className="tab"
               data-active={active}
               aria-current={active ? 'page' : undefined}
-              aria-label={label}
-              whileTap={{ scale: 0.92 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 36 }}
               onClick={() => {
                 haptic(8)
                 setTab(id)
               }}
             >
-              {active && <motion.span layoutId="tab-pill" className="tab__pill" transition={{ type: 'spring', stiffness: 420, damping: 34 }} />}
-              <motion.span className="tab__icon" animate={{ scale: active ? 1.08 : 1, rotate: active ? [0, -14, 0] : 0 }} transition={{ duration: 0.45 }}>
-                <Icon size={21} strokeWidth={active ? 2.3 : 1.9} />
+              <span className="tab__icon">
+                <Icon size={21} strokeWidth={active ? 2.3 : 1.8} />
                 {id === 'received' && received.length > 0 && !active && <i className="tab__dot" />}
-              </motion.span>
-              <AnimatePresence initial={false}>
-                {active && (
-                  <motion.span
-                    className="tab__label"
-                    initial={{ width: 0, opacity: 0 }}
-                    animate={{ width: 'auto', opacity: 1 }}
-                    exit={{ width: 0, opacity: 0 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 40 }}
-                  >
-                    {label}
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </motion.button>
+              </span>
+              <span className="tab__label">{label}</span>
+            </button>
           )
         })}
       </div>

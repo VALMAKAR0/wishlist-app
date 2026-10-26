@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { ArrowRight, Plus, Sparkles, UserPlus } from 'lucide-react'
-import { Fab, Page } from '../components/Page'
+import { ArrowRight, ChevronRight, Plus, Sparkles } from 'lucide-react'
+import { AddButton, Page } from '../components/Page'
 import { Presence } from '../components/Presence'
 import { Avatar, Chip, CountUp, EmptyState } from '../components/Primitives'
 import { PersonFormSheet } from '../components/PersonFormSheet'
@@ -61,7 +61,7 @@ export function IdeasScreen() {
         title="Geschenkideen"
         eyebrow="Privat"
         subtitle={persons.length ? plural(persons.length, 'Person', 'Personen') : 'Nur für dich sichtbar, wird nie geteilt'}
-        fab={<Fab label="Person" icon={<UserPlus size={21} strokeWidth={2.3} />} onClick={() => setAdding(true)} />}
+        actions={<AddButton label="Person" onClick={() => setAdding(true)} />}
       >
         {hero && hero.next && (
           <motion.button
@@ -74,7 +74,7 @@ export function IdeasScreen() {
           >
             <div className="hero__text">
               <span className="hero__label">
-                <Sparkles size={14} /> Als Nächstes
+                <Sparkles size={13} /> Als Nächstes
               </span>
               <strong className="hero__value hero__value--big">
                 {hero.next.days === 0 ? (
@@ -89,44 +89,45 @@ export function IdeasScreen() {
                 {hero.next.o.label} von {hero.person.name} · {dateLabel(hero.next.o)}
               </span>
               <span className="hero__cta">
-                {plural(hero.ideas.length, 'Idee', 'Ideen')} ansehen <ArrowRight size={15} />
+                {plural(hero.ideas.length, 'Idee', 'Ideen')} ansehen <ArrowRight size={14} />
               </span>
             </div>
-            <Avatar name={hero.person.name} hue={hero.person.hue} size={88} ring={closeness(hero.next.days)} />
+            <Avatar name={hero.person.name} hue={hero.person.hue} size={60} ring={closeness(hero.next.days)} />
           </motion.button>
         )}
 
         {rows.length > 0 ? (
-          <div className="grid">
+          <ul className="group">
             <AnimatePresence>
               {rows.map(({ person, next, ideas, spent, planned, dupes }, i) => (
-                <motion.button
+                <motion.li
                   key={person.id}
-                  className="person spot"
-                  onClick={() => open({ type: 'person', id: person.id })}
-                  initial={{ opacity: 0, y: 24, scale: 0.97 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9, pointerEvents: 'none' }}
-                  transition={{ type: 'spring', stiffness: 280, damping: 26, delay: 0.15 + Math.min(i, 6) * 0.06 }}
-                  whileHover={{ y: -3 }}
-                  whileTap={{ scale: 0.975 }}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 28, delay: 0.1 + Math.min(i, 6) * 0.05 }}
                 >
-                  <div className="person__top">
-                    <Avatar name={person.name} hue={person.hue} size={60} ring={next ? closeness(next.days) : 0.06} />
-                    <div className="person__id">
-                      <strong>{person.name}</strong>
-                      <span>{next ? `${next.o.label} ${untilLabel(next.days)}` : 'Kein Anlass'}</span>
+                  <button className="person-row spot" onClick={() => open({ type: 'person', id: person.id })}>
+                    <Avatar name={person.name} hue={person.hue} size={46} ring={next ? closeness(next.days) : 0.06} />
+                    <div className="person-row__main">
+                      <div className="person-row__top">
+                        <strong>{person.name}</strong>
+                        {next && <span>{untilLabel(next.days)}</span>}
+                      </div>
+                      <div className="person-row__sub">
+                        <span>
+                          {next ? next.o.label : 'Kein Anlass'} · {plural(ideas.length, 'Idee', 'Ideen')}
+                        </span>
+                        {dupes > 0 && <Chip tone="accent">{dupes}× schon vorhanden</Chip>}
+                      </div>
+                      <BudgetBar spent={spent} planned={planned} budget={person.budget} hideText />
                     </div>
-                  </div>
-                  <BudgetBar spent={spent} planned={planned} budget={person.budget} />
-                  <div className="person__foot">
-                    <Chip>{plural(ideas.length, 'Idee', 'Ideen')}</Chip>
-                    {dupes > 0 && <Chip tone="accent">{dupes}× schon vorhanden</Chip>}
-                  </div>
-                </motion.button>
+                    <ChevronRight size={18} className="person-row__chev" />
+                  </button>
+                </motion.li>
               ))}
             </AnimatePresence>
-          </div>
+          </ul>
         ) : (
           <EmptyState
             emoji="🎁"
@@ -134,7 +135,7 @@ export function IdeasScreen() {
             text="Lege Personen mit Anlass und Budget an. Deine Ideen dazu bleiben komplett privat."
             action={
               <button className="btn btn--primary" onClick={() => setAdding(true)}>
-                <Plus size={18} /> Erste Person anlegen
+                <Plus size={17} /> Erste Person anlegen
               </button>
             }
           />

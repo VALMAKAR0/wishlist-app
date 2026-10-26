@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Download, Link2, Plus, Trash2, Link as LinkIcon } from 'lucide-react'
-import { Fab, Page } from '../components/Page'
+import { AddButton, Page } from '../components/Page'
 import { Avatar, Chip, Cover, EmptyState } from '../components/Primitives'
 import { agoLabel, eur, plural } from '../lib/format'
 import { useNav } from '../state/nav'
@@ -18,15 +18,10 @@ export function ReceivedScreen() {
       title="Erhaltene Listen"
       eyebrow="Von anderen"
       subtitle={received.length ? plural(received.length, 'Liste', 'Listen') : 'Wunschlisten, die dir andere geschickt haben'}
-      actions={
-        <button className="icon-btn" onClick={() => ui.planned('import-list')} aria-label="Liste importieren">
-          <Download size={19} />
-        </button>
-      }
-      fab={<Fab label="Importieren" icon={<Plus size={22} strokeWidth={2.6} />} onClick={() => ui.planned('import-list')} />}
+      actions={<AddButton label="Import" onClick={() => ui.planned('import-list')} />}
     >
       {received.length > 0 ? (
-        <ul className="stack">
+        <ul className="group">
           <AnimatePresence>
             {received.map((r, i) => {
               const visible = r.items.filter((x) => !x.owned)
@@ -34,7 +29,7 @@ export function ReceivedScreen() {
               return (
                 <motion.li key={r.id} initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.92, height: 0, marginBottom: 0, overflow: 'hidden', pointerEvents: 'none' }} transition={{ type: 'spring', stiffness: 280, damping: 26, delay: i * 0.07 }}>
                   <motion.button className="list-card spot" onClick={() => open({ type: 'received', id: r.id })} whileTap={{ scale: 0.98 }} whileHover={{ y: -2 }}>
-                    <Avatar name={r.from} hue={r.hue} size={56} />
+                    <Avatar name={r.from} hue={r.hue} size={44} />
                     <div className="list-card__main">
                       <strong>{r.from}</strong>
                       <span>
@@ -46,8 +41,8 @@ export function ReceivedScreen() {
                     </div>
                     <div className="stack-covers" aria-hidden>
                       {visible.slice(0, 3).map((x, k) => (
-                        <span key={x.id} style={{ marginLeft: k ? -16 : 0, zIndex: 5 - k }}>
-                          <Cover emoji={x.emoji} hue={x.hue} size={36} />
+                        <span key={x.id} style={{ marginLeft: k ? -10 : 0, zIndex: 5 - k }}>
+                          <Cover emoji={x.emoji} hue={x.hue} size={28} />
                         </span>
                       ))}
                     </div>
@@ -64,7 +59,7 @@ export function ReceivedScreen() {
           text="Wenn dir jemand seine Wunschliste schickt, speicherst du sie hier. Sie bleibt von deinen eigenen Daten getrennt."
           action={
             <button className="btn btn--primary" onClick={() => ui.planned('import-list')}>
-              <Download size={18} /> Liste importieren
+              <Download size={17} /> Liste importieren
             </button>
           }
         />
@@ -108,7 +103,7 @@ export function ReceivedDetailScreen({ id }: { id: string }) {
       onBack={back}
       actions={
         <button className="icon-btn" onClick={remove} aria-label="Liste löschen">
-          <Trash2 size={18} />
+          <Trash2 size={16} />
         </button>
       }
     >
@@ -121,10 +116,10 @@ export function ReceivedDetailScreen({ id }: { id: string }) {
         </p>
       </motion.aside>
 
-      <ul className="stack">
+      <ul className="group">
         {visible.map((it, i) => (
           <motion.li key={it.id} className="item item--static" initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 28, delay: 0.2 + i * 0.06 }}>
-            <Cover emoji={it.emoji} hue={it.hue} size={58} />
+            <Cover emoji={it.emoji} hue={it.hue} size={44} />
             <div className="item__main">
               <span className="item__name">{it.name}</span>
               <div className="item__meta">
@@ -134,7 +129,7 @@ export function ReceivedDetailScreen({ id }: { id: string }) {
               {it.note && <p className="item__note">{it.note}</p>}
             </div>
             <button className="icon-btn" onClick={() => ui.planned('received-to-idea')} aria-label="Als Geschenkidee übernehmen">
-              <Plus size={18} />
+              <Plus size={17} />
             </button>
           </motion.li>
         ))}

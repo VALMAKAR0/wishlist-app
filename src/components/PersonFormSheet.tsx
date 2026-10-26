@@ -96,7 +96,7 @@ export function PersonFormSheet({ person, onClose, onDeleted }: Props) {
     >
       <div className="form-cover">
         <motion.div key={hue + name.slice(0, 1)} initial={{ scale: 0.85 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 16 }}>
-          <Avatar name={name || '?'} hue={hue} size={88} />
+          <Avatar name={name || '?'} hue={hue} size={64} />
         </motion.div>
       </div>
 

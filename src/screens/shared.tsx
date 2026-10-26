@@ -44,7 +44,7 @@ interface ItemListProps {
 export function ItemList({ items, onOpen, badgeFor }: ItemListProps) {
   const actions = useItemActions()
   return (
-    <ul className="stack">
+    <ul className="group">
       <AnimatePresence initial>
         {items.map((item, i) => (
           <ItemCard

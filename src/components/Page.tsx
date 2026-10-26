@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from 'react'
 import { motion, useMotionValueEvent, useScroll, useTransform } from 'motion/react'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, Plus } from 'lucide-react'
 
 interface PageProps {
   title: string
@@ -8,12 +8,11 @@ interface PageProps {
   subtitle?: ReactNode
   actions?: ReactNode
   onBack?: () => void
-  fab?: ReactNode
   children: ReactNode
 }
 
 /** Seite mit eigenem Scroll-Container und schrumpfender Kopfzeile. Den Übergang zwischen Seiten übernimmt die Bühne. */
-export function Page({ title, eyebrow, subtitle, actions, onBack, fab, children }: PageProps) {
+export function Page({ title, eyebrow, subtitle, actions, onBack, children }: PageProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [scrolled, setScrolled] = useState(false)
   const { scrollY } = useScroll({ container: ref })
@@ -56,25 +55,23 @@ export function Page({ title, eyebrow, subtitle, actions, onBack, fab, children 
         </motion.header>
         {children}
       </div>
-      {fab}
     </div>
   )
 }
 
-export function Fab({ label, icon, onClick }: { label: string; icon: ReactNode; onClick: () => void }) {
+/** Kompakter Hauptknopf in der Kopfzeile, ersetzt den schwebenden Plus-Button. */
+export function AddButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <motion.button
-      className="fab"
-      aria-label={label}
+      className="add-btn"
+      aria-label={`${label} hinzufügen`}
       onClick={onClick}
-      initial={{ scale: 0, rotate: -90 }}
-      animate={{ scale: 1, rotate: 0 }}
-      transition={{ delay: 0.25, type: 'spring', stiffness: 320, damping: 17 }}
-      whileHover={{ scale: 1.07 }}
-      whileTap={{ scale: 0.9 }}
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: 0.15, type: 'spring', stiffness: 380, damping: 22 }}
     >
-      {icon}
-      <span className="fab__label">{label}</span>
+      <Plus size={17} strokeWidth={2.8} />
+      {label}
     </motion.button>
   )
 }

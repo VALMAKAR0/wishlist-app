@@ -1,5 +1,6 @@
 /* Design-Tokens. Akzent und Hintergründe hängen an --hue, damit sich die ganze App
-   mit einem Wert umfärben lässt (Einstellungen -> Akzentfarbe). */
+   mit einem Wert umfärben lässt (Einstellungen -> Akzentfarbe).
+   Richtung: ruhig, kompakt, flächig. Wenige Ebenen, feine Linien, ein Akzent. */
 
 :root {
   --hue: 14;
@@ -7,17 +8,18 @@
   --font-display: 'Bricolage Grotesque Variable', 'Bricolage Grotesque', ui-serif, Georgia, serif;
   --font-body: 'Manrope Variable', 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-  --r-s: 12px;
-  --r-m: 18px;
-  --r-l: 24px;
-  --r-xl: 32px;
+  --r-s: 10px;
+  --r-m: 14px;
+  --r-l: 18px;
+  --r-xl: 22px;
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
+  --tab-h: 56px;
+  --rail-w: 232px;
 
   --z-tabbar: 20;
-  --z-fab: 19;
   --z-sheet: 50;
   --z-dialog: 60;
   --z-toast: 70;
@@ -27,60 +29,70 @@
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --bg: oklch(0.165 0.022 285);
-  --surface: oklch(1 0 0 / 0.055);
-  --surface-2: oklch(1 0 0 / 0.085);
-  --surface-hover: oklch(1 0 0 / 0.1);
-  --field: oklch(1 0 0 / 0.07);
-  --border: oklch(1 0 0 / 0.09);
-  --border-strong: oklch(1 0 0 / 0.2);
-  --glass: oklch(0.22 0.03 285 / 0.72);
-  --sheet: oklch(0.2 0.025 285 / 0.94);
-  --text: oklch(0.97 0.006 90);
-  --text-2: oklch(0.8 0.015 285);
-  --text-3: oklch(0.64 0.02 285);
-  --accent: oklch(0.76 0.165 var(--hue));
-  --accent-2: oklch(0.85 0.135 calc(var(--hue) + 45));
-  --accent-text: oklch(0.84 0.13 var(--hue));
+  --bg: oklch(0.155 0.012 285);
+  --card: oklch(0.205 0.014 285);
+  --card-hover: oklch(0.235 0.016 285);
+  --field: oklch(0.245 0.015 285);
+  --hairline: oklch(1 0 0 / 0.075);
+  --border-strong: oklch(1 0 0 / 0.18);
+  --glass: oklch(0.17 0.014 285 / 0.82);
+  --sheet: oklch(0.2 0.014 285 / 0.97);
+  --text: oklch(0.96 0.005 90);
+  --text-2: oklch(0.77 0.012 285);
+  --text-3: oklch(0.6 0.015 285);
+  --accent: oklch(0.75 0.16 var(--hue));
+  --accent-2: oklch(0.84 0.13 calc(var(--hue) + 45));
+  --accent-soft: oklch(0.75 0.16 var(--hue) / 0.14);
+  --accent-line: oklch(0.75 0.16 var(--hue) / 0.32);
+  --accent-text: oklch(0.82 0.13 var(--hue));
   --accent-ink: oklch(0.2 0.04 var(--hue));
   --good: oklch(0.8 0.16 155);
   --warn: oklch(0.82 0.15 75);
   --bad: oklch(0.72 0.19 25);
-  --seg-pill: oklch(1 0 0 / 0.15);
-  --shadow-card: 0 18px 40px -26px oklch(0 0 0 / 0.8);
-  --shadow-pop: 0 30px 70px -20px oklch(0 0 0 / 0.75);
-  --aur-a: oklch(0.52 0.2 var(--hue) / 0.5);
-  --aur-b: oklch(0.5 0.14 calc(var(--hue) + 150) / 0.38);
-  --aur-c: oklch(0.45 0.17 calc(var(--hue) + 250) / 0.4);
-  --grain: 0.07;
+  --seg-pill: oklch(0.31 0.02 285);
+  --shadow-card: 0 1px 0 oklch(1 0 0 / 0.04) inset, 0 8px 24px -16px oklch(0 0 0 / 0.7);
+  --shadow-pop: 0 24px 60px -16px oklch(0 0 0 / 0.75);
+  --aur-a: oklch(0.5 0.18 var(--hue) / 0.2);
+  --aur-b: oklch(0.45 0.14 calc(var(--hue) + 150) / 0.12);
+  --aur-c: oklch(0.42 0.16 calc(var(--hue) + 250) / 0.14);
+  --grain: 0.05;
 }
 
 :root[data-theme='light'] {
   color-scheme: light;
-  --bg: oklch(0.965 0.014 85);
-  --surface: oklch(1 0 0 / 0.66);
-  --surface-2: oklch(1 0 0 / 0.85);
-  --surface-hover: oklch(1 0 0 / 0.95);
-  --field: oklch(0.2 0.03 285 / 0.05);
-  --border: oklch(0.25 0.03 285 / 0.09);
-  --border-strong: oklch(0.25 0.03 285 / 0.22);
-  --glass: oklch(1 0 0 / 0.74);
-  --sheet: oklch(0.985 0.01 85 / 0.96);
-  --text: oklch(0.22 0.03 285);
-  --text-2: oklch(0.42 0.025 285);
-  --text-3: oklch(0.56 0.02 285);
-  --accent: oklch(0.7 0.18 var(--hue));
-  --accent-2: oklch(0.8 0.15 calc(var(--hue) + 45));
+  --bg: oklch(0.968 0.007 85);
+  --card: oklch(1 0 0);
+  --card-hover: oklch(0.975 0.006 85);
+  --field: oklch(0.957 0.007 85);
+  --hairline: oklch(0.25 0.02 285 / 0.085);
+  --border-strong: oklch(0.25 0.02 285 / 0.2);
+  --glass: oklch(0.985 0.006 85 / 0.84);
+  --sheet: oklch(0.99 0.004 85 / 0.98);
+  --text: oklch(0.22 0.025 285);
+  --text-2: oklch(0.42 0.022 285);
+  --text-3: oklch(0.57 0.018 285);
+  --accent: oklch(0.66 0.19 var(--hue));
+  --accent-2: oklch(0.78 0.15 calc(var(--hue) + 45));
+  --accent-soft: oklch(0.66 0.19 var(--hue) / 0.11);
+  --accent-line: oklch(0.66 0.19 var(--hue) / 0.3);
   --accent-text: oklch(0.5 0.17 var(--hue));
-  --accent-ink: oklch(0.2 0.04 var(--hue));
-  --good: oklch(0.55 0.15 155);
-  --warn: oklch(0.58 0.14 70);
-  --bad: oklch(0.55 0.2 25);
-  --seg-pill: oklch(1 0 0 / 0.95);
-  --shadow-card: 0 16px 36px -26px oklch(0.3 0.05 285 / 0.45);
-  --shadow-pop: 0 30px 70px -24px oklch(0.3 0.05 285 / 0.5);
-  --aur-a: oklch(0.86 0.1 var(--hue) / 0.75);
-  --aur-b: oklch(0.88 0.08 calc(var(--hue) + 150) / 0.6);
-  --aur-c: oklch(0.86 0.09 calc(var(--hue) + 250) / 0.55);
-  --grain: 0.05;
+  --accent-ink: oklch(0.99 0.01 var(--hue));
+  --good: oklch(0.52 0.15 155);
+  --warn: oklch(0.56 0.14 70);
+  --bad: oklch(0.54 0.2 25);
+  --seg-pill: oklch(1 0 0);
+  --shadow-card: 0 1px 2px oklch(0.3 0.04 285 / 0.05), 0 8px 24px -18px oklch(0.3 0.05 285 / 0.35);
+  --shadow-pop: 0 24px 60px -18px oklch(0.3 0.05 285 / 0.45);
+  --aur-a: oklch(0.88 0.09 var(--hue) / 0.55);
+  --aur-b: oklch(0.9 0.06 calc(var(--hue) + 150) / 0.4);
+  --aur-c: oklch(0.88 0.07 calc(var(--hue) + 250) / 0.35);
+  --grain: 0.04;
+}
+
+/* Kurznamen aus der ersten Fassung, damit nichts ins Leere zeigt. */
+:root {
+  --surface: var(--card);
+  --surface-2: var(--card-hover);
+  --surface-hover: var(--card-hover);
+  --border: var(--hairline);
 }
