@@ -3,6 +3,7 @@ import { Aurora, Splash, TabBar } from './components/Chrome'
 import { Stage } from './components/Stage'
 import { MoreScreen, RoadmapScreen, TrashScreen } from './screens/MoreScreens'
 import { IdeasScreen } from './screens/IdeasScreen'
+import { ListScreen } from './screens/ListPage'
 import { PersonScreen } from './screens/PersonScreen'
 import { ReceivedDetailScreen, ReceivedScreen } from './screens/ReceivedScreens'
 import { StatsScreen } from './screens/StatsScreen'
@@ -22,6 +23,7 @@ function Screens() {
     screen =
       view.type === 'person' ? <PersonScreen id={view.id} /> :
       view.type === 'received' ? <ReceivedDetailScreen id={view.id} /> :
+      view.type === 'list' ? <ListScreen id={view.id} /> :
       view.type === 'trash' ? <TrashScreen /> :
       <RoadmapScreen />
   } else {

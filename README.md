@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 01.11.2026 · Status: V0.3.1 (Android-Hülle) · Datenformat: v2
+Stand: 01.11.2026 · Status: V0.4 (Papierkorb, Listen-Übersicht) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -194,7 +194,7 @@ Eigener Tab mit Auswertungen über alles: Gesamtausgaben (für mich und für and
 - **V0.2 (erledigt):** Datenmodell, lokaler Speicher, Versionsnummer im Datenformat. Der erste Start ist leer, Beispieldaten gibt es nur über "Mehr" → "Demo-Daten laden".
 - **V0.3 (erledigt):** Bilder für Wünsche und Geschenkideen (Galerie oder Kamera, verkleinert auf höchstens 800 Pixel, als JPEG gespeichert). Wünsche, Personen und Ideen anlegen und bearbeiten war schon in V0.1 vorhanden und läuft seit V0.2 mit echtem Speicher.
 - **V0.3.1 (erledigt, ungetestet auf Gerät):** Android-Hülle mit Capacitor und automatischer APK-Build bei GitHub, damit Android-Funktionen ab jetzt auf dem Handy getestet werden können (siehe 21).
-- **V0.4:** Papierkorb, Archiv, Löschlogik. Dazu die Listen-Übersicht: pro Tab (Wünsche, Ideen) eine Kachel je Liste mit Anzahl, Gesamtpreis, offen/gekauft und Fortschritt, Tippen öffnet die Liste.
+- **V0.4 (erledigt):** Papierkorb räumt sich nach 30 Tagen selbst auf (beim App-Start), Archiv und Rückgängig waren schon da. Dazu die Listen-Übersicht (siehe 22).
 - **V0.5:** Backup, Export, Import, Speicherschutz-Anzeige
 - **V0.6:** Teilen-Button und Import fremder Listen
 - **V0.7:** Android-Funktionen (Auto-Backup, Erinnerungen, Link-Import, Update-Hinweis)
@@ -261,3 +261,12 @@ Technische Leitplanken für Animationen (nach Fehlersuche in V0.1):
 - **Ränder:** `viewport-fit=cover`, Capacitor setzt die Safe-Area-Werte für Statusleiste und Navigationsleiste.
 - **Am echten Gerät testen:** Erster Workflow-Lauf, Installation, Update über die alte APK, Icon, Ränder oben und unten, Bild wählen (Galerie/Kamera), Speichern nach Neustart der App, Zurück-Taste.
 - **Offen:** Android-Statusleiste hell/dunkel passend zur App-Darstellung; Die Zurück-Taste schließt vermutlich die App, statt ein offenes Fenster zu schließen (noch nicht geprüft).
+
+## 22. Papierkorb-Aufräumen und Listen-Übersicht (V0.4)
+
+- **Papierkorb:** Beim App-Start werden Einträge entfernt, die länger als 30 Tage im Papierkorb liegen (`src/lib/trash.ts`, Frist `TRASH_DAYS`). Der bereinigte Stand wird sofort gespeichert, danach räumt der Start auch die Bilder der entfernten Einträge auf. Die Prüfung läuft nur beim Start, nicht während der Nutzung, und nur wenn die Daten normal geladen wurden.
+- **Archiv:** Gekaufte Wünsche liegen im Reiter "Archiv" der Liste, gekaufte Ideen im Reiter "Gekauft". Dort bleiben sie, bis du sie löschst. Es wird nichts automatisch gelöscht.
+- **Wünsche-Tab:** Ab zwei Listen zeigt er eine Übersicht: oben die Kennzahlen aller Listen (Gesamtwert, offen, gekauft, Ø Preis), darunter je Liste eine Kachel mit Gesamtwert, Fortschrittsbalken sowie Anzahl und Wert von offen und gekauft. Tippen öffnet die Liste (mit Zurück-Pfeil, die Android-Zurück-Taste geht auch). "Alle Einträge" zeigt alle Wünsche zusammen. Mit nur einer Liste öffnet der Tab gleich die Einträge, dort gibt es den Knopf "Neue Liste".
+- **Ideen-Tab:** Umschalter "Personen" und "Listen". "Listen" zeigt die Kacheln aller Listen aller Personen mit dem Namen der Person. Leere Standardlisten werden ausgeblendet. Die Personenseite mit ihren Listen bleibt unverändert.
+- **Code:** `ListPage` (`src/screens/ListPage.tsx`) ist die gemeinsame Seite für eine Liste, für Wünsche und Ideen. `ListTiles` (`src/components/ListTiles.tsx`) zeichnet die Kacheln.
+

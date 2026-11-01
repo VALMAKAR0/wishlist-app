@@ -102,7 +102,7 @@ export const roadmap: RoadmapStep[] = [
   { version: 'V0.1', title: 'Visuelle Shell', text: 'Alle Tabs, Fenster und Buttons, dazu Animationen und Übergänge. Keine echte Logik.' },
   { version: 'V0.2', title: 'Datenmodell', text: 'Lokaler Speicher mit Versionsnummer im Datenformat.' },
   { version: 'V0.3', title: 'Anlegen und bearbeiten', text: 'Wünsche, Personen und Geschenkideen, inklusive Bilder.' },
-  { version: 'V0.4', title: 'Papierkorb und Archiv', text: 'Löschlogik, Rückgängig, Aufräumen nach 30 Tagen.' },
+  { version: 'V0.4', title: 'Papierkorb, Archiv, Listen', text: 'Aufräumen nach 30 Tagen und Listen-Übersicht mit Kennzahlen.' },
   { version: 'V0.5', title: 'Backup', text: 'Export, Import, Speicherschutz-Anzeige.' },
   { version: 'V0.6', title: 'Teilen', text: 'Teilen-Button und Import fremder Listen, inklusive unauffälligem „Schon vorhanden“.' },
   { version: 'V0.7', title: 'Android-Funktionen', text: 'Auto-Backup, Erinnerungen, Link-Import, Update-Hinweis.' },

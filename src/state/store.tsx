@@ -5,6 +5,7 @@ import { dayAgoTs } from '../lib/format'
 import { similarNames } from '../lib/match'
 import { gcImages } from '../lib/images'
 import { loadData, saveData, type Loaded } from '../lib/storage'
+import { purgeExpired } from '../lib/trash'
 import type { Item, Owner, Person, ReceivedList, Wishlist } from '../lib/types'
 import { useT, useUI } from './ui'
 
@@ -145,14 +146,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   return <StoreInner boot={boot}>{children}</StoreInner>
 }
 
-const startState = (boot: Loaded): State => (boot.kind === 'ok' ? { ...emptyState(), ...boot.data, nudgeOpen: true } : emptyState())
+const startState = (boot: Loaded): State => {
+  if (boot.kind !== 'ok') return emptyState()
+  return { ...emptyState(), ...boot.data, items: purgeExpired(boot.data.items), nudgeOpen: true }
+}
 
 function StoreInner({ boot, children }: { boot: Loaded; children: ReactNode }) {
   const ui = useUI()
   const t = useT()
   const [state, dispatch] = useReducer(reducer, boot, startState)
   const memory = boot.kind === 'unavailable'
-  const skipFirst = useRef(true)
+  // Wurde beim Start im Papierkorb aufgeräumt, wird der neue Stand gleich gespeichert.
+  const skipFirst = useRef(!(boot.kind === 'ok' && state.items.length !== boot.data.items.length))
   const warned = useRef(false)
 
   useEffect(() => {
@@ -162,7 +167,7 @@ function StoreInner({ boot, children }: { boot: Loaded; children: ReactNode }) {
 
   useEffect(() => {
     if (boot.kind !== 'ok') return
-    void gcImages(new Set(boot.data.items.flatMap((i) => (i.imageId ? [i.imageId] : []))))
+    void gcImages(new Set(state.items.flatMap((i) => (i.imageId ? [i.imageId] : []))))
   }, [])
 
   useEffect(() => {

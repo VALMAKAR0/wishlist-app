@@ -1357,3 +1357,118 @@ button.row-item:active {
   background: oklch(0.8 0.15 75 / 0.11);
   box-shadow: inset 0 0 0 1px oklch(0.8 0.15 75 / 0.26);
 }
+
+/* ---------- Listen-Übersicht ---------- */
+
+.ltiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ltile {
+  --tile: oklch(0.72 0.14 var(--h));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  border-radius: var(--r-l);
+  text-align: left;
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+}
+
+.ltile__top {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.ltile__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  font-size: 18px;
+  background: color-mix(in oklch, var(--tile) 22%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--tile) 38%, transparent);
+}
+
+.ltile__name {
+  display: grid;
+  min-width: 0;
+}
+
+.ltile__name strong {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ltile__name small {
+  overflow: hidden;
+  font-size: 11.5px;
+  color: var(--text-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ltile__total {
+  margin-top: 2px;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ltile__bar {
+  display: block;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: var(--field);
+}
+
+.ltile__bar span {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--tile);
+}
+
+.ltile__foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.ltile__foot--dim {
+  margin-top: -3px;
+  color: var(--text-3);
+}
+
+.ltile--new {
+  align-items: center;
+  justify-content: center;
+  min-height: 118px;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-3);
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  box-shadow: none;
+}
