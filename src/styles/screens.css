@@ -1351,3 +1351,9 @@ button.row-item:active {
   font-weight: 700;
   text-align: right;
 }
+
+.preview-note[data-warn='true'] {
+  color: var(--warn);
+  background: oklch(0.8 0.15 75 / 0.11);
+  box-shadow: inset 0 0 0 1px oklch(0.8 0.15 75 / 0.26);
+}

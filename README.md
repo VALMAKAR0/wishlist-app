@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 27.10.2026 · Status: V0.1 (Design-Shell) in Arbeit · Datenformat: v2
+Stand: 01.11.2026 · Status: V0.3 (Bilder) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -164,10 +164,12 @@ Eigener Tab mit Auswertungen über alles: Gesamtausgaben (für mich und für and
 ## 14. Entscheidungen
 
 - [x] Framework: Vite + React + TypeScript + Motion
+- [x] Lokaler Speicher: IndexedDB ohne Zusatzbibliothek (siehe 19), damit später Bilder hineinpassen
 - [x] Notizen: privat, beim Teilen per Schalter mitsendbar
 - [x] "Gekauft" bei eigenen Wünschen: strikt "habe ich gekauft"
 - [x] Backup-Hinweis ab 14 Tagen, nur bei Änderungen
 - [x] Gekaufte Artikel beim Teilen: unauffällig mitsenden, Option "nur gekauft" / "ohne" (siehe 5)
+- [x] Bilder: höchstens 800 Pixel an der längsten Kante, JPEG mit etwa 82 % Qualität, Quelle Galerie und Kamera über die Auswahl des Systems; nur für Wünsche und Geschenkideen, nicht für Personen
 - [ ] Name der App (Arbeitstitel "Wunschliste", zentral in `src/lib/brand.ts`)
 - [ ] Endgültige visuelle Identität (wird in V0.1 gemeinsam entschieden)
 
@@ -188,8 +190,8 @@ Eigener Tab mit Auswertungen über alles: Gesamtausgaben (für mich und für and
 ## 16. Roadmap (Vorschlag)
 
 - **V0.1:** Visuelle Shell, um das Design vollständig zu entscheiden, bevor echte Logik folgt. Alle Tabs, Fenster und Buttons sind da, Animationen, Übergänge und Dynamik (Wischen, Konfetti, Sheets, Zähler) sind schon voll enthalten. Bedienung wirkt im Arbeitsspeicher, gespeichert wird noch nichts. Platzhalter für spätere Funktionen zeigen ein Popup mit Funktion und Ziel-Version (`src/lib/plannedFeatures.ts`).
-- **V0.2:** Datenmodell, lokaler Speicher, Versionsnummer im Datenformat
-- **V0.3:** Wünsche, Personen, Geschenkideen anlegen und bearbeiten
+- **V0.2 (erledigt):** Datenmodell, lokaler Speicher, Versionsnummer im Datenformat. Der erste Start ist leer, Beispieldaten gibt es nur über "Mehr" → "Demo-Daten laden".
+- **V0.3 (erledigt):** Bilder für Wünsche und Geschenkideen (Galerie oder Kamera, verkleinert auf höchstens 800 Pixel, als JPEG gespeichert). Wünsche, Personen und Ideen anlegen und bearbeiten war schon in V0.1 vorhanden und läuft seit V0.2 mit echtem Speicher.
 - **V0.4:** Papierkorb, Archiv, Löschlogik
 - **V0.5:** Backup, Export, Import, Speicherschutz-Anzeige
 - **V0.6:** Teilen-Button und Import fremder Listen
@@ -205,7 +207,7 @@ npm run dev      # lokaler Server mit Hot Reload
 npm run build    # Produktions-Build nach dist/
 ```
 
-Struktur: `src/screens` (Seiten), `src/components` (Bausteine), `src/state` (Daten, Navigation, UI), `src/lib` (Datenmodell, Hilfsfunktionen, Platzhalter), `src/styles` (Design-Tokens und Stile).
+Struktur: `src/screens` (Seiten), `src/components` (Bausteine), `src/state` (Daten, Navigation, UI), `src/lib` (Datenmodell, Speicher, Hilfsfunktionen, Platzhalter), `src/styles` (Design-Tokens und Stile).
 
 Technische Leitplanken für Animationen (nach Fehlersuche in V0.1):
 - Seitenwechsel (`components/Stage.tsx`) und Fenster (`components/Presence.tsx`) werden per Timer ausgehängt, nicht per `AnimatePresence`. So kann nie eine unsichtbare Seite oder ein unsichtbarer Hintergrund liegen bleiben und Klicks abfangen.
@@ -218,3 +220,29 @@ Technische Leitplanken für Animationen (nach Fehlersuche in V0.1):
 - **Darstellung:** Auto, Dunkel oder Hell, dazu Akzentfarbe und Effekt-Stufe.
 - **Offene Ideen im Budget zeigen:** Schaltet die helle Zusatzleiste im Budget (Summe der noch offenen Ideen) ein, standardmäßig aus.
 - Die Kreise um die Profilbilder sind entfernt.
+
+## 19. Speicherschicht (V0.2)
+
+- **Ablage:** IndexedDB, Datenbank `wishlist`, Speicher `kv` (`src/lib/db.ts`). Der ganze Datenstand liegt als ein Dokument unter dem Schlüssel `data`. Ein Schreibvorgang ist dadurch immer ein vollständiger, konsistenter Stand.
+- **Wann wird gespeichert:** Bei jeder Änderung an Einträgen, Listen, Personen, erhaltenen Listen oder Backup-Zeitpunkt. Schnell aufeinanderfolgende Änderungen werden zusammengefasst, geschrieben wird immer der neueste Stand (`src/lib/storage.ts`).
+- **Dokument:** `schemaVersion`, `savedAt`, `items`, `lists`, `persons`, `received`, `lastBackupAt`, `changedSinceBackup`. Nicht gespeichert werden Sitzungswerte wie der Backup-Hinweis.
+- **Versionen:** Ältere Daten laufen beim Start Schritt für Schritt durch `MIGRATIONS` (Version n → n+1). Das Original bleibt als `data.v{n}` erhalten. Fehlt ein Schritt oder schlägt er fehl, wird nichts überschrieben.
+- **Neuere Daten:** Stammen sie aus einer neueren App-Version, zeigt die App nur einen Hinweis. Nichts wird geladen oder verändert.
+- **Unlesbare Daten:** Sie werden als `data.broken` beiseitegelegt, die App startet leer und sagt es.
+- **Reparatur beim Laden:** Jeder Eigentümer hat mindestens die Standardliste, verwaiste Einträge wandern in die erste Liste ihres Eigentümers.
+- **Speichern nicht möglich** (z. B. gesperrter Speicher): Die App läuft im Arbeitsspeicher und zeigt dauerhaft einen Hinweis unter "Mehr". Schlägt später ein Schreibvorgang fehl, kommt einmal ein Hinweis.
+- **Speicherschutz:** Beim ersten Start ohne gespeicherte Daten fragt die App `navigator.storage.persist()` an. Die Anzeige und die Prüfung unter "Mehr" bleiben bis V0.5 ein Demo-Wert.
+- **Einstellungen** (Darstellung, Sprache, Akzent, Erinnerungs-Schalter) liegen weiter in `localStorage` unter `wl.ui`, weil sie vor dem ersten Bild gebraucht werden.
+- **Grenze:** Zwei gleichzeitig offene Fenster derselben App überschreiben sich gegenseitig, der letzte Schreibvorgang gewinnt. Für die installierte App ist das kein Thema.
+
+## 20. Bilder (V0.3)
+
+- **Auswahl:** Im Formular für Wünsche und Ideen öffnet "Bild wählen" die Systemauswahl (Galerie oder Kamera, `<input type="file" accept="image/*">`). Das Bild wird sofort verkleinert, erst "Speichern" legt es ab.
+- **Verarbeitung** (`src/lib/images.ts`): Drehung aus den Kameradaten wird übernommen, längste Kante höchstens 800 Pixel, weißer Hintergrund, JPEG mit 82 % Qualität. Typisch 40 bis 120 KB pro Bild.
+- **Ablage:** Eigener Speicher `images` in derselben Datenbank (Datenbank-Version 2, ein Upgrade von Version 1 behält alle Daten). Der Eintrag speichert nur die ID (`imageId`). Das Bild liegt als Rohdaten (`ArrayBuffer`), weil das auf iOS am zuverlässigsten ist.
+- **Ersetzen oder entfernen:** Ein neues Bild bekommt immer eine neue ID. Das alte bleibt zunächst liegen, damit "Rückgängig" und Papierkorb nichts verlieren.
+- **Aufräumen:** Beim App-Start (nur wenn die Daten normal geladen wurden) werden Bilder gelöscht, auf die kein Eintrag mehr zeigt. Während der Nutzung wird nie gelöscht.
+- **Papierkorb:** Gelöschte Einträge behalten ihr Bild, bis sie endgültig entfernt werden.
+- **Für V0.5 (Backup):** Die Sicherung muss die Bilder enthalten, sonst fehlen sie nach der Wiederherstellung. Die Dateigröße wächst entsprechend.
+- **Für V0.6 (Teilen):** Offen, ob Bilder mitgesendet werden: immer, nie oder per Schalter. Empfangene Listen bekommen erst mit dem Teilen Bilder.
+- **Am echten Gerät testen:** Kamera und Galerie in iOS-Safari/PWA, Speicherverbrauch mit vielen Bildern.

@@ -2,15 +2,18 @@ import { useEffect, useId, type CSSProperties, type ReactNode } from 'react'
 import { animate, motion, useMotionValue, useTransform } from 'motion/react'
 import { Check } from 'lucide-react'
 import { initial } from '../lib/format'
+import { useImageUrl } from '../lib/images'
 
 type HueStyle = CSSProperties & { '--h'?: number }
 
-/** Cover mit Farbverlauf und Emoji. Dient als Platzhalter, bis echte Bilder (V0.3) dazukommen. */
-export function Cover({ emoji, hue, size = 56, radius }: { emoji: string; hue: number; size?: number; radius?: number }) {
+/** Cover mit Farbverlauf und Emoji. Mit Bild (gespeichert per ID oder direkt per Adresse) wird das Bild gezeigt. */
+export function Cover({ emoji, hue, size = 56, radius, imageId, src }: { emoji: string; hue: number; size?: number; radius?: number; imageId?: string; src?: string | null }) {
+  const stored = useImageUrl(imageId)
+  const url = src ?? stored
   const style: HueStyle = { '--h': hue, width: size, height: size, borderRadius: radius ?? size * 0.3, fontSize: size * 0.48 }
   return (
-    <div className="cover" style={style} aria-hidden>
-      <span>{emoji}</span>
+    <div className="cover" data-img={!!url} style={style} aria-hidden>
+      {url ? <img src={url} alt="" draggable={false} decoding="async" /> : <span>{emoji}</span>}
     </div>
   )
 }

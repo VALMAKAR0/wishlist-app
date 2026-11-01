@@ -1,11 +1,14 @@
-import { createContext, useContext, useMemo, useReducer, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react'
+import { BootNotice } from '../components/BootNotice'
 import { defaultList, demoItems, demoLists, demoPersons, demoReceived } from '../lib/demoData'
 import { dayAgoTs } from '../lib/format'
 import { similarNames } from '../lib/match'
+import { gcImages } from '../lib/images'
+import { loadData, saveData, type Loaded } from '../lib/storage'
 import type { Item, Owner, Person, ReceivedList, Wishlist } from '../lib/types'
+import { useT, useUI } from './ui'
 
-// V0.1: reiner Arbeitsspeicher. Der Zustand dient nur dazu, Animationen und Übergänge
-// mit echtem Verhalten zu zeigen. Dauerhaftes Speichern kommt in V0.2.
+// Seit V0.2 wird der Zustand bei jeder Änderung in IndexedDB gespeichert (lib/storage.ts).
 
 interface State {
   items: Item[]
@@ -16,7 +19,6 @@ interface State {
   changedSinceBackup: boolean
   /** Backup-Hinweis: nur direkt nach dem Start der App sichtbar. */
   nudgeOpen: boolean
-  dirty: boolean
 }
 
 type Action =
@@ -46,7 +48,6 @@ const demoState = (): State => ({
   lastBackupAt: dayAgoTs(16),
   changedSinceBackup: true,
   nudgeOpen: true,
-  dirty: false,
 })
 
 const emptyState = (): State => ({
@@ -57,11 +58,10 @@ const emptyState = (): State => ({
   lastBackupAt: null,
   changedSinceBackup: false,
   nudgeOpen: false,
-  dirty: false,
 })
 
 function reducer(s: State, a: Action): State {
-  const touch = <T extends Partial<State>>(patch: T): State => ({ ...s, ...patch, changedSinceBackup: true, dirty: true })
+  const touch = <T extends Partial<State>>(patch: T): State => ({ ...s, ...patch, changedSinceBackup: true })
   switch (a.type) {
     case 'addItem':
       return touch({ items: [a.item, ...s.items] })
@@ -109,7 +109,7 @@ function reducer(s: State, a: Action): State {
     case 'deleteReceived':
       return touch({ received: s.received.filter((r) => r.id !== a.id) })
     case 'wipe':
-      return { ...emptyState(), dirty: true }
+      return emptyState()
     case 'loadDemo':
       return demoState()
     case 'ackNudge':
@@ -118,6 +118,8 @@ function reducer(s: State, a: Action): State {
 }
 
 interface Store extends State {
+  /** 'memory': Speichern ist auf diesem Gerät nicht möglich, die Daten gelten nur bis zum Schließen. */
+  storage: 'ok' | 'memory'
   dispatch: (a: Action) => void
   /** Ist der Artikel bei der Person laut Hintergrund-Abgleich schon vorhanden? (strenger Abgleich für das Badge) */
   alreadyOwned: (idea: Item) => boolean
@@ -126,7 +128,62 @@ interface Store extends State {
 const Ctx = createContext<Store | null>(null)
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, undefined, demoState)
+  const [boot, setBoot] = useState<Loaded | null>(null)
+
+  useEffect(() => {
+    let off = false
+    void loadData().then((r) => {
+      if (!off) setBoot(r)
+    })
+    return () => {
+      off = true
+    }
+  }, [])
+
+  if (!boot) return null
+  if (boot.kind === 'newer') return <BootNotice version={boot.version} />
+  return <StoreInner boot={boot}>{children}</StoreInner>
+}
+
+const startState = (boot: Loaded): State => (boot.kind === 'ok' ? { ...emptyState(), ...boot.data, nudgeOpen: true } : emptyState())
+
+function StoreInner({ boot, children }: { boot: Loaded; children: ReactNode }) {
+  const ui = useUI()
+  const t = useT()
+  const [state, dispatch] = useReducer(reducer, boot, startState)
+  const memory = boot.kind === 'unavailable'
+  const skipFirst = useRef(true)
+  const warned = useRef(false)
+
+  useEffect(() => {
+    if (boot.kind === 'unavailable') ui.toast({ message: t('Speichern ist hier gerade nicht möglich. Einträge gehen beim Schließen verloren.'), emoji: '⚠️' })
+    if (boot.kind === 'unreadable') ui.toast({ message: t('Gespeicherte Daten waren nicht lesbar und wurden zur Sicherheit beiseitegelegt.'), emoji: '⚠️' })
+  }, [])
+
+  useEffect(() => {
+    if (boot.kind !== 'ok') return
+    void gcImages(new Set(boot.data.items.flatMap((i) => (i.imageId ? [i.imageId] : []))))
+  }, [])
+
+  useEffect(() => {
+    if (memory) return
+    if (skipFirst.current) {
+      skipFirst.current = false
+      return
+    }
+    void saveData({
+      items: state.items,
+      lists: state.lists,
+      persons: state.persons,
+      received: state.received,
+      lastBackupAt: state.lastBackupAt,
+      changedSinceBackup: state.changedSinceBackup,
+    }).then((ok) => {
+      if (ok || warned.current) return
+      warned.current = true
+      ui.toast({ message: t('Speichern hat nicht geklappt. Mach bald ein Backup.'), emoji: '⚠️' })
+    })
+  }, [memory, state.items, state.lists, state.persons, state.received, state.lastBackupAt, state.changedSinceBackup])
 
   const value = useMemo<Store>(() => {
     const ownedByPerson = new Map<string, { name: string; link?: string }[]>()
@@ -138,6 +195,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
     return {
       ...state,
+      storage: memory ? 'memory' : 'ok',
       dispatch,
       alreadyOwned: (idea) => {
         const owned = ownedByPerson.get(idea.owner)
@@ -145,7 +203,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return owned.some((o) => similarNames(o.name, idea.name) || (!!idea.link && o.link === idea.link))
       },
     }
-  }, [state])
+  }, [state, memory])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

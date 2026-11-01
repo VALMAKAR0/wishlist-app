@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import {
-  Archive, Bell, CalendarClock, Check, ChevronRight, DatabaseBackup, Flame, HardDriveDownload, Map, Palette, RefreshCw, RotateCcw, ShieldCheck, Smartphone, Trash2, Undo2,
+  Archive, Bell, CalendarClock, Check, ChevronRight, DatabaseBackup, Flame, HardDriveDownload, Map, Palette, RefreshCw, RotateCcw, Share2, ShieldCheck, Smartphone, Trash2, Undo2,
 } from 'lucide-react'
 import { Page, Section } from '../components/Page'
 import { Chip, Cover, EmptyState, Ring, Segmented, Switch } from '../components/Primitives'
@@ -34,7 +34,7 @@ export function MoreScreen() {
   const ui = useUI()
   const { settings, setSettings } = ui
   const { open, setTab } = useNav()
-  const { lastBackupAt, dispatch, items } = useStore()
+  const { lastBackupAt, dispatch, items, persons, storage } = useStore()
   const { trash, mine } = useLists()
   const [checking, setChecking] = useState(false)
   const [persist, setPersist] = useState<{ ok: boolean; at: number }>({ ok: true, at: Date.now() - 3_600_000 })
@@ -66,13 +66,37 @@ export function MoreScreen() {
       },
     })
 
+  const loadDemo = () => {
+    const apply = () => {
+      dispatch({ type: 'loadDemo' })
+      ui.toast({ message: t('Demo-Daten geladen'), emoji: '🎁' })
+    }
+    if (!items.length && !persons.length) return apply()
+    ui.confirm({
+      title: t('Demo-Daten laden?'),
+      text: t('Deine echten Einträge werden durch Beispieldaten ersetzt. Mach vorher ein Backup.'),
+      confirmLabel: t('Ersetzen'),
+      tone: 'danger',
+      hold: true,
+      onConfirm: apply,
+    })
+  }
+
   return (
     <Page title={t('Mehr')} eyebrow={`${APP_NAME} · V${APP_VERSION}`} subtitle={t('Sicherheit, Aussehen und alles andere')}>
-      <motion.aside className="preview-note" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
+      <motion.aside className="preview-note" data-warn={storage === 'memory'} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
         <Flame size={18} />
         <p>
-          <strong>{t('Design-Vorschau (V0.1).')}</strong> {t('Bedienen und Animationen sind echt, gespeichert wird noch nichts.')}{' '}
-          <button onClick={() => ui.planned('save-persist')}>{t('Mehr dazu')}</button>
+          {storage === 'memory' ? (
+            <>
+              <strong>{t('Speichern nicht möglich.')}</strong> {t('Einträge gelten nur, bis du die App schließt.')}
+            </>
+          ) : (
+            <>
+              <strong>{t('Vorschau (V{v}).', { v: APP_VERSION.split('.').slice(0, 2).join('.') })}</strong> {t('Deine Einträge bleiben auf diesem Gerät gespeichert. Backup, Teilen und Erinnerungen folgen.')}{' '}
+              <button onClick={() => open({ type: 'roadmap' })}>{t('Roadmap')}</button>
+            </>
+          )}
         </p>
       </motion.aside>
 
@@ -209,6 +233,7 @@ export function MoreScreen() {
       <Section title={t('App')}>
         <div className="card">
           <Row icon={<Smartphone size={18} />} title={t('Auf dem Home-Bildschirm installieren')} onClick={() => ui.planned('install-hint')} />
+          <Row icon={<Share2 size={18} />} title={t('Links aus dem Browser teilen')} text={t('Nur Android')} right={<Chip tone="accent">V0.7</Chip>} onClick={() => ui.planned('share-link-in')} />
           <Row icon={<Bell size={18} />} title={t('Auf Updates prüfen')} text={t('Version {v}', { v: APP_VERSION })} onClick={() => ui.planned('update-check')} />
           <Row icon={<Map size={18} />} title={t('Roadmap')} text={t('Was als Nächstes kommt')} onClick={() => open({ type: 'roadmap' })} />
         </div>
@@ -219,20 +244,8 @@ export function MoreScreen() {
           <Row
             icon={<Palette size={18} />}
             title={t('Demo-Daten laden')}
-            text={t('Setzt alles auf die Beispieldaten zurück')}
-            onClick={() => {
-              dispatch({ type: 'loadDemo' })
-              ui.toast({ message: t('Demo-Daten geladen'), emoji: '🎁' })
-            }}
-          />
-          <Row
-            icon={<Undo2 size={18} />}
-            title={t('Leere App ansehen')}
-            text={t('{count} werden ausgeblendet', { count: t.n(items.length, 'Eintrag', 'Einträge') })}
-            onClick={() => {
-              dispatch({ type: 'wipe' })
-              ui.toast({ message: t('Leere App geladen'), emoji: '🧹' })
-            }}
+            text={t('Ersetzt alle Daten durch Beispieldaten')}
+            onClick={loadDemo}
           />
         </div>
       </Section>
@@ -288,7 +301,7 @@ export function TrashScreen() {
               const d = left(it.deletedAt!)
               return (
                 <motion.li key={it.id} className="item item--static" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: 60, height: 0, marginBottom: 0, overflow: 'hidden', pointerEvents: 'none', transition: { duration: 0.22 } }} transition={{ type: 'spring', stiffness: 300, damping: 28, delay: i * 0.05 }}>
-                  <Cover emoji={it.emoji} hue={it.hue} size={40} />
+                  <Cover emoji={it.emoji} hue={it.hue} size={40} imageId={it.imageId} />
                   <div className="item__main">
                     <span className="item__name">{it.name}</span>
                     <div className="item__meta">
@@ -339,7 +352,7 @@ export function RoadmapScreen() {
     <Page title={t('Roadmap')} eyebrow={t('Vom Design zur App')} subtitle={t('Erst das Gefühl, dann die Logik')} onBack={back}>
       <ol className="timeline">
         {roadmap.map((s, i) => {
-          const current = i === 0
+          const current = s.version === `V${APP_VERSION.split('.').slice(0, 2).join('.')}`
           return (
             <motion.li key={s.version} className="timeline__item" data-current={current} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.12 + i * 0.07, type: 'spring', stiffness: 260, damping: 24 }}>
               <span className="timeline__dot">{current ? <Check size={12} strokeWidth={3.5} /> : null}</span>

@@ -112,7 +112,7 @@ export function ItemCard({ item, index, onOpen, onToggle, onTrash, badge, listLa
           }
         }}
       >
-        <Cover emoji={item.emoji} hue={item.hue} size={44} />
+        <Cover emoji={item.emoji} hue={item.hue} size={44} imageId={item.imageId} />
         <div className="item__main">
           <div className="item__title">
             <span className="item__name">{item.name}</span>

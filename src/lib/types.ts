@@ -1,4 +1,4 @@
-// Datenmodell laut Plan (Abschnitt 4). In V0.1 nur im Arbeitsspeicher, Persistenz kommt in V0.2.
+// Datenmodell laut Plan (Abschnitt 4).
 
 export const SCHEMA_VERSION = 2
 
@@ -27,6 +27,8 @@ export interface Item {
   link?: string
   price?: number
   note?: string
+  /** Verweis auf ein verkleinertes Bild im Bilderspeicher (lib/images.ts). Ohne Bild gilt Emoji und Farbe. */
+  imageId?: string
   emoji: string
   hue: number
   bought: boolean

@@ -85,7 +85,7 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
           <AnimatePresence initial={false}>
             {strip.map((w, i) => (
               <motion.div key={w.id} initial={{ opacity: 0, y: 14, scale: 0.8 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.7, width: 0, marginLeft: 0, pointerEvents: 'none' }} transition={{ type: 'spring', stiffness: 380, damping: 26, delay: i * 0.03 }} style={{ marginLeft: i ? -10 : 0, zIndex: 9 - i }}>
-                <Cover emoji={w.emoji} hue={w.hue} size={40} />
+                <Cover emoji={w.emoji} hue={w.hue} size={40} imageId={w.imageId} />
               </motion.div>
             ))}
           </AnimatePresence>

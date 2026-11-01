@@ -11,20 +11,6 @@ export interface PlannedFeature {
 }
 
 export const planned = {
-  'save-persist': {
-    title: 'Dauerhaft speichern',
-    text: 'Deine Einträge bleiben nach dem Schließen der App erhalten. Bis dahin sind alle Daten hier nur eine Vorschau und verschwinden beim Neuladen.',
-    version: 'V0.2',
-    platform: 'beide',
-    emoji: '💾',
-  },
-  'image-pick': {
-    title: 'Bild hinzufügen',
-    text: 'Foto aus der Galerie wählen oder per Link übernehmen. Große Bilder werden verkleinert gespeichert, damit der Speicher nicht überläuft.',
-    version: 'V0.3',
-    platform: 'beide',
-    emoji: '🖼️',
-  },
   'link-import': {
     title: 'Link-Import',
     text: 'Aus einem Produktlink werden Name, Bild und wenn möglich der Preis automatisch gelesen. Alle Felder bleiben von Hand korrigierbar.',
@@ -60,13 +46,6 @@ export const planned = {
     platform: 'android',
     emoji: '🤖',
   },
-  'persist-check': {
-    title: 'Speicherschutz prüfen',
-    text: 'Fragt beim System echten Speicherschutz an und zeigt, ob er aktiv ist. Das ersetzt kein Backup, hilft aber gegen automatisches Aufräumen bei Speichermangel.',
-    version: 'V0.5',
-    platform: 'beide',
-    emoji: '🛡️',
-  },
   'share-export': {
     title: 'Wunschliste teilen',
     text: 'Erzeugt eine Datei mit deiner Liste und öffnet das Teilen-Menü deines Handys, zum Beispiel für WhatsApp. Geteilt wird ein Schnappschuss, Änderungen musst du neu senden.',
@@ -94,13 +73,6 @@ export const planned = {
     version: 'V0.8',
     platform: 'beide',
     emoji: '📅',
-  },
-  notifications: {
-    title: 'Lokale Erinnerungen',
-    text: 'Benachrichtigungen wie „Geburtstag in 7 Tagen“, direkt vom Gerät ohne Server. Ab Android 13 fragt die App einmal nach der Erlaubnis.',
-    version: 'V0.7',
-    platform: 'android',
-    emoji: '🔔',
   },
   'update-check': {
     title: 'Auf Updates prüfen',

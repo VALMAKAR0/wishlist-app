@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Camera, ExternalLink, Trash2, Wand2 } from 'lucide-react'
+import { Camera, ExternalLink, Trash2, Wand2, X } from 'lucide-react'
 import { toHref, uid } from '../lib/format'
+import { processImage, saveImage } from '../lib/images'
 import { listTitle } from '../lib/lists'
 import { candidatesFor, findSimilar, suggestKind } from '../lib/match'
 import type { Item, Owner } from '../lib/types'
@@ -40,6 +41,34 @@ export function ItemFormSheet({ owner, item, listId: initialList, onClose }: Pro
   const [emoji, setEmoji] = useState(item?.emoji ?? EMOJIS[0])
   const [hue, setHue] = useState(item?.hue ?? HUES[Math.floor(Math.random() * HUES.length)])
   const [shake, setShake] = useState(0)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [pending, setPending] = useState<{ type: string; data: ArrayBuffer; preview: string } | null>(null)
+  const [removed, setRemoved] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const hasImage = !!pending || (!removed && !!item?.imageId)
+
+  useEffect(
+    () => () => {
+      if (pending) URL.revokeObjectURL(pending.preview)
+    },
+    [pending],
+  )
+
+  const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setBusy(true)
+    try {
+      const img = await processImage(file)
+      setPending({ ...img, preview: URL.createObjectURL(new Blob([img.data], { type: img.type })) })
+      setRemoved(false)
+    } catch {
+      ui.toast({ message: t('Bild konnte nicht gelesen werden.'), emoji: '⚠️' })
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const onName = (v: string) => {
     setName(v)
@@ -58,11 +87,23 @@ export function ItemFormSheet({ owner, item, listId: initialList, onClose }: Pro
 
   const ownerName = forMe ? '' : (persons.find((p) => p.id === owner)?.name ?? '')
 
-  const save = () => {
+  const save = async () => {
+    if (busy) return
     if (!name.trim()) {
       setShake((s) => s + 1)
       ui.haptic(30)
       return
+    }
+    let imageId = removed ? undefined : item?.imageId
+    if (pending) {
+      setBusy(true)
+      try {
+        imageId = await saveImage(pending)
+      } catch {
+        setBusy(false)
+        ui.toast({ message: t('Bild konnte nicht gespeichert werden.'), emoji: '⚠️' })
+        return
+      }
     }
     const parsed = price.trim() ? Number(price.replace(',', '.')) : undefined
     const data = {
@@ -72,6 +113,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, onClose }: Pro
       link: link.trim() || undefined,
       price: parsed !== undefined && Number.isFinite(parsed) ? parsed : undefined,
       note: note.trim() || undefined,
+      imageId,
       emoji,
       hue,
     }
@@ -115,25 +157,44 @@ export function ItemFormSheet({ owner, item, listId: initialList, onClose }: Pro
     >
       <div className="form-cover">
         <motion.div key={emoji + hue} initial={{ scale: 0.8, rotate: -6 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 420, damping: 16 }}>
-          <Cover emoji={emoji} hue={hue} size={72} radius={22} />
+          <Cover emoji={emoji} hue={hue} size={72} radius={22} imageId={removed ? undefined : item?.imageId} src={pending?.preview} />
         </motion.div>
-        <button className="chip chip--button" onClick={() => ui.planned('image-pick')}>
-          <Camera size={14} /> {t('Bild wählen')}
-        </button>
+        <div className="form-cover__actions">
+          <button type="button" className="chip chip--button" onClick={() => fileRef.current?.click()} disabled={busy}>
+            <Camera size={14} /> {busy ? t('Bild wird verkleinert …') : hasImage ? t('Bild ändern') : t('Bild wählen')}
+          </button>
+          {hasImage && !busy && (
+            <button
+              type="button"
+              className="chip chip--button"
+              onClick={() => {
+                setPending(null)
+                setRemoved(true)
+              }}
+            >
+              <X size={14} /> {t('Bild entfernen')}
+            </button>
+          )}
+        </div>
+        <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
       </div>
 
-      <div className="swatches swatches--scroll" role="radiogroup" aria-label="Emoji">
-        {EMOJIS.map((e) => (
-          <button key={e} role="radio" aria-checked={e === emoji} data-active={e === emoji} className="swatch swatch--emoji" onClick={() => setEmoji(e)}>
-            {e}
-          </button>
-        ))}
-      </div>
-      <div className="swatches" role="radiogroup" aria-label={t('Farbe')}>
-        {HUES.map((h) => (
-          <button key={h} role="radio" aria-checked={h === hue} aria-label={`${h}`} data-active={h === hue} className="swatch swatch--color" style={{ ['--h' as string]: h }} onClick={() => setHue(h)} />
-        ))}
-      </div>
+      {!hasImage && (
+        <>
+          <div className="swatches swatches--scroll" role="radiogroup" aria-label="Emoji">
+            {EMOJIS.map((e) => (
+              <button key={e} role="radio" aria-checked={e === emoji} data-active={e === emoji} className="swatch swatch--emoji" onClick={() => setEmoji(e)}>
+                {e}
+              </button>
+            ))}
+          </div>
+          <div className="swatches" role="radiogroup" aria-label={t('Farbe')}>
+            {HUES.map((h) => (
+              <button key={h} role="radio" aria-checked={h === hue} aria-label={`${h}`} data-active={h === hue} className="swatch swatch--color" style={{ ['--h' as string]: h }} onClick={() => setHue(h)} />
+            ))}
+          </div>
+        </>
+      )}
 
       <motion.label key={shake} className="field" animate={shake ? { x: [0, -9, 9, -6, 6, 0] } : undefined} transition={{ duration: 0.4 }}>
         <span>{t('Name')}</span>
