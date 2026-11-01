@@ -1,6 +1,7 @@
 import { App as CapApp } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { AutoBackup } from './components/AutoBackup'
 import { Aurora, Splash, TabBar } from './components/Chrome'
 import { Stage } from './components/Stage'
 import { MoreScreen, RoadmapScreen, TrashScreen } from './screens/MoreScreens'
@@ -105,6 +106,7 @@ function Shell() {
       <Aurora />
       <Screens />
       <TabBar />
+      <AutoBackup />
       {splash && <Splash onDone={() => setSplash(false)} />}
     </div>
   )

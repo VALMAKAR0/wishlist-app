@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 01.11.2026 · Status: V0.4.5 (Abschnitte einklappbar, Anlass-Hinweis in der Liste größer) · Datenformat: v2
+Stand: 01.11.2026 · Status: V0.5.0 (Backup als ZIP, Auto-Backup Android, Speicherschutz) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -195,9 +195,9 @@ Eigener Tab mit Auswertungen über alles: Gesamtausgaben (für mich und für and
 - **V0.3 (erledigt):** Bilder für Wünsche und Geschenkideen (Galerie oder Kamera, verkleinert auf höchstens 800 Pixel, als JPEG gespeichert). Wünsche, Personen und Ideen anlegen und bearbeiten war schon in V0.1 vorhanden und läuft seit V0.2 mit echtem Speicher.
 - **V0.3.1 (erledigt, ungetestet auf Gerät):** Android-Hülle mit Capacitor und automatischer APK-Build bei GitHub, damit Android-Funktionen ab jetzt auf dem Handy getestet werden können (siehe 21).
 - **V0.4 (erledigt):** Papierkorb räumt sich nach 30 Tagen selbst auf (beim App-Start), Archiv und Rückgängig waren schon da. Dazu die Listen-Übersicht (siehe 22).
-- **V0.5:** Backup, Export, Import, Speicherschutz-Anzeige
+- **V0.5 (erledigt, Android-Teil ungetestet auf Gerät):** Backup als ZIP von Hand, Wiederherstellen mit interner Kopie davor, Auto-Backup in Dokumente (Android), echter Speicherschutz-Status (siehe 23).
 - **V0.6:** Teilen-Button und Import fremder Listen
-- **V0.7:** Android-Funktionen (Auto-Backup, Erinnerungen, Link-Import, Update-Hinweis)
+- **V0.7:** Android-Funktionen (Erinnerungen, Link-Import, Update-Hinweis; das Auto-Backup wurde in V0.5 vorgezogen)
 - **V0.8:** PWA-Feinschliff für iPhone (.ics, Update-Hinweis)
 - **V1.0:** Test auf echten Geräten, Release
 
@@ -282,3 +282,15 @@ Technische Leitplanken für Animationen (nach Fehlersuche in V0.1):
 - **App-Icon (V0.4.4):** Das Android-Symbol hat jetzt die Marke mit Rand innerhalb der sicheren Zone des adaptiven Icons, vorher ragte der kleine Funke über die Maske. Erzeugt mit `scratchpad/icons/gen.cjs` (liegt nicht im Projekt, die fertigen PNGs sind in `android/app/src/main/res/mipmap-*`).
 - **Tablet-Abstand oben (V0.4.4):** Auf Geräten mit Touch und mindestens 900 px Breite (`@media (min-width: 900px) and (pointer: coarse)` in `tokens.css`) gilt oben mindestens 30 px Abstand (`--safe-t`), damit die Seitenleiste und die Kopfzeile nicht an der Statusleiste des Tablets kleben. Handy und Desktop-Browser sind unverändert.
 
+## 23. Backup, Wiederherstellen, Speicherschutz (V0.5)
+
+- **Format:** ZIP-Datei (`src/lib/backup.ts`, Bibliothek `fflate`). Inhalt: `daten.json` (Wünsche, Personen, Ideen, Listen, Papierkorb, Archiv, erhaltene Listen, dazu Zähler, Datenformat-Version und App-Version), `bilder/<id>.jpg` (nur Bilder, auf die ein Eintrag zeigt, unkomprimiert) und `pruefsummen.json` (CRC32 jeder Datei). Das ZIP-Format selbst meldet stille Bitfehler nicht, deshalb prüft die App die Summen beim Einlesen. Nicht enthalten: Einstellungen wie Sprache, Farbe, eingeklappte Abschnitte (liegen nur auf dem Gerät).
+- **Dateinamen:** von Hand `wunschliste-backup-JJJJ-MM-TT-HHMM.zip`, automatisch `wunschliste-auto-JJJJ-MM-TT.zip`.
+- **Von Hand sichern ("Jetzt sichern" unter Mehr oder im Hinweis):** Android-App schreibt nach `Dokumente/Wunschliste` (klappt das nicht, öffnet sich das Teilen-Menü). Handy-Browser/iPhone öffnen das Teilen-Menü (dort "In Dateien sichern", am besten iCloud Drive). Rechner laden die Datei herunter. Danach steht "Heute gesichert", und der Backup-Hinweis ist weg, bis sich wieder etwas ändert.
+- **Automatisch (nur Android-App, Schalter unter Mehr, standardmäßig an):** Beim Start, 3 Sekunden verzögert, höchstens einmal in 20 Stunden und nur, wenn sich seit der letzten Sicherung etwas geändert hat. Ziel `Dokumente/Wunschliste/wunschliste-auto-…zip`, die letzten 5 automatischen bleiben, ältere eigene löscht die App (von Hand erstellte nie). Nach einer Neuinstallation bleiben die alten Dateien liegen, sie gehören dann nicht mehr der App und werden nicht aufgeräumt. Klappt das Schreiben nicht, kommt ein Hinweis und nichts wird als gesichert markiert.
+- **Wiederherstellen:** immer über die Dateiauswahl. Die Datei wird zuerst geprüft (ZIP, App-Kennung, Prüfsummen, Datenformat, ältere Formate werden migriert, neuere abgelehnt), dann folgt eine Rückfrage mit Datum und Zahlen. Danach legt die App eine **interne Kopie** des jetzigen Stands an (nur wenn es Daten gibt, es bleiben die letzten 3, Speicher `backups` in IndexedDB, Datenbank-Version 3), schreibt die Bilder und ersetzt alle Daten. Nichts wird zusammengeführt. Interne Kopien erscheinen unter "Interne Kopien" mit "Zurückholen". Auch vor "Demo-Daten laden" entsteht eine. "Alle Daten löschen" entfernt auch die internen Kopien.
+- **Warum interne Kopien nur vor Wiederherstellen/Demo und nicht täglich:** Sie liegen im selben Speicher wie die Daten und schützen deshalb nur vor Fehlbedienung, nicht vor Datenverlust. Täglich würden sie auf dem iPhone viel Platz kosten. Sie ersetzen kein Backup.
+- **Hinweis zum Backup:** Beim Start, wenn sich etwas geändert hat und das letzte Backup 14 Tage oder mehr her ist, oder wenn es noch nie eines gab und Wünsche existieren. Nur direkt beim Start, nicht bei jedem Tab-Wechsel.
+- **Speicherschutz** (`src/lib/persist.ts`): Beim ersten Start wird `persist()` angefragt, bei jedem Start nur `persisted()` abgefragt. Unter Mehr: "aktiv", "nicht aktiv" (mit Hinweis auf Backup), "nicht verfügbar" oder in der Android-App "App-Speicher" (dort liegen die Daten im geschützten App-Speicher, die Browser-Abfrage ist nicht aussagekräftig). "Status prüfen" fragt neu ab und bittet bei "nicht aktiv" einmal um den Schutz. Geprüft wird sinnvoll nur in der installierten PWA, nicht in einem Safari-Tab.
+- **Android-Technik:** `@capacitor/filesystem` (Schreiben nach Dokumente) und `@capacitor/share` (Teilen-Menü als Rückfall), Berechtigungen nur für Android bis 10 im Manifest. Ab Android 11 braucht das Schreiben neuer Dateien in Dokumente keine Berechtigung.
+- **Am echten Gerät testen:** (1) Android: "Jetzt sichern" schreibt eine Datei in Dokumente/Wunschliste, sichtbar in "Eigene Dateien"; (2) Auto-Backup: Eintrag ändern, App komplett schließen, am nächsten Tag öffnen, Datei prüfen und nach 6 Tagen Zählen, dass nur 5 automatische bleiben; (3) Wiederherstellen aus Dokumente über die Dateiauswahl, auch eine Datei vom anderen Gerät; (4) iPhone: Teilen-Menü, "In Dateien sichern", dort wieder öffnen; (5) ein Backup mit Bildern: Bilder sind nach dem Wiederherstellen da.

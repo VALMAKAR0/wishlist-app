@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import {
   Archive, Bell, CalendarClock, Check, ChevronRight, DatabaseBackup, Flame, HardDriveDownload, Map, Palette, RefreshCw, RotateCcw, Share2, ShieldCheck, Smartphone, Trash2, Undo2,
@@ -6,9 +6,13 @@ import {
 import { Page, Section } from '../components/Page'
 import { Chip, Cover, EmptyState, Ring, Segmented, Switch } from '../components/Primitives'
 import { APP_NAME, APP_VERSION, BACKUP_NUDGE_DAYS, TRASH_DAYS } from '../lib/brand'
+import { clearSafetyCopies } from '../lib/backup'
+import { BACKUP_DIR, AUTO_KEEP } from '../lib/backupFiles'
 import { daysAgo, timeLabel } from '../lib/format'
+import { checkPersist, usePersist } from '../lib/persist'
 import { roadmap } from '../lib/plannedFeatures'
 import type { FxSetting, Lang, ThemeSetting } from '../lib/types'
+import { useBackup } from '../state/backup'
 import { useNav } from '../state/nav'
 import { useLists, useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
@@ -37,20 +41,23 @@ export function MoreScreen() {
   const { lastBackupAt, dispatch, items, persons, storage } = useStore()
   const { trash, mine } = useLists()
   const [checking, setChecking] = useState(false)
-  const [persist, setPersist] = useState<{ ok: boolean; at: number }>({ ok: true, at: Date.now() - 3_600_000 })
+  const persist = usePersist()
+  const bk = useBackup()
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [copies, setCopies] = useState<Awaited<ReturnType<typeof bk.listSafetyCopies>>>([])
+  useEffect(() => {
+    void bk.listSafetyCopies().then(setCopies).catch(() => setCopies([]))
+  }, [bk.busy, lastBackupAt])
 
   const days = lastBackupAt ? daysAgo(lastBackupAt) : null
   const stale = days === null || days >= BACKUP_NUDGE_DAYS
   const archived = mine.filter((i) => i.bought).length
 
-  // Vorschau: Die echte Abfrage von storage.persisted() kommt in V0.5.
-  const checkPersist = () => {
+  const recheck = async () => {
     setChecking(true)
     ui.haptic(10)
-    setTimeout(() => {
-      setPersist({ ok: true, at: Date.now() })
-      setChecking(false)
-    }, 1100)
+    await Promise.all([checkPersist(true), new Promise((r) => setTimeout(r, 500))])
+    setChecking(false)
   }
 
   const wipe = () =>
@@ -61,6 +68,7 @@ export function MoreScreen() {
       tone: 'danger',
       hold: true,
       onConfirm: () => {
+        void clearSafetyCopies().catch(() => undefined)
         dispatch({ type: 'wipe' })
         ui.toast({ message: t('Alle Daten gelöscht'), emoji: '🧹' })
       },
@@ -68,6 +76,7 @@ export function MoreScreen() {
 
   const loadDemo = () => {
     const apply = () => {
+      void bk.safetyBefore('demo')
       dispatch({ type: 'loadDemo' })
       ui.toast({ message: t('Demo-Daten geladen'), emoji: '🎁' })
     }
@@ -93,7 +102,7 @@ export function MoreScreen() {
             </>
           ) : (
             <>
-              <strong>{t('Vorschau (V{v}).', { v: APP_VERSION.split('.').slice(0, 2).join('.') })}</strong> {t('Deine Einträge bleiben auf diesem Gerät gespeichert. Backup, Teilen und Erinnerungen folgen.')}{' '}
+              <strong>{t('Vorschau (V{v}).', { v: APP_VERSION.split('.').slice(0, 2).join('.') })}</strong> {t('Deine Einträge bleiben auf diesem Gerät gespeichert. Teilen und Erinnerungen folgen.')}{' '}
               <button onClick={() => open({ type: 'roadmap' })}>{t('Roadmap')}</button>
             </>
           )}
@@ -112,19 +121,61 @@ export function MoreScreen() {
             </div>
           </div>
           <div className="row row--gap">
-            <button className="btn btn--primary btn--grow" onClick={() => ui.planned('backup-now')}>
+            <button className="btn btn--primary btn--grow" onClick={() => void bk.backupNow()} disabled={bk.busy}>
               <HardDriveDownload size={17} /> {t('Jetzt sichern')}
             </button>
-            <button className="btn btn--ghost btn--grow" onClick={() => ui.planned('backup-restore')}>
+            <button className="btn btn--ghost btn--grow" onClick={() => fileRef.current?.click()} disabled={bk.busy}>
               <RotateCcw size={17} /> {t('Wiederherstellen')}
             </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".zip,application/zip,application/x-zip-compressed"
+              hidden
+              data-testid="restore-input"
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                e.target.value = ''
+                if (f) void bk.restoreFile(f)
+              }}
+            />
           </div>
-          <Row icon={<RefreshCw size={18} />} title={t('Automatisch sichern')} text={t('Nur auf Android, täglich bei Änderungen')} right={<Chip tone="accent">V0.7</Chip>} onClick={() => ui.planned('backup-auto')} />
+          {bk.native ? (
+            <div className="setting">
+              <div>
+                <strong>{t('Automatisch sichern')}</strong>
+                <small>{t('Täglich beim Start, wenn sich etwas geändert hat. Ordner: Dokumente/{dir}, die letzten {n} bleiben.', { dir: BACKUP_DIR, n: AUTO_KEEP })}</small>
+              </div>
+              <Switch checked={settings.autoBackup} onChange={(autoBackup) => setSettings({ autoBackup })} label={t('Automatisch sichern')} />
+            </div>
+          ) : (
+            <Row icon={<RefreshCw size={18} />} title={t('Automatisch sichern')} text={t('Nur in der Android-App. Hier sicherst du von Hand.')} right={<Chip>Android</Chip>} />
+          )}
         </div>
+
+        {copies.length > 0 && (
+          <div className="card spot">
+            <strong className="card__title">{t('Interne Kopien')}</strong>
+            {copies.map((c) => (
+              <div key={c.id} className="row-item row-item--static">
+                <span className="row-item__main">
+                  <strong>{timeLabel(c.at)}</strong>
+                  <small>
+                    {c.reason === 'restore' ? t('vor dem Wiederherstellen') : t('vor den Demo-Daten')} · {t.n(c.counts.items, 'Eintrag', 'Einträge')}
+                  </small>
+                </span>
+                <button className="btn btn--small btn--ghost" onClick={() => void bk.restoreSafety(c.id)} disabled={bk.busy}>
+                  {t('Zurückholen')}
+                </button>
+              </div>
+            ))}
+            <p className="hint">{t('Bleiben nur auf diesem Gerät, es gibt die letzten 3. Das ersetzt kein Backup.')}</p>
+          </div>
+        )}
 
         <div className="card spot">
           <div className="persist">
-            <span className="persist__icon" data-ok={persist.ok}>
+            <span className="persist__icon" data-ok={persist.state === 'active' || persist.state === 'native'}>
               <AnimatePresence mode="wait" initial={false}>
                 <motion.span key={checking ? 'busy' : 'idle'} initial={{ scale: 0.4, opacity: 0, rotate: -40 }} animate={{ scale: 1, opacity: 1, rotate: 0 }} exit={{ scale: 0.4, opacity: 0 }} transition={{ type: 'spring', stiffness: 400, damping: 20 }}>
                   {checking ? <RefreshCw size={22} className="spin" /> : <ShieldCheck size={22} />}
@@ -132,18 +183,32 @@ export function MoreScreen() {
               </AnimatePresence>
             </span>
             <div className="backup__text">
-              <strong>{t('Speicherschutz: {state}', { state: persist.ok ? t('aktiv') : t('nicht aktiv') })}</strong>
-              <span>
-                {t('zuletzt geprüft: {date}', { date: timeLabel(persist.at) })} · <em className="demo-tag">{t('Demo-Wert')}</em>
-              </span>
+              <strong>
+                {t('Speicherschutz: {state}', {
+                  state:
+                    persist.state === 'active' ? t('aktiv')
+                    : persist.state === 'inactive' ? t('nicht aktiv')
+                    : persist.state === 'native' ? t('App-Speicher')
+                    : persist.state === 'unsupported' ? t('nicht verfügbar')
+                    : t('wird geprüft'),
+                })}
+              </strong>
+              <span>{persist.at ? t('zuletzt geprüft: {date}', { date: timeLabel(persist.at) }) : t('noch nicht geprüft')}</span>
             </div>
           </div>
           <div className="row">
-            <button className="btn btn--ghost btn--block" onClick={checkPersist} disabled={checking}>
+            <button className="btn btn--ghost btn--block" onClick={() => void recheck()} disabled={checking || persist.state === 'native'}>
               <RefreshCw size={16} className={checking ? 'spin' : undefined} /> {t('Status prüfen')}
             </button>
           </div>
-          <p className="hint">{t('Der Schutz hilft nur gegen automatisches Aufräumen bei Speichermangel. Das Backup bleibt Pflicht.')}</p>
+          {(persist.state === 'inactive' || persist.state === 'unsupported') && (
+            <p className="hint hint--warn">{t('Das System darf die Daten bei Speichermangel aufräumen. Mach regelmäßig ein Backup.')}</p>
+          )}
+          <p className="hint">
+            {persist.state === 'native'
+              ? t('In der Android-App liegen die Daten im geschützten App-Speicher. „Daten löschen“ oder Deinstallieren entfernt sie, ein Backup bleibt Pflicht.')
+              : t('Der Schutz hilft nur gegen automatisches Aufräumen bei Speichermangel. Das Backup bleibt Pflicht.')}
+          </p>
         </div>
       </Section>
 

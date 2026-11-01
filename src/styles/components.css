@@ -1474,3 +1474,9 @@
 .occ-tile--banner .occ-tile__lists {
   color: var(--accent);
 }
+
+.card__title {
+  display: block;
+  padding: 14px 16px 2px;
+  font-size: 15px;
+}

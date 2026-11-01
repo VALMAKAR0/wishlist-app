@@ -43,7 +43,7 @@ interface UI {
 const Ctx = createContext<UI | null>(null)
 
 const STORAGE_KEY = 'wl.ui'
-const defaults = (): UiSettings => ({ theme: 'system', fx: 'full', lang: detectLang(), hue: 14, remind: true, remindDays: 7, showPlanned: false })
+const defaults = (): UiSettings => ({ theme: 'system', fx: 'full', lang: detectLang(), hue: 14, remind: true, remindDays: 7, showPlanned: false, autoBackup: true })
 
 function loadSettings(): UiSettings {
   try {

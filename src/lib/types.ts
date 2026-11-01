@@ -102,6 +102,8 @@ export interface UiSettings {
   remindDays: number
   /** Helle Zusatzleiste im Budget: Summe der noch offenen Ideen. */
   showPlanned: boolean
+  /** Automatische Sicherung in Dokumente (nur Android-App). */
+  autoBackup: boolean
 }
 
 export type ShareBought = 'hidden' | 'only' | 'exclude'

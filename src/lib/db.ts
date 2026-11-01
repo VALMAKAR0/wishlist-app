@@ -1,10 +1,11 @@
-// IndexedDB ohne Zusatzbibliothek. Speicher "kv" = Datenstand, Speicher "images" = Bilder.
+// IndexedDB ohne Zusatzbibliothek. Speicher "kv" = Datenstand, "images" = Bilder, "backups" = interne Sicherheitskopien.
 
 const DB_NAME = 'wishlist'
-const DB_VERSION = 2
+const DB_VERSION = 3
 export const KV = 'kv'
 export const IMAGES = 'images'
-const STORES = [KV, IMAGES]
+export const BACKUPS = 'backups'
+const STORES = [KV, IMAGES, BACKUPS]
 
 let opening: Promise<IDBDatabase> | null = null
 

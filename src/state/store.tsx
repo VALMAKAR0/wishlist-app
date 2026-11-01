@@ -4,7 +4,8 @@ import { defaultList, demoItems, demoLists, demoPersons, demoReceived } from '..
 import { dayAgoTs } from '../lib/format'
 import { similarNames } from '../lib/match'
 import { gcImages } from '../lib/images'
-import { loadData, saveData, type Loaded } from '../lib/storage'
+import { checkPersist } from '../lib/persist'
+import { loadData, saveData, type Loaded, type StoredData } from '../lib/storage'
 import { purgeExpired } from '../lib/trash'
 import type { Item, Owner, Person, ReceivedList, Wishlist } from '../lib/types'
 import { useT, useUI } from './ui'
@@ -38,6 +39,8 @@ type Action =
   | { type: 'deletePerson'; id: string }
   | { type: 'deleteReceived'; id: string }
   | { type: 'wipe' }
+  | { type: 'restore'; data: StoredData; at: number | null }
+  | { type: 'backedUp'; at: number }
   | { type: 'loadDemo' }
   | { type: 'ackNudge' }
 
@@ -111,6 +114,10 @@ function reducer(s: State, a: Action): State {
       return touch({ received: s.received.filter((r) => r.id !== a.id) })
     case 'wipe':
       return emptyState()
+    case 'restore':
+      return { ...s, items: a.data.items, lists: a.data.lists, persons: a.data.persons, received: a.data.received, lastBackupAt: a.at, changedSinceBackup: false, nudgeOpen: false }
+    case 'backedUp':
+      return { ...s, lastBackupAt: a.at, changedSinceBackup: false }
     case 'loadDemo':
       return demoState()
     case 'ackNudge':
@@ -163,6 +170,10 @@ function StoreInner({ boot, children }: { boot: Loaded; children: ReactNode }) {
   useEffect(() => {
     if (boot.kind === 'unavailable') ui.toast({ message: t('Speichern ist hier gerade nicht möglich. Einträge gehen beim Schließen verloren.'), emoji: '⚠️' })
     if (boot.kind === 'unreadable') ui.toast({ message: t('Gespeicherte Daten waren nicht lesbar und wurden zur Sicherheit beiseitegelegt.'), emoji: '⚠️' })
+  }, [])
+
+  useEffect(() => {
+    void checkPersist()
   }, [])
 
   useEffect(() => {

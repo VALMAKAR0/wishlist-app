@@ -19,7 +19,7 @@ export type Loaded =
   | { kind: 'unreadable' }
   | { kind: 'unavailable' }
 
-type Raw = Record<string, unknown>
+export type Raw = Record<string, unknown>
 type Migration = (d: Raw) => Raw
 
 /** Schritte von Version n auf n+1. Künftige Formatänderungen kommen hier rein, alte Daten laufen dann Schritt für Schritt durch. */
@@ -48,7 +48,7 @@ export function migrate(raw: Raw, from: number, steps: Record<number, Migration>
   return d
 }
 
-function sanitize(d: Raw): StoredData | null {
+export function sanitize(d: Raw): StoredData | null {
   const { items, lists, persons, received } = d
   if (!Array.isArray(items) || !Array.isArray(lists) || !Array.isArray(persons) || !Array.isArray(received)) return null
   const all: unknown[] = [...items, ...lists, ...persons, ...received]

@@ -12,12 +12,13 @@ import { daysAgo } from '../lib/format'
 import { listStats } from '../lib/stats'
 import { useNav } from '../state/nav'
 import { useLists, useStore } from '../state/store'
-import { useT, useUI } from '../state/ui'
+import { useBackup } from '../state/backup'
+import { useT } from '../state/ui'
 
-function BackupNudge({ days, onDismiss }: { days: number; onDismiss: () => void }) {
+function BackupNudge({ days, onDismiss }: { days: number | null; onDismiss: () => void }) {
   const t = useT()
-  const ui = useUI()
   const { setTab } = useNav()
+  const { backupNow } = useBackup()
   return (
     <motion.aside
       className="nudge"
@@ -28,10 +29,10 @@ function BackupNudge({ days, onDismiss }: { days: number; onDismiss: () => void 
     >
       <ShieldAlert size={22} />
       <div>
-        <strong>{t('Letztes Backup vor {n} Tagen', { n: days })}</strong>
-        <p>{t('Seitdem hat sich etwas geändert. Sichere deine Daten, bevor etwas verloren geht.')}</p>
+        <strong>{days === null ? t('Noch kein Backup') : t('Letztes Backup vor {n} Tagen', { n: days })}</strong>
+        <p>{days === null ? t('Deine Daten liegen nur auf diesem Gerät. Sichere sie, bevor etwas verloren geht.') : t('Seitdem hat sich etwas geändert. Sichere deine Daten, bevor etwas verloren geht.')}</p>
         <div className="nudge__actions">
-          <button className="btn btn--small btn--primary" onClick={() => ui.planned('backup-now')}>
+          <button className="btn btn--small btn--primary" onClick={() => void backupNow()}>
             {t('Jetzt sichern')}
           </button>
           <button className="btn btn--small btn--ghost" onClick={() => setTab('more')}>
@@ -58,8 +59,8 @@ export function WishesScreen() {
   const [newList, setNewList] = useState(false)
 
   const backupDays = lastBackupAt ? daysAgo(lastBackupAt) : null
-  const showNudge = nudgeOpen && changedSinceBackup && backupDays !== null && backupDays >= BACKUP_NUDGE_DAYS
-  const nudge = <AnimatePresence>{showNudge && <BackupNudge days={backupDays!} onDismiss={() => dispatch({ type: 'ackNudge' })} />}</AnimatePresence>
+  const showNudge = nudgeOpen && changedSinceBackup && (backupDays === null ? mine.length > 0 : backupDays >= BACKUP_NUDGE_DAYS)
+  const nudge = <AnimatePresence>{showNudge && <BackupNudge days={backupDays} onDismiss={() => dispatch({ type: 'ackNudge' })} />}</AnimatePresence>
 
   const rows = useMemo(() => lists.map((l) => ({ list: l, stats: listStats(mine.filter((i) => i.listId === l.id)) })), [lists, mine])
 
