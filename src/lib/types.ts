@@ -14,6 +14,8 @@ export interface Wishlist {
   isDefault?: boolean
   emoji: string
   hue: number
+  /** Optionales Datum der Liste (z. B. Geburtstag), Format JJJJ-MM-TT. */
+  date?: string
   createdAt: number
 }
 

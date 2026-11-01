@@ -1,12 +1,16 @@
-import { dayAgoTs } from './format'
+import { dayAgoTs, nextOccurrence } from './format'
 import type { Item, Person, ReceivedList, Wishlist } from './types'
 
 // Beispieldaten für die V0.1-Vorschau. Nichts davon wird gespeichert.
 
 const now = () => Date.now()
 
-function list(id: string, owner: string, name: string, emoji: string, hue: number, isDefault = false): Wishlist {
-  return { id, owner, name: isDefault ? '' : name, isDefault: isDefault || undefined, emoji, hue, createdAt: now() }
+const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+const isoIn = (days: number) => iso(new Date(Date.now() + days * 86_400_000))
+const isoNext = (month: number, day: number) => iso(nextOccurrence({ month, day }))
+
+function list(id: string, owner: string, name: string, emoji: string, hue: number, isDefault = false, date?: string): Wishlist {
+  return { id, owner, name: isDefault ? '' : name, isDefault: isDefault || undefined, emoji, hue, date, createdAt: now() }
 }
 
 function item(id: string, owner: string, listId: string, name: string, emoji: string, hue: number, extra: Partial<Item> = {}): Item {
@@ -18,10 +22,10 @@ export const defaultList = (owner: string, id: string): Wishlist => list(id, own
 export function demoLists(): Wishlist[] {
   return [
     list('l-me-1', 'me', '', '📌', 14, true),
-    list('l-me-2', 'me', 'Weihnachten', '🎄', 150),
-    list('l-me-3', 'me', 'Geburtstag', '🎂', 45),
-    list('l-lena-1', 'p-lena', 'Geburtstag', '🎂', 345),
-    list('l-lena-2', 'p-lena', 'Weihnachten', '🎄', 150),
+    list('l-me-2', 'me', 'Weihnachten', '🎄', 150, false, isoNext(12, 24)),
+    list('l-me-3', 'me', 'Geburtstag', '🎂', 45, false, isoIn(12)),
+    list('l-lena-1', 'p-lena', 'Geburtstag', '🎂', 345, false, isoNext(11, 8)),
+    list('l-lena-2', 'p-lena', 'Weihnachten', '🎄', 150, false, isoNext(12, 24)),
     list('l-jonas-1', 'p-jonas', '', '📌', 55, true),
     list('l-papa-1', 'p-papa', '', '📌', 225, true),
     list('l-oma-1', 'p-oma', '', '📌', 160, true),

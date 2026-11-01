@@ -1,6 +1,6 @@
 import { motion } from 'motion/react'
-import { Plus } from 'lucide-react'
-import { eur } from '../lib/format'
+import { CalendarDays, Plus } from 'lucide-react'
+import { daysUntilIso, distanceLabel, eur } from '../lib/format'
 import { listTitle } from '../lib/lists'
 import type { ListStats } from '../lib/stats'
 import type { Wishlist } from '../lib/types'
@@ -17,6 +17,17 @@ interface Props {
   rows: TileRow[]
   onOpen: (id: string) => void
   onNew?: () => void
+}
+
+function TileDate({ iso }: { iso: string }) {
+  const t = useT()
+  const days = daysUntilIso(iso)
+  if (days === null) return null
+  return (
+    <span className="ltile__date" data-past={days < 0} data-soon={days >= 0 && days <= 14}>
+      <CalendarDays size={12} /> {distanceLabel(days, t)}
+    </span>
+  )
 }
 
 type HueStyle = React.CSSProperties & { '--h': number }
@@ -49,6 +60,7 @@ export function ListTiles({ rows, onOpen, onNew }: Props) {
                 {owner && <small>{owner}</small>}
               </span>
             </span>
+            {list.date && <TileDate iso={list.date} />}
             <span className="ltile__total">{stats.count ? eur(stats.total) : t('Leer')}</span>
             <span className="ltile__bar" aria-hidden>
               <span style={{ width: `${done * 100}%` }} />

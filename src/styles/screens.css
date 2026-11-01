@@ -1472,3 +1472,25 @@ button.row-item:active {
   border: 1px dashed var(--border-strong);
   box-shadow: none;
 }
+
+.ltile__date {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 11.5px;
+  font-weight: 750;
+  color: var(--text-2);
+  background: var(--field);
+}
+
+.ltile__date[data-soon='true'] {
+  color: var(--accent-text);
+  background: var(--accent-soft);
+}
+
+.ltile__date[data-past='true'] {
+  color: var(--text-3);
+}

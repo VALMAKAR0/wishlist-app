@@ -13,7 +13,6 @@ import { listStats } from '../lib/stats'
 import { useNav } from '../state/nav'
 import { useLists, useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
-import { ListPage } from './ListPage'
 
 function BackupNudge({ days, onDismiss }: { days: number; onDismiss: () => void }) {
   const t = useT()
@@ -47,7 +46,7 @@ function BackupNudge({ days, onDismiss }: { days: number; onDismiss: () => void 
   )
 }
 
-/** Mit mehreren Listen: Übersicht mit Kacheln. Mit einer Liste: gleich die Einträge. */
+/** Übersicht der Listen mit Kacheln. Tippen öffnet die Liste. */
 export function WishesScreen() {
   const t = useT()
   const { mine, listsOf } = useLists()
@@ -63,8 +62,6 @@ export function WishesScreen() {
   const nudge = <AnimatePresence>{showNudge && <BackupNudge days={backupDays!} onDismiss={() => dispatch({ type: 'ackNudge' })} />}</AnimatePresence>
 
   const rows = useMemo(() => lists.map((l) => ({ list: l, stats: listStats(mine.filter((i) => i.listId === l.id)) })), [lists, mine])
-
-  if (lists.length < 2) return <ListPage owner="me" listId="all" top={nudge} canCreateList />
 
   return (
     <>

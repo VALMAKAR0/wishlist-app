@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Trash2, X } from 'lucide-react'
 import { eur } from '../lib/format'
 import { listTitle } from '../lib/lists'
 import type { ListStats } from '../lib/stats'
-import type { Owner, Wishlist } from '../lib/types'
+import type { Owner, Person, Wishlist } from '../lib/types'
 import { uid } from '../lib/format'
 import { useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
@@ -100,17 +100,22 @@ const HUES = [14, 45, 100, 150, 190, 230, 275, 320]
 
 interface ListSheetProps {
   owner: Owner
+  /** Beim Anlegen für eine Person: zur Auswahl stehende Personen (ersetzt `owner`). */
+  ownerChoices?: Person[]
   list?: Wishlist | null
   onClose: () => void
   onCreated?: (id: string) => void
   onDeleted?: () => void
 }
 
-export function ListSheet({ owner, list, onClose, onCreated, onDeleted }: ListSheetProps) {
+export function ListSheet({ owner: baseOwner, ownerChoices, list, onClose, onCreated, onDeleted }: ListSheetProps) {
   const t = useT()
   const ui = useUI()
   const { dispatch, lists, items } = useStore()
   const editing = !!list
+  const [pick, setPick] = useState(ownerChoices?.[0]?.id ?? baseOwner)
+  const owner: Owner = ownerChoices && !editing ? pick : baseOwner
+  const [date, setDate] = useState(list?.date ?? '')
   const [name, setName] = useState(list && !list.isDefault ? list.name : '')
   const [emoji, setEmoji] = useState(list?.emoji ?? '⭐')
   const [hue, setHue] = useState(list?.hue ?? HUES[Math.floor(Math.random() * HUES.length)])
@@ -126,11 +131,11 @@ export function ListSheet({ owner, list, onClose, onCreated, onDeleted }: ListSh
     }
     if (list) {
       // Ein Standardname bleibt "Allgemein", sonst wird die Liste zu einer eigenen.
-      dispatch({ type: 'updateList', id: list.id, patch: { name: finalName, emoji, hue, isDefault: finalName ? undefined : list.isDefault } })
+      dispatch({ type: 'updateList', id: list.id, patch: { name: finalName, emoji, hue, date: date || undefined, isDefault: finalName ? undefined : list.isDefault } })
       ui.toast({ message: t('Liste aktualisiert'), emoji: '✨' })
     } else {
       const id = uid()
-      dispatch({ type: 'addList', list: { id, owner, name: finalName, emoji, hue, createdAt: Date.now() } })
+      dispatch({ type: 'addList', list: { id, owner, name: finalName, emoji, hue, date: date || undefined, createdAt: Date.now() } })
       ui.toast({ message: t('Liste „{name}“ angelegt', { name: finalName }), emoji })
       onCreated?.(id)
     }
@@ -173,10 +178,33 @@ export function ListSheet({ owner, list, onClose, onCreated, onDeleted }: ListSh
         </div>
       }
     >
+      {ownerChoices && !editing && (
+        <div className="field">
+          <span>{t('Für wen?')}</span>
+          <div className="listbar listbar--form" role="radiogroup" aria-label={t('Für wen?')}>
+            {ownerChoices.map((p) => (
+              <button key={p.id} role="radio" aria-checked={p.id === pick} data-active={p.id === pick} className="listchip" onClick={() => setPick(p.id)}>
+                {p.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <motion.label key={shake} className="field" animate={shake ? { x: [0, -9, 9, -6, 6, 0] } : undefined} transition={{ duration: 0.4 }}>
         <span>{t('Name')}</span>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder={list?.isDefault ? t('Allgemein') : t('z. B. Weihnachten')} autoFocus={!editing} data-invalid={shake > 0 && !name.trim() && !list?.isDefault} />
       </motion.label>
+      <div className="field">
+        <span>{t('Datum')} · {t('optional')}</span>
+        <div className="row row--gap">
+          <input type="date" className="btn--grow" value={date} onChange={(e) => setDate(e.target.value)} aria-label={t('Datum')} />
+          {date && (
+            <button className="icon-btn" onClick={() => setDate('')} aria-label={t('Datum entfernen')}>
+              <X size={16} />
+            </button>
+          )}
+        </div>
+      </div>
       <div className="field">
         <span>{t('Symbol')}</span>
         <div className="swatches swatches--left" role="radiogroup" aria-label={t('Symbol')}>

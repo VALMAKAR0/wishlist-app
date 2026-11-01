@@ -1,3 +1,5 @@
+import { App as CapApp } from '@capacitor/app'
+import { Capacitor } from '@capacitor/core'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Aurora, Splash, TabBar } from './components/Chrome'
 import { Stage } from './components/Stage'
@@ -8,6 +10,7 @@ import { PersonScreen } from './screens/PersonScreen'
 import { ReceivedDetailScreen, ReceivedScreen } from './screens/ReceivedScreens'
 import { StatsScreen } from './screens/StatsScreen'
 import { WishesScreen } from './screens/WishesScreen'
+import { handleBack } from './state/back'
 import { NavProvider, useNav } from './state/nav'
 import { StoreProvider, useStore } from './state/store'
 import { UIProvider, useUI } from './state/ui'
@@ -73,10 +76,29 @@ function useSpotlight() {
   }, [])
 }
 
+/** Android-Zurück-Taste (in der App) und Escape (im Browser): erst Fenster, dann Ansicht, dann erster Reiter, erst danach beenden. */
+function useBackKey() {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleBack()
+    }
+    window.addEventListener('keydown', onKey)
+    if (!Capacitor.isNativePlatform()) return () => window.removeEventListener('keydown', onKey)
+    const sub = CapApp.addListener('backButton', () => {
+      if (!handleBack()) void CapApp.exitApp()
+    })
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      void sub.then((s) => s.remove())
+    }
+  }, [])
+}
+
 function Shell() {
   const { settings } = useUI()
   const [splash, setSplash] = useState(settings.fx !== 'off')
   useSpotlight()
+  useBackKey()
 
   return (
     <div className="app">

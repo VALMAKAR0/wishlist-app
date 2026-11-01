@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { ArrowRight, ChevronRight, Plus, Sparkles } from 'lucide-react'
-import { ListStatsCard } from '../components/Lists'
+import { ListSheetHost, ListStatsCard } from '../components/Lists'
 import { ListTiles } from '../components/ListTiles'
 import { AddButton, Page } from '../components/Page'
 import { Presence } from '../components/Presence'
@@ -40,19 +40,28 @@ export function BudgetBar({ spent, planned, budget, hideText }: { spent: number;
   )
 }
 
+type Mode = 'persons' | 'lists'
+// Bleibt beim Zurückkehren aus einer Liste erhalten.
+let lastMode: Mode = 'persons'
+
 export function IdeasScreen() {
   const t = useT()
   const { persons, items, lists, alreadyOwned } = useStore()
   const { open } = useNav()
   const [adding, setAdding] = useState(false)
-  const [mode, setMode] = useState<'persons' | 'lists'>('persons')
+  const [mode, setModeState] = useState(lastMode)
+  const setMode = (m: Mode) => {
+    lastMode = m
+    setModeState(m)
+  }
+  const [newList, setNewList] = useState(false)
+  const view = persons.length > 0 ? mode : 'persons'
 
   const tiles = useMemo(() => {
     const live = items.filter((i) => !i.deletedAt && i.owner !== 'me')
     return lists
       .filter((l) => l.owner !== 'me')
       .map((l) => ({ list: l, stats: listStats(live.filter((i) => i.listId === l.id)), owner: persons.find((p) => p.id === l.owner)?.name ?? '' }))
-      .filter((r) => !r.list.isDefault || r.stats.count > 0)
       .sort((a, b) => a.owner.localeCompare(b.owner) || a.list.createdAt - b.list.createdAt)
   }, [items, lists, persons])
   const allStats = useMemo(() => listStats(items.filter((i) => !i.deletedAt && i.owner !== 'me')), [items])
@@ -99,18 +108,18 @@ export function IdeasScreen() {
           </div>
         )}
 
-        {mode === 'lists' && persons.length > 0 && (
+        {view === 'lists' && (
           <>
             <ListStatsCard title={t('Alle Listen')} stats={allStats} />
             {tiles.length > 0 ? (
-              <ListTiles rows={tiles} onOpen={(id) => open({ type: 'list', id })} />
+              <ListTiles rows={tiles} onOpen={(id) => open({ type: 'list', id })} onNew={() => setNewList(true)} />
             ) : (
-              <EmptyState emoji="🗂️" title={t('Noch keine Listen')} text={t('Sobald du Ideen notierst, erscheinen die Listen deiner Personen hier.')} />
+              <EmptyState emoji="🗂️" title={t('Noch keine Listen')} text={t('Lege eine Person an, dann erscheinen ihre Listen hier.')} />
             )}
           </>
         )}
 
-        {mode === 'persons' && hero && hero.next && (
+        {view === 'persons' && hero && hero.next && (
           <motion.button
             className="hero hero--next spot"
             onClick={() => open({ type: 'person', id: hero.person.id })}
@@ -141,7 +150,7 @@ export function IdeasScreen() {
           </motion.button>
         )}
 
-        {mode !== 'persons' ? null : rows.length > 0 ? (
+        {view !== 'persons' ? null : rows.length > 0 ? (
           <ul className="group">
             <AnimatePresence>
               {rows.map(({ person, next, ideas, spent, planned, dupes }, i) => (
@@ -187,6 +196,7 @@ export function IdeasScreen() {
         )}
       </Page>
       <Presence show={adding}>{adding && <PersonFormSheet onClose={() => setAdding(false)} />}</Presence>
+      <ListSheetHost open={newList} owner={persons[0]?.id ?? 'me'} ownerChoices={persons} onClose={() => setNewList(false)} onCreated={(id) => open({ type: 'list', id })} />
     </>
   )
 }

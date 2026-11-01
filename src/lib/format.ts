@@ -43,6 +43,27 @@ export function untilLabel(days: number, t: TFn): string {
   return t('in {n} Tagen', { n: days })
 }
 
+/** Tage von heute bis zu einem Datum "JJJJ-MM-TT". Negativ = vorbei. */
+export function daysUntilIso(iso: string): number | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  if (!m) return null
+  const now = new Date()
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  return daysBetween(start.getTime(), new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getTime())
+}
+
+export function distanceLabel(days: number, t: TFn): string {
+  if (days === 0) return t('heute')
+  if (days === 1) return t('morgen')
+  if (days === -1) return t('gestern')
+  return days > 0 ? t('in {n} Tagen', { n: days }) : t('vor {n} Tagen', { n: -days })
+}
+
+export function isoLabel(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' }) : iso
+}
+
 export const dateLabel = (o: Pick<Occasion, 'month' | 'day'>) =>
   nextOccurrence(o).toLocaleDateString(locale, { day: 'numeric', month: 'long' })
 

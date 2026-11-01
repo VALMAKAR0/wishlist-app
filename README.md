@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 01.11.2026 · Status: V0.4 (Papierkorb, Listen-Übersicht) · Datenformat: v2
+Stand: 01.11.2026 · Status: V0.4.1 (Papierkorb, Listen-Übersicht, Zurück-Taste) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -266,7 +266,10 @@ Technische Leitplanken für Animationen (nach Fehlersuche in V0.1):
 
 - **Papierkorb:** Beim App-Start werden Einträge entfernt, die länger als 30 Tage im Papierkorb liegen (`src/lib/trash.ts`, Frist `TRASH_DAYS`). Der bereinigte Stand wird sofort gespeichert, danach räumt der Start auch die Bilder der entfernten Einträge auf. Die Prüfung läuft nur beim Start, nicht während der Nutzung, und nur wenn die Daten normal geladen wurden.
 - **Archiv:** Gekaufte Wünsche liegen im Reiter "Archiv" der Liste, gekaufte Ideen im Reiter "Gekauft". Dort bleiben sie, bis du sie löschst. Es wird nichts automatisch gelöscht.
-- **Wünsche-Tab:** Ab zwei Listen zeigt er eine Übersicht: oben die Kennzahlen aller Listen (Gesamtwert, offen, gekauft, Ø Preis), darunter je Liste eine Kachel mit Gesamtwert, Fortschrittsbalken sowie Anzahl und Wert von offen und gekauft. Tippen öffnet die Liste (mit Zurück-Pfeil, die Android-Zurück-Taste geht auch). "Alle Einträge" zeigt alle Wünsche zusammen. Mit nur einer Liste öffnet der Tab gleich die Einträge, dort gibt es den Knopf "Neue Liste".
-- **Ideen-Tab:** Umschalter "Personen" und "Listen". "Listen" zeigt die Kacheln aller Listen aller Personen mit dem Namen der Person. Leere Standardlisten werden ausgeblendet. Die Personenseite mit ihren Listen bleibt unverändert.
+- **Wünsche-Tab:** Zeigt immer die Übersicht, auch wenn es nur die Liste "Allgemein" gibt: oben die Kennzahlen aller Listen (Gesamtwert, offen, gekauft, Ø Preis), darunter je Liste eine Kachel mit Gesamtwert, Fortschrittsbalken sowie Anzahl und Wert von offen und gekauft. Tippen öffnet die Liste (mit Zurück-Pfeil, die Android-Zurück-Taste geht auch). "Alle Einträge" zeigt alle Wünsche zusammen.
+- **Ideen-Tab:** Umschalter "Personen" und "Listen" (die Wahl bleibt beim Zurückkehren erhalten). "Listen" zeigt die Kacheln aller Listen aller Personen mit dem Namen der Person und eine Kachel "Neue Liste". Beim Anlegen wählt man erst die Person ("Für wen?"). Die Personenseite mit ihren Listen bleibt unverändert.
 - **Code:** `ListPage` (`src/screens/ListPage.tsx`) ist die gemeinsame Seite für eine Liste, für Wünsche und Ideen. `ListTiles` (`src/components/ListTiles.tsx`) zeichnet die Kacheln.
+- **Datum einer Liste:** Optional beim Anlegen und Bearbeiten (Feld "Datum", Format JJJJ-MM-TT im Datenstand, Feld `date` an der Liste, kein Datenformat-Wechsel nötig). Die Kachel zeigt "in 12 Tagen", "heute", "morgen" bzw. "vor 3 Tagen". In der Liste steht zusätzlich das volle Datum. Das Datum gilt einmalig, ein jährliches Wiederholen gibt es nicht. Für V0.6 offen: Datum beim Teilen mitsenden.
+- **Zurück-Taste (Android) und Escape:** `src/state/back.ts`. Reihenfolge: oberstes offenes Fenster (Sheet oder Dialog) schließen, dann eine geöffnete Ansicht (Liste, Person, Papierkorb, …) verlassen, dann von einem anderen Reiter zu "Wünsche" wechseln. Erst auf "Wünsche" ohne offene Ansicht beendet die Zurück-Taste die App. Dafür ist das Capacitor-Plugin `@capacitor/app` eingebunden. Im Browser gilt Escape, auf dem iPhone die Wischgeste für Ansichten.
+- **Am echten Gerät testen:** Zurück-Taste und Zurück-Geste in jeder Lage (Fenster offen, Liste offen, anderer Reiter), Datumsfeld auf Android, Kachel-Layout bei langen Namen.
 

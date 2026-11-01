@@ -1,3 +1,4 @@
+import { setRootBack } from './back'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 export type Tab = 'wishes' | 'ideas' | 'received' | 'stats' | 'more'
@@ -74,6 +75,21 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const back = useCallback(() => {
     if (depth.current) history.back()
   }, [])
+
+  useEffect(() => {
+    setRootBack(() => {
+      if (depth.current) {
+        history.back()
+        return true
+      }
+      if (tabRef.current !== 'wishes') {
+        setTab('wishes')
+        return true
+      }
+      return false
+    })
+    return () => setRootBack(null)
+  }, [setTab])
 
   const value = useMemo(() => ({ tab, view, dir, setTab, open, back }), [tab, view, dir, setTab, open, back])
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

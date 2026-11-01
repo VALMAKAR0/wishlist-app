@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Plus, Share2 } from 'lucide-react'
+import { CalendarDays, Plus, Share2 } from 'lucide-react'
 import { ListSheetHost, ListStatsCard } from '../components/Lists'
 import { AddButton, Page } from '../components/Page'
 import { Presence } from '../components/Presence'
-import { EmptyState, Segmented } from '../components/Primitives'
+import { Chip, EmptyState, Segmented } from '../components/Primitives'
 import { ItemFormSheet } from '../components/ItemFormSheet'
 import { ShareSheet } from '../components/ShareSheet'
+import { daysUntilIso, distanceLabel, isoLabel } from '../lib/format'
 import { listTitle } from '../lib/lists'
 import { listStats } from '../lib/stats'
 import type { Item, Owner } from '../lib/types'
@@ -25,12 +26,10 @@ interface Props {
   onBack?: () => void
   /** Inhalt direkt unter der Kopfzeile, z. B. der Backup-Hinweis. */
   top?: ReactNode
-  /** Zeigt "Neue Liste" (für den Fall, dass es nur eine Liste gibt). */
-  canCreateList?: boolean
 }
 
 /** Eine Liste (oder alle Listen) mit Kennzahlen, offenen und gekauften Einträgen. Gilt für Wünsche und Ideen. */
-export function ListPage({ owner, listId, title, eyebrow, onBack, top, canCreateList }: Props) {
+export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) {
   const t = useT()
   const { items, lists: allLists, persons, alreadyOwned } = useStore()
   const { back } = useNav()
@@ -41,7 +40,7 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top, canCreate
   const [seg, setSeg] = useState<Seg>('open')
   const [form, setForm] = useState<{ item: Item | null } | null>(null)
   const [share, setShare] = useState(false)
-  const [listSheet, setListSheet] = useState<'edit' | 'new' | null>(null)
+  const [listSheet, setListSheet] = useState(false)
 
   useEffect(() => {
     if (missing) back()
@@ -55,6 +54,7 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top, canCreate
   const done = scoped.filter((i) => i.bought).sort((a, b) => (b.boughtAt ?? 0) - (a.boughtAt ?? 0))
   const shown = seg === 'open' ? open : done
   const stats = listStats(scoped)
+  const days = list?.date ? daysUntilIso(list.date) : null
 
   const heading = title ?? (list ? listTitle(list, t) : forMe ? t('Meine Wünsche') : (person?.name ?? ''))
   const kicker = eyebrow ?? (forMe ? (list ? t('Meine Wünsche') : t('Zum Teilen')) : (person?.name ?? t('Geschenkideen')))
@@ -91,11 +91,11 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top, canCreate
       >
         {top}
 
-        {canCreateList && (
-          <div className="listbar">
-            <button className="listchip listchip--add" onClick={() => setListSheet('new')}>
-              <Plus size={15} strokeWidth={2.6} /> {t('Neue Liste')}
-            </button>
+        {list?.date && days !== null && (
+          <div className="chips" style={{ marginBottom: 10 }}>
+            <Chip tone={days >= 0 && days <= 14 ? 'warn' : 'neutral'} icon={<CalendarDays size={13} />}>
+              {isoLabel(list.date)} · {distanceLabel(days, t)}
+            </Chip>
           </div>
         )}
 
@@ -105,7 +105,7 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top, canCreate
             title={list ? listTitle(list, t) : t('Alle Listen')}
             emoji={list?.emoji}
             stats={stats}
-            onEdit={list ? () => setListSheet('edit') : undefined}
+            onEdit={list ? () => setListSheet(true) : undefined}
           />
         )}
 
@@ -172,7 +172,7 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top, canCreate
 
       <Presence show={!!form}>{form && <ItemFormSheet key={form.item?.id ?? 'new'} owner={owner} item={form.item} listId={list?.id} onClose={() => setForm(null)} />}</Presence>
       <Presence show={share}>{share && <ShareSheet initialList={list?.id} onClose={() => setShare(false)} />}</Presence>
-      <ListSheetHost open={!!listSheet} owner={owner} list={listSheet === 'edit' ? list : null} onClose={() => setListSheet(null)} />
+      <ListSheetHost open={listSheet} owner={owner} list={list} onClose={() => setListSheet(false)} />
     </>
   )
 }

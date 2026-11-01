@@ -1,13 +1,13 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { motion } from 'motion/react'
+import { pushBack } from '../state/back'
 import { useClosing } from './Presence'
 
+/** Meldet das Fenster für die Zurück-Taste (Android) und Escape an. Nur das oberste Fenster schließt sich. */
 export function useEscape(onClose: () => void) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  const ref = useRef(onClose)
+  ref.current = onClose
+  useEffect(() => pushBack(() => ref.current()), [])
 }
 
 interface DialogProps {
