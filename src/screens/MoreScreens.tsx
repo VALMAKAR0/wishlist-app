@@ -144,7 +144,7 @@ export function MoreScreen() {
             <div className="setting">
               <div>
                 <strong>{t('Automatisch sichern')}</strong>
-                <small>{t('Täglich beim Start, wenn sich etwas geändert hat. Ordner: Dokumente/{dir}, die letzten {n} bleiben.', { dir: BACKUP_DIR, n: AUTO_KEEP })}</small>
+                <p>{t('Täglich beim Start, wenn sich etwas geändert hat. Ordner: Dokumente/{dir}, die letzten {n} bleiben.', { dir: BACKUP_DIR, n: AUTO_KEEP })}</p>
               </div>
               <Switch checked={settings.autoBackup} onChange={(autoBackup) => setSettings({ autoBackup })} label={t('Automatisch sichern')} />
             </div>
@@ -197,7 +197,7 @@ export function MoreScreen() {
             </div>
           </div>
           <div className="row">
-            <button className="btn btn--ghost btn--block" onClick={() => void recheck()} disabled={checking || persist.state === 'native'}>
+            <button className="btn btn--ghost btn--block" onClick={() => void recheck()} disabled={checking}>
               <RefreshCw size={16} className={checking ? 'spin' : undefined} /> {t('Status prüfen')}
             </button>
           </div>
