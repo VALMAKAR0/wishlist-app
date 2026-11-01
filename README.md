@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 01.11.2026 · Status: V0.4.2 (Listen-Übersicht auch für Personen, Anlässe) · Datenformat: v2
+Stand: 01.11.2026 · Status: V0.4.3 (eigener Kalender, größere Anlass-Karten, Anlässe bearbeiten) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -273,6 +273,7 @@ Technische Leitplanken für Animationen (nach Fehlersuche in V0.1):
 - **Zurück-Taste (Android) und Escape:** `src/state/back.ts`. Reihenfolge: oberstes offenes Fenster (Sheet oder Dialog) schließen, dann eine geöffnete Ansicht (Liste, Person, Papierkorb, …) verlassen, dann von einem anderen Reiter zu "Wünsche" wechseln. Erst auf "Wünsche" ohne offene Ansicht beendet die Zurück-Taste die App. Dafür ist das Capacitor-Plugin `@capacitor/app` eingebunden. Im Browser gilt Escape, auf dem iPhone die Wischgeste für Ansichten.
 - **Am echten Gerät testen:** Zurück-Taste und Zurück-Geste in jeder Lage (Fenster offen, Liste offen, anderer Reiter), Datumsfeld auf Android, Kachel-Layout bei langen Namen.
 - **Personenseite:** Zeigt wie der Wünsche-Tab die Listen als Kacheln (mit "Neue Liste"), dazu "Alle Ideen" und die Anlässe. Tippen auf eine Kachel öffnet die Liste. Die Ansichten stapeln sich (Person → Liste), Zurück geht immer eine Stufe.
-- **Datumsfeld** (`src/components/DateField.tsx`): große Fläche mit Datum und Abstand in Tagen, darüber liegt die Datumsauswahl des Systems. Gilt für Listen (mit Jahr, einmalig) und Anlässe (jährlich, ohne Jahr).
+- **Datumsfeld und Kalender** (`DateField.tsx`, `DatePicker.tsx`): große Fläche mit Datum und Abstand in Tagen. Die Auswahl ist ein eigener Kalender in der App (Monat und Jahr blättern, Montag zuerst, heute markiert, Tippen auf den Tag übernimmt sofort, "Heute", "Entfernen", "Abbrechen"). Der Systemdialog von Android wird bewusst nicht mehr benutzt, damit es auf allen Geräten gleich aussieht. Bei jährlichen Anlässen entfällt das Jahr, es wird nur innerhalb des Jahres geblättert. Gilt für Listen (mit Jahr, einmalig) und Anlässe (jährlich).
 - **Anlässe:** Schnellauswahl mit Vorschlag für das Datum: Weihnachten 24.12., Nikolaus 6.12., Valentinstag 14.2., Ostern und Muttertag (für das nächste Vorkommen berechnet), Geburtstag, Hochzeitstag und Jahrestag ohne Datum. Das Datum ist jeweils änderbar. "Eigener Anlass" erlaubt freien Namen und Datum. Anlässe wiederholen sich jährlich am selben Tag, bei Ostern und Muttertag ist das nur eine Näherung, weil sie jedes Jahr wandern. Ohne Datum wird ein Anlass nicht gespeichert.
+- **Anlass-Karten und Bearbeiten (V0.4.3):** Auf der Personenseite sind Anlässe große Karten (Symbol, Name, Datum, Tage bis dahin; der nächste ist hervorgehoben, ab 14 Tagen farblich betont). Tippen öffnet `OccasionSheet` zum Ändern von Name und Datum oder zum Entfernen (mit "Rückgängig" im Hinweis). "+ Anlass" öffnet dasselbe Fenster mit Vorlagen. Im Personenformular sind die Anlässe ebenfalls als größere Karten mit Vorlagen-Schnellauswahl. Am Gerät prüfen: Kalender auf dem Handy und Tablet, Größe der Karten.
 

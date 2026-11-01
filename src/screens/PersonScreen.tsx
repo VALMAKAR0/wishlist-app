@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'motion/react'
-import { CalendarPlus, ListChecks, Pencil } from 'lucide-react'
+import { CalendarPlus, ListChecks, Pencil, Plus } from 'lucide-react'
 import { ListSheetHost } from '../components/Lists'
 import { ListTiles } from '../components/ListTiles'
 import { AddButton, Page, Section } from '../components/Page'
 import { Presence } from '../components/Presence'
-import { Avatar, Chip, CountUp } from '../components/Primitives'
+import { Avatar, CountUp } from '../components/Primitives'
+import { OccasionSheet } from '../components/OccasionSheet'
 import { ItemFormSheet } from '../components/ItemFormSheet'
 import { PersonFormSheet } from '../components/PersonFormSheet'
 import { dateLabel, daysUntil, eur, untilLabel } from '../lib/format'
+import type { Occasion } from '../lib/types'
 import { nextOccasion, occasionEmoji } from '../lib/occasions'
 import { listStats } from '../lib/stats'
 import { useNav } from '../state/nav'
@@ -26,6 +28,7 @@ export function PersonScreen({ id }: { id: string }) {
   const [form, setForm] = useState(false)
   const [editing, setEditing] = useState(false)
   const [newList, setNewList] = useState(false)
+  const [occ, setOcc] = useState<{ occasion: Occasion | null } | null>(null)
 
   // Person wurde gelöscht: zurück zur Übersicht.
   useEffect(() => {
@@ -82,30 +85,60 @@ export function PersonScreen({ id }: { id: string }) {
         <Section
           title={t('Anlässe')}
           aside={
-            <button className="chip chip--button" onClick={() => ui.planned('ics-export')}>
-              <CalendarPlus size={14} /> {t('Erinnerung')}
-            </button>
+            <span className="row row--gap">
+              <button className="chip chip--button" onClick={() => ui.planned('ics-export')}>
+                <CalendarPlus size={14} /> {t('Erinnerung')}
+              </button>
+              <button className="chip chip--button" onClick={() => setOcc({ occasion: null })}>
+                <Plus size={14} /> {t('Anlass')}
+              </button>
+            </span>
           }
         >
-          <div className="chips">
-            {person.occasions.length === 0 && <span className="muted">{t('Noch kein Anlass eingetragen.')}</span>}
-            {person.occasions
-              .map((o) => ({ o, d: daysUntil(o) }))
-              .sort((a, b) => a.d - b.d)
-              .map(({ o, d }, i) => (
-                <motion.div key={o.id} className="occ spot" initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.25 + i * 0.07, type: 'spring', stiffness: 360, damping: 22 }}>
-                  <strong>
-                    <span aria-hidden>{occasionEmoji(o.label)}</span> {t(o.label)}
-                  </strong>
-                  <span>{dateLabel(o)}</span>
-                  <Chip tone={d <= 14 ? 'warn' : 'neutral'}>{untilLabel(d, t)}</Chip>
-                </motion.div>
-              ))}
-          </div>
+          {person.occasions.length === 0 ? (
+            <span className="muted">{t('Noch kein Anlass eingetragen.')}</span>
+          ) : (
+            <div className="occs">
+              {person.occasions
+                .map((o) => ({ o, d: daysUntil(o) }))
+                .sort((a, b) => a.d - b.d)
+                .map(({ o, d }, i) => (
+                  <motion.button
+                    key={o.id}
+                    className="occ-tile spot"
+                    data-next={i === 0}
+                    data-soon={d <= 14}
+                    onClick={() => setOcc({ occasion: o })}
+                    aria-label={t('Anlass bearbeiten')}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 + i * 0.06, type: 'spring', stiffness: 320, damping: 26 }}
+                    whileTap={{ scale: 0.985 }}
+                  >
+                    <span className="occ-tile__emoji" aria-hidden>
+                      {occasionEmoji(o.label)}
+                    </span>
+                    <span className="occ-tile__main">
+                      <strong>{t(o.label)}</strong>
+                      <span>{dateLabel(o)}</span>
+                    </span>
+                    <span className="occ-tile__days">
+                      {d <= 1 ? <strong>{d === 0 ? t('Heute') : t('Morgen')}</strong> : (
+                        <>
+                          <strong>{d}</strong>
+                          <small>{t('Tage')}</small>
+                        </>
+                      )}
+                    </span>
+                  </motion.button>
+                ))}
+            </div>
+          )}
         </Section>
       </Page>
 
       <Presence show={form}>{form && <ItemFormSheet key="new" owner={id} onClose={() => setForm(false)} />}</Presence>
+      <Presence show={!!occ}>{occ && <OccasionSheet key={occ.occasion?.id ?? 'new'} person={person} occasion={occ.occasion} onClose={() => setOcc(null)} />}</Presence>
       <Presence show={editing}>{editing && <PersonFormSheet person={person} onClose={() => setEditing(false)} />}</Presence>
       <ListSheetHost open={newList} owner={id} onClose={() => setNewList(false)} onCreated={(lid) => open({ type: 'list', id: lid })} />
     </>
