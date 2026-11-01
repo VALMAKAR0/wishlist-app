@@ -74,6 +74,8 @@ export function PersonScreen({ id }: { id: string }) {
 
         <Section
           title={t('Listen')}
+          collapseId="person-lists"
+          summary={t.n(lists.length, 'Liste', 'Listen')}
           aside={
             <button className="chip chip--button" onClick={() => open({ type: 'list', id: `all:${id}` })}>
               <ListChecks size={14} /> {t('Alle Ideen')}
@@ -85,6 +87,8 @@ export function PersonScreen({ id }: { id: string }) {
 
         <Section
           title={t('Anlässe')}
+          collapseId="person-occasions"
+          summary={t.n(person.occasions.length, 'Anlass', 'Anlässe')}
           aside={
             <span className="row row--gap">
               <button className="chip chip--button" onClick={() => ui.planned('ics-export')}>

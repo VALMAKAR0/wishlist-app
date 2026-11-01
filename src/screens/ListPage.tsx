@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { CalendarDays, Plus, Share2 } from 'lucide-react'
+import { Link2, Plus, Share2 } from 'lucide-react'
 import { ListSheetHost, ListStatsCard } from '../components/Lists'
 import { AddButton, Page } from '../components/Page'
 import { Presence } from '../components/Presence'
-import { Chip, EmptyState, Segmented } from '../components/Primitives'
+import { EmptyState, Segmented } from '../components/Primitives'
 import { ItemFormSheet } from '../components/ItemFormSheet'
 import { ShareSheet } from '../components/ShareSheet'
-import { daysUntilIso, distanceLabel, isoLabel } from '../lib/format'
+import { daysUntilIso, isoLabel } from '../lib/format'
 import { listDate, listOccasion, listTitle } from '../lib/lists'
+import { occasionEmoji } from '../lib/occasions'
 import { listStats } from '../lib/stats'
 import type { Item, Owner } from '../lib/types'
 import { useNav } from '../state/nav'
@@ -94,12 +95,36 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) 
         {top}
 
         {date && days !== null && (
-          <div className="chips" style={{ marginBottom: 10 }}>
-            <Chip tone={days >= 0 && days <= 14 ? 'warn' : 'neutral'} icon={<CalendarDays size={13} />}>
-              {occ ? `${t(occ.label)} · ` : ''}
-              {isoLabel(date)} · {distanceLabel(days, t)}
-            </Chip>
-          </div>
+          <button
+            className="occ-tile occ-tile--banner spot"
+            data-next
+            data-soon={days >= 0 && days <= 14}
+            onClick={list ? () => setListSheet(true) : undefined}
+            aria-label={t('Datum der Liste')}
+          >
+            <span className="occ-tile__emoji" aria-hidden>
+              {occ ? occasionEmoji(occ.label) : '🗓️'}
+            </span>
+            <span className="occ-tile__main">
+              <strong>{occ ? t(occ.label) : isoLabel(date)}</strong>
+              <span>{occ ? isoLabel(date) : t('Datum der Liste')}</span>
+              {occ && (
+                <span className="occ-tile__lists">
+                  <Link2 size={12} /> {t('Verknüpfter Anlass')}
+                </span>
+              )}
+            </span>
+            <span className="occ-tile__days">
+              {days <= 1 && days >= 0 ? (
+                <strong>{days === 0 ? t('Heute') : t('Morgen')}</strong>
+              ) : (
+                <>
+                  <strong>{Math.abs(days)}</strong>
+                  <small>{days < 0 ? t('Tage her') : t('Tage')}</small>
+                </>
+              )}
+            </span>
+          </button>
         )}
 
         {(mineAll.length > 0 || list) && (

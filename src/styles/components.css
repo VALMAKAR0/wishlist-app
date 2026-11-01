@@ -1464,3 +1464,13 @@
 .listchip[data-dim='true'] {
   opacity: 0.55;
 }
+
+.occ-tile--banner {
+  margin-bottom: 12px;
+  font: inherit;
+  color: inherit;
+}
+
+.occ-tile--banner .occ-tile__lists {
+  color: var(--accent);
+}

@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from 'react'
 import { motion, useMotionValueEvent, useScroll, useTransform } from 'motion/react'
-import { ChevronLeft, Plus } from 'lucide-react'
+import { ChevronDown, ChevronLeft, Plus } from 'lucide-react'
 import { cap } from '../lib/i18n'
 import { useT } from '../state/ui'
 
@@ -79,14 +79,74 @@ export function AddButton({ label, onClick }: { label: string; onClick: () => vo
   )
 }
 
-export function Section({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
+const COLLAPSE_KEY = 'wl.collapsed'
+
+function readCollapsed(id: string): boolean {
+  try {
+    return !!JSON.parse(localStorage.getItem(COLLAPSE_KEY) ?? '{}')[id]
+  } catch {
+    return false
+  }
+}
+
+function writeCollapsed(id: string, on: boolean) {
+  try {
+    const all = JSON.parse(localStorage.getItem(COLLAPSE_KEY) ?? '{}')
+    if (on) all[id] = true
+    else delete all[id]
+    localStorage.setItem(COLLAPSE_KEY, JSON.stringify(all))
+  } catch {
+    /* Speicher nicht verfügbar: nur für diese Sitzung */
+  }
+}
+
+interface SectionProps {
+  title: string
+  aside?: ReactNode
+  children: ReactNode
+  /** Macht den Abschnitt einklappbar. Der Zustand bleibt pro Gerät gemerkt. */
+  collapseId?: string
+  /** Kurzinfo neben dem Titel, solange der Abschnitt eingeklappt ist. */
+  summary?: string
+}
+
+export function Section({ title, aside, children, collapseId, summary }: SectionProps) {
+  const t = useT()
+  const [closed, setClosed] = useState(() => (collapseId ? readCollapsed(collapseId) : false))
+  const [settled, setSettled] = useState(true)
+  const toggle = () => {
+    if (!collapseId) return
+    setSettled(false)
+    setClosed((c) => {
+      writeCollapsed(collapseId, !c)
+      return !c
+    })
+  }
   return (
-    <section className="section">
+    <section className="section" data-closed={closed}>
       <div className="section__head">
-        <h3>{title}</h3>
-        {aside}
+        {collapseId ? (
+          <button className="section__toggle" onClick={toggle} aria-expanded={!closed} aria-label={`${title} ${closed ? t('ausklappen') : t('einklappen')}`}>
+            <ChevronDown size={15} strokeWidth={2.6} aria-hidden />
+            <h3>{title}</h3>
+            {closed && summary && <small>{summary}</small>}
+          </button>
+        ) : (
+          <h3>{title}</h3>
+        )}
+        {!closed && aside}
       </div>
-      {children}
+      <motion.div
+        initial={false}
+        animate={{ height: closed ? 0 : 'auto', opacity: closed ? 0 : 1 }}
+        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        style={{ overflow: settled && !closed ? 'visible' : 'hidden' }}
+        onAnimationComplete={() => setSettled(true)}
+        aria-hidden={closed}
+        inert={closed}
+      >
+        {children}
+      </motion.div>
     </section>
   )
 }

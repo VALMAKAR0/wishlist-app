@@ -82,6 +82,8 @@ export function WishesScreen() {
         <ListStatsCard title={t('Alle Listen')} stats={listStats(mine)} />
         <Section
           title={t('Listen')}
+          collapseId="wishes-lists"
+          summary={t.n(rows.length, 'Liste', 'Listen')}
           aside={
             <button className="chip chip--button" onClick={() => open({ type: 'list', id: 'all' })}>
               <ListChecks size={14} /> {t('Alle Einträge')}

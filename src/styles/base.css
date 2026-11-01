@@ -523,3 +523,35 @@ select {
   color: var(--text-2);
   font-size: 14px;
 }
+
+.section__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  margin: -4px -6px;
+  padding: 4px 6px;
+  border-radius: 10px;
+  color: var(--text-3);
+  cursor: pointer;
+}
+
+.section__toggle h3 {
+  margin: 0;
+}
+
+.section__toggle svg {
+  transition: transform 0.25s;
+}
+
+.section[data-closed='true'] .section__toggle svg {
+  transform: rotate(-90deg);
+}
+
+.section__toggle small {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  text-transform: none;
+  letter-spacing: 0;
+}
