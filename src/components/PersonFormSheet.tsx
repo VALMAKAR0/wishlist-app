@@ -1,22 +1,27 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { CalendarPlus, Trash2, X } from 'lucide-react'
+import { Plus, Trash2, X } from 'lucide-react'
 import { defaultList } from '../lib/demoData'
 import { parseMonthDay, toInputDate, uid } from '../lib/format'
+import { OCCASION_PRESETS, occasionEmoji, presetOf } from '../lib/occasions'
 import type { Occasion, Person } from '../lib/types'
 import { useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
+import { DateField } from './DateField'
 import { Avatar } from './Primitives'
 import { Sheet } from './Sheet'
 
 const HUES = [345, 14, 55, 100, 160, 200, 225, 275]
-const LABELS = ['Geburtstag', 'Weihnachten', 'Hochzeitstag', 'Jahrestag', 'Sonstiges']
 
 interface Row {
   id: string
   label: string
   date: string
+  /** Eigener Anlass: Der Name ist frei wählbar. */
+  custom: boolean
 }
+
+const toRow = (o: Occasion): Row => ({ id: o.id, label: o.label, date: toInputDate(o), custom: !presetOf(o.label) })
 
 interface Props {
   person?: Person | null
@@ -34,9 +39,15 @@ export function PersonFormSheet({ person, onClose, onDeleted }: Props) {
   const [hue, setHue] = useState(person?.hue ?? HUES[Math.floor(Math.random() * HUES.length)])
   const [budget, setBudget] = useState(person ? String(person.budget) : '')
   const [rows, setRows] = useState<Row[]>(
-    person?.occasions.map((o) => ({ id: o.id, label: o.label, date: toInputDate(o) })) ?? [{ id: uid(), label: 'Geburtstag', date: '' }],
+    person?.occasions.map(toRow) ?? [{ id: uid(), label: 'Geburtstag', date: '', custom: false }],
   )
   const [shake, setShake] = useState(0)
+
+  const addPreset = (label: string) => {
+    const md = presetOf(label)?.date?.()
+    const date = md ? toInputDate(md) : ''
+    setRows((r) => [...r, { id: uid(), label, date, custom: false }])
+  }
 
   const patchRow = (id: string, patch: Partial<Row>) => setRows((r) => r.map((x) => (x.id === id ? { ...x, ...patch } : x)))
 
@@ -48,7 +59,7 @@ export function PersonFormSheet({ person, onClose, onDeleted }: Props) {
     }
     const occasions: Occasion[] = rows.flatMap((r) => {
       const md = parseMonthDay(r.date)
-      return md ? [{ id: r.id, label: r.label, ...md }] : []
+      return md ? [{ id: r.id, label: r.label.trim() || 'Sonstiges', ...md }] : []
     })
     const data = { name: name.trim(), hue, budget: Number(budget.replace(',', '.')) || 0, occasions }
     if (person) {
@@ -129,30 +140,40 @@ export function PersonFormSheet({ person, onClose, onDeleted }: Props) {
             {rows.map((r) => (
               <motion.li
                 key={r.id}
-                className="occ-row"
+                className="occ-card"
                 initial={{ opacity: 0, height: 0, scale: 0.96 }}
                 animate={{ opacity: 1, height: 'auto', scale: 1 }}
                 exit={{ opacity: 0, height: 0, scale: 0.96 }}
                 transition={{ type: 'spring', stiffness: 380, damping: 32 }}
               >
-                <select value={r.label} onChange={(e) => patchRow(r.id, { label: e.target.value })} aria-label={t('Art des Anlasses')}>
-                  {LABELS.map((l) => (
-                    <option key={l} value={l}>
-                      {t(l)}
-                    </option>
-                  ))}
-                </select>
-                <input type="date" value={r.date} onChange={(e) => patchRow(r.id, { date: e.target.value })} aria-label={t('Datum')} />
-                <button className="icon-btn icon-btn--sm" onClick={() => setRows((x) => x.filter((y) => y.id !== r.id))} aria-label={t('Anlass entfernen')}>
-                  <X size={16} />
-                </button>
+                <div className="occ-card__head">
+                  <span className="occ-card__emoji" aria-hidden>
+                    {occasionEmoji(r.label)}
+                  </span>
+                  {r.custom ? (
+                    <input className="occ-card__input" value={r.label} onChange={(e) => patchRow(r.id, { label: e.target.value })} placeholder={t('Name des Anlasses')} aria-label={t('Name des Anlasses')} autoFocus={!r.date && !r.label} />
+                  ) : (
+                    <strong className="occ-card__name">{t(r.label)}</strong>
+                  )}
+                  <button className="icon-btn icon-btn--sm" onClick={() => setRows((x) => x.filter((y) => y.id !== r.id))} aria-label={t('Anlass entfernen')}>
+                    <X size={16} />
+                  </button>
+                </div>
+                <DateField value={r.date} onChange={(v) => patchRow(r.id, { date: v })} label={t('Datum')} recurring />
               </motion.li>
             ))}
           </AnimatePresence>
         </ul>
-        <button className="chip chip--button chip--wide" onClick={() => setRows((r) => [...r, { id: uid(), label: 'Geburtstag', date: '' }])}>
-          <CalendarPlus size={15} /> {t('Anlass hinzufügen')}
-        </button>
+        <div className="occ-presets">
+          {OCCASION_PRESETS.filter((p) => !rows.some((r) => r.label === p.label)).map((p) => (
+            <button key={p.label} className="chip chip--button" onClick={() => addPreset(p.label)}>
+              <span aria-hidden>{p.emoji}</span> {t(p.label)}
+            </button>
+          ))}
+          <button className="chip chip--button" onClick={() => setRows((r) => [...r, { id: uid(), label: '', date: '', custom: true }])}>
+            <Plus size={14} /> {t('Eigener Anlass')}
+          </button>
+        </div>
       </div>
     </Sheet>
   )

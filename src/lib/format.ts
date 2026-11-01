@@ -59,9 +59,11 @@ export function distanceLabel(days: number, t: TFn): string {
   return days > 0 ? t('in {n} Tagen', { n: days }) : t('vor {n} Tagen', { n: -days })
 }
 
-export function isoLabel(iso: string): string {
+export function isoLabel(iso: string, withYear = true): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
-  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' }) : iso
+  if (!m) return iso
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+  return withYear ? d.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }) : d.toLocaleDateString(locale, { day: 'numeric', month: 'long' })
 }
 
 export const dateLabel = (o: Pick<Occasion, 'month' | 'day'>) =>
@@ -91,9 +93,10 @@ export function parseMonthDay(iso: string): { month: number; day: number } | nul
   return m ? { month: Number(m[2]), day: Number(m[3]) } : null
 }
 
+/** Nächstes Vorkommen als Eingabewert "JJJJ-MM-TT" (das Jahr ist bei jährlichen Anlässen nur ein Platzhalter). */
 export function toInputDate(o: Pick<Occasion, 'month' | 'day'>): string {
-  const y = new Date().getFullYear()
-  return `${y}-${String(o.month).padStart(2, '0')}-${String(o.day).padStart(2, '0')}`
+  const d = nextOccurrence(o)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 /** Macht aus einer Eingabe einen öffnebaren Link (ergänzt https://, falls es fehlt). */

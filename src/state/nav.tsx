@@ -23,17 +23,19 @@ interface Nav {
 
 const Ctx = createContext<Nav | null>(null)
 
-// Detailansichten schieben einen History-Eintrag, damit die Zurück-Geste und
+// Jede geöffnete Ansicht schiebt einen History-Eintrag, damit die Zurück-Geste und
 // der Android-Zurück-Button genauso funktionieren wie der Pfeil in der App.
+// Ansichten können sich stapeln (Person -> Liste), Zurück geht immer eine Stufe.
 export function NavProvider({ children }: { children: ReactNode }) {
   const [tab, setTabState] = useState<Tab>('wishes')
-  const [view, setView] = useState<View | null>(null)
+  const [stack, setStack] = useState<View[]>([])
   const [dir, setDir] = useState<1 | -1>(1)
   const depth = useRef(0)
   const tabRef = useRef(tab)
   tabRef.current = tab
-  // Anzahl der selbst ausgelösten history.back()-Aufrufe, deren popstate nichts mehr ändern soll.
+  // Anzahl der selbst ausgelösten History-Sprünge, deren popstate nichts mehr ändern soll.
   const ignorePops = useRef(0)
+  const view = stack[stack.length - 1] ?? null
 
   useEffect(() => {
     const onPop = () => {
@@ -41,35 +43,34 @@ export function NavProvider({ children }: { children: ReactNode }) {
         ignorePops.current -= 1
         return
       }
-      depth.current = 0
+      if (!depth.current) return
+      depth.current -= 1
       setDir(-1)
-      setView(null)
+      setStack((s) => s.slice(0, -1))
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
 
   const setTab = useCallback((t: Tab) => {
-    const hadView = depth.current > 0
-    if (t === tabRef.current && !hadView) return
+    const n = depth.current
+    if (t === tabRef.current && !n) return
     setDir(t === tabRef.current ? -1 : TAB_ORDER.indexOf(t) > TAB_ORDER.indexOf(tabRef.current) ? 1 : -1)
     setTabState(t)
-    if (hadView) {
-      // Zustand sofort umschalten und den History-Eintrag still zurücknehmen.
+    if (n) {
+      // Zustand sofort umschalten und alle History-Einträge der Ansichten still zurücknehmen.
       depth.current = 0
-      setView(null)
+      setStack([])
       ignorePops.current += 1
-      history.back()
+      history.go(-n)
     }
   }, [])
 
   const open = useCallback((v: View) => {
     setDir(1)
-    setView(v)
-    if (!depth.current) {
-      history.pushState({ wl: 1 }, '')
-      depth.current = 1
-    }
+    setStack((s) => [...s, v])
+    history.pushState({ wl: depth.current + 1 }, '')
+    depth.current += 1
   }, [])
 
   const back = useCallback(() => {

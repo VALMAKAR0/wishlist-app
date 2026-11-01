@@ -181,7 +181,7 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) 
 export function ListScreen({ id }: { id: string }) {
   const { lists } = useStore()
   const { back } = useNav()
-  const list = lists.find((l) => l.id === id)
-  const owner = list?.owner ?? 'me'
-  return <ListPage owner={owner} listId={id === 'all' ? 'all' : id} onBack={back} />
+  // 'all' = alle Wünsche, 'all:<Person>' = alle Ideen einer Person, sonst die ID einer Liste.
+  if (id === 'all' || id.startsWith('all:')) return <ListPage owner={id === 'all' ? 'me' : id.slice(4)} listId="all" onBack={back} />
+  return <ListPage owner={lists.find((l) => l.id === id)?.owner ?? 'me'} listId={id} onBack={back} />
 }

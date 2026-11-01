@@ -1162,3 +1162,128 @@
   justify-content: center;
   gap: 8px;
 }
+
+/* ---------- Datumsfeld und Anlässe ---------- */
+
+.datefield {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.datefield__box {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: var(--field);
+  border: 1.5px solid transparent;
+  font-size: 15px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.datefield__box:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.datefield__box svg {
+  flex: none;
+  color: var(--accent-text);
+}
+
+.datefield__box[data-empty='true'] .datefield__text {
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+.datefield__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.datefield__box em {
+  flex: none;
+  padding: 2px 9px;
+  border-radius: 99px;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 750;
+  color: var(--text-2);
+  background: var(--card);
+}
+
+.datefield__box em[data-soon='true'] {
+  color: var(--accent-text);
+  background: var(--accent-soft);
+}
+
+.datefield__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.occ-card {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: var(--r-m);
+  background: var(--card);
+  border: 1px solid var(--hairline);
+}
+
+.occ-card__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.occ-card__emoji {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  font-size: 19px;
+  background: var(--accent-soft);
+}
+
+.occ-card__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.field .occ-card__input {
+  flex: 1;
+  min-height: 38px;
+  padding: 6px 10px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.occ-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}

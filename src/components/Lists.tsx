@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import { Pencil, Plus, Trash2, X } from 'lucide-react'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { eur } from '../lib/format'
 import { listTitle } from '../lib/lists'
 import type { ListStats } from '../lib/stats'
@@ -8,6 +8,7 @@ import type { Owner, Person, Wishlist } from '../lib/types'
 import { uid } from '../lib/format'
 import { useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
+import { DateField } from './DateField'
 import { CountUp } from './Primitives'
 import { Presence } from './Presence'
 import { Sheet } from './Sheet'
@@ -196,14 +197,7 @@ export function ListSheet({ owner: baseOwner, ownerChoices, list, onClose, onCre
       </motion.label>
       <div className="field">
         <span>{t('Datum')} · {t('optional')}</span>
-        <div className="row row--gap">
-          <input type="date" className="btn--grow" value={date} onChange={(e) => setDate(e.target.value)} aria-label={t('Datum')} />
-          {date && (
-            <button className="icon-btn" onClick={() => setDate('')} aria-label={t('Datum entfernen')}>
-              <X size={16} />
-            </button>
-          )}
-        </div>
+        <DateField value={date} onChange={setDate} label={t('Datum')} clearable />
       </div>
       <div className="field">
         <span>{t('Symbol')}</span>
