@@ -1494,3 +1494,20 @@ button.row-item:active {
 .ltile__date[data-past='true'] {
   color: var(--text-3);
 }
+
+.reveal--block {
+  display: flex;
+  width: 100%;
+  justify-content: flex-start;
+  margin: 4px 0 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  color: var(--text-2);
+  background: var(--field);
+  opacity: 1;
+}
+
+.hint[data-warn='true'] {
+  color: var(--warn, #e0a030);
+}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { dbDelete, dbGet, dbKeys, dbSet, IMAGES } from './db'
 import { uid } from './format'
+import type { Item, ReceivedList } from './types'
 
 export const IMAGE_MAX = 800
 const IMAGE_QUALITY = 0.82
@@ -111,4 +112,12 @@ export async function gcImages(referenced: Set<string>): Promise<number> {
   } catch {
     return 0
   }
+}
+
+/** Alle Bild-IDs, auf die Einträge oder erhaltene Listen zeigen. */
+export function usedImageIds(d: { items: Pick<Item, 'imageId'>[]; received: Pick<ReceivedList, 'lists'>[] }): string[] {
+  const ids = new Set<string>()
+  for (const i of d.items) if (i.imageId) ids.add(i.imageId)
+  for (const r of d.received) for (const l of r.lists) for (const x of l.items) if (x.imageId) ids.add(x.imageId)
+  return [...ids]
 }

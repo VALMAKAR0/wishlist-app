@@ -1,6 +1,6 @@
 import { unzipSync, zipSync, strFromU8, strToU8 } from 'fflate'
 import { BACKUPS, IMAGES, dbDelete, dbGet, dbKeys, dbPutMany } from './db'
-import type { StoredImage } from './images'
+import { usedImageIds, type StoredImage } from './images'
 import { migrate, sanitize, repair, type Raw, type StoredData } from './storage'
 import { SCHEMA_VERSION } from './types'
 
@@ -46,49 +46,24 @@ export function crc32(data: Uint8Array): string {
   return ((c ^ 0xffffffff) >>> 0).toString(16).padStart(8, '0')
 }
 
-const pad = (n: number) => String(n).padStart(2, '0')
+export type Packable = Map<string, StoredImage>
 
-export function backupName(kind: 'manual' | 'auto', at = new Date()): string {
-  const day = `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}`
-  return kind === 'auto' ? `wunschliste-auto-${day}.zip` : `wunschliste-backup-${day}-${pad(at.getHours())}${pad(at.getMinutes())}.zip`
-}
-
-export const imageIdsOf = (d: Pick<BackupData, 'items'>): string[] => [...new Set(d.items.flatMap((i) => (i.imageId ? [i.imageId] : [])))]
-
-const extOf = (type: string) => (type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : 'jpg')
-const typeOf = (name: string) => (name.endsWith('.png') ? 'image/png' : name.endsWith('.webp') ? 'image/webp' : 'image/jpeg')
-
-/** Baut die ZIP-Datei: daten.json plus alle verwendeten Bilder als eigene Dateien. */
-export async function buildBackup(data: BackupData, appVersion: string, now = Date.now()): Promise<{ bytes: Uint8Array; meta: BackupMeta }> {
+/** Packt ein Dokument (daten.json) und Bilder in eine ZIP mit Prüfsummen. */
+export function packZip(doc: object, images: Packable): Uint8Array {
   const files: Record<string, Uint8Array | [Uint8Array, { level: 0 | 6 }]> = {}
-  let images = 0
-  for (const id of imageIdsOf(data)) {
-    const rec = await dbGet<StoredImage>(id, IMAGES)
-    if (!rec) continue
-    files[`${IMG_DIR}${id}.${extOf(rec.type)}`] = [new Uint8Array(rec.data), { level: 0 }]
-    images++
-  }
-  const meta: BackupMeta = {
-    createdAt: now,
-    appVersion,
-    schemaVersion: SCHEMA_VERSION,
-    counts: { items: data.items.length, lists: data.lists.length, persons: data.persons.length, received: data.received.length, images },
-  }
-  const doc = { app: MARKER, format: BACKUP_FORMAT, ...meta, data }
+  for (const [id, rec] of images) files[`${IMG_DIR}${id}.${extOf(rec.type)}`] = [new Uint8Array(rec.data), { level: 0 }]
   const json = strToU8(JSON.stringify(doc))
   files[DATA_FILE] = [json, { level: 6 }]
   const sums: Record<string, string> = { [DATA_FILE]: crc32(json) }
   for (const [path, v] of Object.entries(files)) if (path !== DATA_FILE) sums[path] = crc32(Array.isArray(v) ? v[0] : v)
   files[SUM_FILE] = [strToU8(JSON.stringify(sums)), { level: 6 }]
-  return { bytes: zipSync(files), meta }
+  return zipSync(files)
 }
 
-export type ReadResult =
-  | { ok: true; data: StoredData; meta: BackupMeta; images: Map<string, StoredImage>; missingImages: number; migratedFrom?: number }
-  | { ok: false; reason: 'notZip' | 'notBackup' | 'newerFormat' | 'newerData' | 'broken'; version?: number }
+export type Unpacked = { ok: true; doc: Raw; images: Packable } | { ok: false; reason: 'notZip' | 'notBackup' | 'broken' }
 
-/** Liest eine Backup-Datei und prüft sie, ohne etwas zu verändern. */
-export function readBackup(bytes: Uint8Array): ReadResult {
+/** Entpackt und prüft eine ZIP von packZip: Format, Prüfsummen, lesbares JSON. Welche App-Kennung drinsteht, prüft der Aufrufer. */
+export function unpackZip(bytes: Uint8Array): Unpacked {
   let files: Record<string, Uint8Array>
   try {
     files = unzipSync(bytes)
@@ -110,6 +85,61 @@ export function readBackup(bytes: Uint8Array): ReadResult {
   } catch {
     return { ok: false, reason: 'broken' }
   }
+  if (typeof doc !== 'object' || doc === null) return { ok: false, reason: 'notBackup' }
+  const images: Packable = new Map()
+  for (const [path, content] of Object.entries(files)) {
+    if (!path.startsWith(IMG_DIR)) continue
+    const file = path.slice(IMG_DIR.length)
+    const dot = file.lastIndexOf('.')
+    if (dot < 1) continue
+    const buf = content.buffer.slice(content.byteOffset, content.byteOffset + content.byteLength) as ArrayBuffer
+    images.set(file.slice(0, dot), { type: typeOf(file), data: buf, createdAt: Number(doc.createdAt) || Date.now() })
+  }
+  return { ok: true, doc, images }
+}
+
+export async function loadImages(ids: string[]): Promise<Packable> {
+  const out: Packable = new Map()
+  for (const id of ids) {
+    const rec = await dbGet<StoredImage>(id, IMAGES)
+    if (rec) out.set(id, rec)
+  }
+  return out
+}
+
+const pad = (n: number) => String(n).padStart(2, '0')
+
+export function backupName(kind: 'manual' | 'auto', at = new Date()): string {
+  const day = `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}`
+  return kind === 'auto' ? `wunschliste-auto-${day}.zip` : `wunschliste-backup-${day}-${pad(at.getHours())}${pad(at.getMinutes())}.zip`
+}
+
+export const imageIdsOf = (d: Pick<BackupData, 'items' | 'received'>): string[] => usedImageIds(d)
+
+const extOf = (type: string) => (type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : 'jpg')
+const typeOf = (name: string) => (name.endsWith('.png') ? 'image/png' : name.endsWith('.webp') ? 'image/webp' : 'image/jpeg')
+
+/** Baut die ZIP-Datei: daten.json plus alle verwendeten Bilder als eigene Dateien. */
+export async function buildBackup(data: BackupData, appVersion: string, now = Date.now()): Promise<{ bytes: Uint8Array; meta: BackupMeta }> {
+  const images = await loadImages(imageIdsOf(data))
+  const meta: BackupMeta = {
+    createdAt: now,
+    appVersion,
+    schemaVersion: SCHEMA_VERSION,
+    counts: { items: data.items.length, lists: data.lists.length, persons: data.persons.length, received: data.received.length, images: images.size },
+  }
+  return { bytes: packZip({ app: MARKER, format: BACKUP_FORMAT, ...meta, data }, images), meta }
+}
+
+export type ReadResult =
+  | { ok: true; data: StoredData; meta: BackupMeta; images: Map<string, StoredImage>; missingImages: number; migratedFrom?: number }
+  | { ok: false; reason: 'notZip' | 'notBackup' | 'newerFormat' | 'newerData' | 'broken'; version?: number }
+
+/** Liest eine Backup-Datei und prüft sie, ohne etwas zu verändern. */
+export function readBackup(bytes: Uint8Array): ReadResult {
+  const u = unpackZip(bytes)
+  if (!u.ok) return { ok: false, reason: u.reason }
+  const { doc, images } = u
   if (doc.app !== MARKER || typeof doc.data !== 'object' || doc.data === null) return { ok: false, reason: 'notBackup' }
   if (typeof doc.format !== 'number' || doc.format > BACKUP_FORMAT) return { ok: false, reason: 'newerFormat', version: Number(doc.format) }
   const version = Number(doc.schemaVersion)
@@ -126,15 +156,6 @@ export function readBackup(bytes: Uint8Array): ReadResult {
   if (!clean) return { ok: false, reason: 'broken' }
   const data = repair({ ...clean, lastBackupAt: null, changedSinceBackup: false })
 
-  const images = new Map<string, StoredImage>()
-  for (const [path, content] of Object.entries(files)) {
-    if (!path.startsWith(IMG_DIR)) continue
-    const file = path.slice(IMG_DIR.length)
-    const dot = file.lastIndexOf('.')
-    if (dot < 1) continue
-    const buf = content.buffer.slice(content.byteOffset, content.byteOffset + content.byteLength) as ArrayBuffer
-    images.set(file.slice(0, dot), { type: typeOf(file), data: buf, createdAt: Number(doc.createdAt) || Date.now() })
-  }
   const missingImages = imageIdsOf(data).filter((id) => !images.has(id)).length
   const c = (doc.counts ?? {}) as Partial<BackupCounts>
   const meta: BackupMeta = {

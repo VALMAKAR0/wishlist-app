@@ -50,10 +50,10 @@ export async function writeAutoBackup(bytes: Uint8Array, name: string): Promise<
   await pruneAuto()
 }
 
-async function shareNative(bytes: Uint8Array, name: string): Promise<Delivered> {
+async function shareNative(bytes: Uint8Array, name: string, text?: string): Promise<Delivered> {
   const w = await Filesystem.writeFile({ path: name, data: toBase64(bytes), directory: Directory.Cache })
   try {
-    await Share.share({ title: name, files: [w.uri] })
+    await Share.share({ title: name, text, files: [w.uri] })
     return { where: 'shared' }
   } catch (e) {
     if (/cancel/i.test(String((e as Error)?.message ?? e))) return { where: 'cancelled' }
@@ -63,20 +63,11 @@ async function shareNative(bytes: Uint8Array, name: string): Promise<Delivered> 
 
 const touch = () => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches
 
-/** Gibt die Sicherung aus: Android in Dokumente (sonst Teilen-Menü), iPhone/Handy über das Teilen-Menü, Rechner als Download. */
-export async function deliverBackup(bytes: Uint8Array, name: string): Promise<Delivered> {
-  if (isNative()) {
-    try {
-      await writeToDocuments(bytes, name)
-      return { where: 'documents' }
-    } catch {
-      return shareNative(bytes, name)
-    }
-  }
+async function shareOrDownload(bytes: Uint8Array, name: string, text?: string): Promise<Delivered> {
   const file = new File([bytes as BlobPart], name, { type: 'application/zip' })
   if (touch() && navigator.canShare?.({ files: [file] })) {
     try {
-      await navigator.share({ files: [file], title: name })
+      await navigator.share({ files: [file], title: name, text })
       return { where: 'shared' }
     } catch (e) {
       if ((e as Error)?.name === 'AbortError') return { where: 'cancelled' }
@@ -91,4 +82,22 @@ export async function deliverBackup(bytes: Uint8Array, name: string): Promise<De
   a.remove()
   setTimeout(() => URL.revokeObjectURL(url), 10_000)
   return { where: 'download' }
+}
+
+/** Gibt die Sicherung aus: Android in Dokumente (sonst Teilen-Menü), iPhone/Handy über das Teilen-Menü, Rechner als Download. */
+export async function deliverBackup(bytes: Uint8Array, name: string): Promise<Delivered> {
+  if (isNative()) {
+    try {
+      await writeToDocuments(bytes, name)
+      return { where: 'documents' }
+    } catch {
+      return shareNative(bytes, name)
+    }
+  }
+  return shareOrDownload(bytes, name)
+}
+
+/** Öffnet zum Teilen einer Liste das Teilen-Menü (Android, Handy) oder lädt die Datei herunter (Rechner). */
+export async function shareFile(bytes: Uint8Array, name: string, text?: string): Promise<Delivered> {
+  return isNative() ? shareNative(bytes, name, text) : shareOrDownload(bytes, name, text)
 }

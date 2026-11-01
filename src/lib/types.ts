@@ -68,6 +68,8 @@ export interface ReceivedItem {
   /** Unauffällig mitgesendet: Der Absender besitzt den Artikel schon. Standardmäßig nie in der Liste sichtbar. */
   owned: boolean
   boughtAt?: number
+  /** Bild aus dem Bilderspeicher, kommt beim Import mit. */
+  imageId?: string
 }
 
 export interface ReceivedCollection {
@@ -75,6 +77,8 @@ export interface ReceivedCollection {
   name: string
   emoji: string
   hue: number
+  /** Datum der Liste beim Absender (JJJJ-MM-TT). */
+  date?: string
   items: ReceivedItem[]
 }
 
@@ -84,6 +88,8 @@ export interface ReceivedList {
   from: string
   hue: number
   receivedAt: number
+  /** Kennung des Absenders, damit ein erneuter Import dieselbe Liste ersetzt. */
+  shareId?: string
   /** Verknüpfte Person aus den Geschenkideen (für den Abgleich "Schon vorhanden"). */
   personId?: string
   lists: ReceivedCollection[]
@@ -104,6 +110,10 @@ export interface UiSettings {
   showPlanned: boolean
   /** Automatische Sicherung in Dokumente (nur Android-App). */
   autoBackup: boolean
+  /** Name, unter dem Listen beim Teilen ankommen. */
+  shareName: string
+  /** Zufällige Kennung dieses Geräts als Absender. */
+  shareId: string
 }
 
 export type ShareBought = 'hidden' | 'only' | 'exclude'

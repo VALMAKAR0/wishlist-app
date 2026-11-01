@@ -3,7 +3,7 @@ import { BootNotice } from '../components/BootNotice'
 import { defaultList, demoItems, demoLists, demoPersons, demoReceived } from '../lib/demoData'
 import { dayAgoTs } from '../lib/format'
 import { similarNames } from '../lib/match'
-import { gcImages } from '../lib/images'
+import { gcImages, usedImageIds } from '../lib/images'
 import { checkPersist } from '../lib/persist'
 import { loadData, saveData, type Loaded, type StoredData } from '../lib/storage'
 import { purgeExpired } from '../lib/trash'
@@ -41,6 +41,8 @@ type Action =
   | { type: 'wipe' }
   | { type: 'restore'; data: StoredData; at: number | null }
   | { type: 'backedUp'; at: number }
+  | { type: 'receive'; pkg: ReceivedList }
+  | { type: 'updateReceived'; id: string; patch: Partial<ReceivedList> }
   | { type: 'loadDemo' }
   | { type: 'ackNudge' }
 
@@ -116,6 +118,10 @@ function reducer(s: State, a: Action): State {
       return emptyState()
     case 'restore':
       return { ...s, items: a.data.items, lists: a.data.lists, persons: a.data.persons, received: a.data.received, lastBackupAt: a.at, changedSinceBackup: false, nudgeOpen: false }
+    case 'receive':
+      return touch({ received: [a.pkg, ...s.received.filter((r) => r.id !== a.pkg.id)] })
+    case 'updateReceived':
+      return touch({ received: s.received.map((r) => (r.id === a.id ? { ...r, ...a.patch } : r)) })
     case 'backedUp':
       return { ...s, lastBackupAt: a.at, changedSinceBackup: false }
     case 'loadDemo':
@@ -178,7 +184,7 @@ function StoreInner({ boot, children }: { boot: Loaded; children: ReactNode }) {
 
   useEffect(() => {
     if (boot.kind !== 'ok') return
-    void gcImages(new Set(state.items.flatMap((i) => (i.imageId ? [i.imageId] : []))))
+    void gcImages(new Set(usedImageIds(state)))
   }, [])
 
   useEffect(() => {

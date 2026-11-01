@@ -1,10 +1,14 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Download, ExternalLink, Eye, EyeOff, Link as LinkIcon, Plus, Trash2 } from 'lucide-react'
+import { CalendarDays, Download, ExternalLink, Eye, EyeOff, Link as LinkIcon, Plus, Trash2 } from 'lucide-react'
 import { AddButton, Page } from '../components/Page'
 import { Avatar, Chip, Cover, CountUp, EmptyState } from '../components/Primitives'
 import { agoLabel, eur, hostOf, longDate, toHref } from '../lib/format'
-import type { ReceivedItem, ReceivedList } from '../lib/types'
+import { Presence } from '../components/Presence'
+import { Sheet } from '../components/Sheet'
+import { daysUntilIso, distanceLabel, isoLabel, uid } from '../lib/format'
+import type { Item, ReceivedItem, ReceivedList } from '../lib/types'
+import { useReceive } from '../state/receive'
 import { useNav } from '../state/nav'
 import { useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
@@ -15,15 +19,29 @@ export function ReceivedScreen() {
   const t = useT()
   const { received, persons } = useStore()
   const { open } = useNav()
-  const ui = useUI()
+  const { importFile } = useReceive()
+  const fileRef = useRef<HTMLInputElement>(null)
+  const pick = () => fileRef.current?.click()
 
   return (
     <Page
       title={t('Erhaltene Listen')}
       eyebrow={t('Von anderen')}
       subtitle={received.length ? t.n(received.length, 'Paket', 'Pakete') : t('Wunschlisten, die dir andere geschickt haben')}
-      actions={<AddButton label={t('Import')} onClick={() => ui.planned('import-list')} />}
+      actions={<AddButton label={t('Import')} onClick={pick} />}
     >
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".zip,application/zip,application/x-zip-compressed"
+        hidden
+        data-testid="import-input"
+        onChange={(e) => {
+          const f = e.target.files?.[0]
+          e.target.value = ''
+          if (f) void importFile(f)
+        }}
+      />
       {received.length > 0 ? (
         <ul className="group">
           <AnimatePresence>
@@ -52,7 +70,7 @@ export function ReceivedScreen() {
                     <div className="stack-covers" aria-hidden>
                       {covers.map((x, k) => (
                         <span key={x.id} style={{ marginLeft: k ? -10 : 0, zIndex: 5 - k }}>
-                          <Cover emoji={x.emoji} hue={x.hue} size={28} />
+                          <Cover emoji={x.emoji} hue={x.hue} size={28} imageId={x.imageId} />
                         </span>
                       ))}
                     </div>
@@ -68,7 +86,7 @@ export function ReceivedScreen() {
           title={t('Noch keine Listen erhalten')}
           text={t('Wenn dir jemand seine Wunschliste schickt, speicherst du sie hier. Sie bleibt von deinen eigenen Daten getrennt.')}
           action={
-            <button className="btn btn--primary" onClick={() => ui.planned('import-list')}>
+            <button className="btn btn--primary" onClick={pick}>
               <Download size={17} /> {t('Liste importieren')}
             </button>
           }
@@ -78,12 +96,11 @@ export function ReceivedScreen() {
   )
 }
 
-function ReceivedRow({ it, index, owned }: { it: ReceivedItem; index: number; owned?: boolean }) {
+function ReceivedRow({ it, index, owned, onTake }: { it: ReceivedItem; index: number; owned?: boolean; onTake?: (it: ReceivedItem) => void }) {
   const t = useT()
-  const ui = useUI()
   return (
     <motion.li className="item item--static" data-owned={owned} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0, overflow: 'hidden' }} transition={{ type: 'spring', stiffness: 300, damping: 28, delay: 0.1 + Math.min(index, 8) * 0.05 }}>
-      <Cover emoji={it.emoji} hue={it.hue} size={44} />
+      <Cover emoji={it.emoji} hue={it.hue} size={44} imageId={it.imageId} />
       <div className="item__main">
         <span className="item__name">{it.name}</span>
         <div className="item__meta">
@@ -93,13 +110,12 @@ function ReceivedRow({ it, index, owned }: { it: ReceivedItem; index: number; ow
               <ExternalLink size={12} /> {hostOf(it.link)}
             </a>
           )}
-          {it.kind && <span className="item__list">{t(it.kind)}</span>}
         </div>
         {it.note && <p className="item__note">{it.note}</p>}
         {owned && <span className="item__owned">{it.boughtAt ? t('Hat schon, gekauft am {date}', { date: longDate(it.boughtAt) }) : t('Hat schon')}</span>}
       </div>
       {!owned && (
-        <button className="icon-btn" onClick={() => ui.planned('received-to-idea')} aria-label={t('Als Geschenkidee übernehmen')}>
+        <button className="icon-btn" onClick={() => onTake?.(it)} aria-label={t('Als Geschenkidee übernehmen')}>
           <Plus size={17} />
         </button>
       )}
@@ -109,12 +125,13 @@ function ReceivedRow({ it, index, owned }: { it: ReceivedItem; index: number; ow
 
 export function ReceivedDetailScreen({ id }: { id: string }) {
   const t = useT()
-  const { received, persons, dispatch } = useStore()
+  const { received, persons, lists, dispatch } = useStore()
   const { back } = useNav()
   const ui = useUI()
   const pkg = received.find((r) => r.id === id)
   const [sel, setSel] = useState<'all' | string>('all')
   const [showOwned, setShowOwned] = useState(false)
+  const [take, setTake] = useState<ReceivedItem | null>(null)
 
   useEffect(() => {
     if (!pkg) back()
@@ -128,6 +145,29 @@ export function ReceivedDetailScreen({ id }: { id: string }) {
   const owned = collections.flatMap((l) => l.items.filter((i) => i.owned))
   const linked = persons.find((p) => p.id === pkg.personId)
   const total = visible.reduce((s, i) => s + (i.price ?? 0), 0)
+
+  const addIdea = (it: ReceivedItem, personId: string) => {
+    const person = persons.find((p) => p.id === personId)
+    const listId = lists.find((l) => l.owner === personId)?.id
+    if (!person || !listId) return
+    const idea: Item = {
+      id: uid(), owner: personId, listId, name: it.name, kind: it.kind, link: it.link, price: it.price, note: it.note, imageId: it.imageId,
+      emoji: it.emoji, hue: it.hue, bought: false, createdAt: Date.now(),
+    }
+    dispatch({ type: 'addItem', item: idea })
+    ui.haptic(18)
+    ui.toast({
+      message: t('„{name}“ als Idee für {person} gemerkt', { name: it.name, person: person.name }),
+      emoji: '💡',
+      actionLabel: t('Rückgängig'),
+      onAction: () => dispatch({ type: 'purgeItem', id: idea.id }),
+    })
+  }
+  const onTake = (it: ReceivedItem) => {
+    if (linked) return addIdea(it, linked.id)
+    if (!persons.length) return ui.toast({ message: t('Lege zuerst unter „Ideen“ eine Person an.'), emoji: 'ℹ️' })
+    setTake(it)
+  }
 
   const remove = () =>
     ui.confirm({
@@ -158,6 +198,22 @@ export function ReceivedDetailScreen({ id }: { id: string }) {
         <p>{linked ? t('Mit Geschenkideen für {name} verknüpft. Wenn eine Idee dort schon vorhanden ist, siehst du das direkt bei der Idee.', { name: linked.name }) : t('Nicht verknüpft. Verknüpfe sie mit einer Person, damit dich doppelte Geschenkideen unauffällig warnen.')}</p>
       </motion.aside>
 
+      {persons.length > 0 && (
+        <div className="field">
+          <span>{t('Verknüpfen mit')}</span>
+          <div className="listbar listbar--form" role="radiogroup" aria-label={t('Verknüpfen mit')}>
+            <button role="radio" aria-checked={!linked} data-active={!linked} className="listchip" onClick={() => dispatch({ type: 'updateReceived', id, patch: { personId: undefined } })}>
+              {t('Keiner')}
+            </button>
+            {persons.map((p) => (
+              <button key={p.id} role="radio" aria-checked={p.id === linked?.id} data-active={p.id === linked?.id} className="listchip" onClick={() => dispatch({ type: 'updateReceived', id, patch: { personId: p.id } })}>
+                {p.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {pkg.lists.length > 1 && (
         <div className="listbar" role="tablist" aria-label={t('Listen')}>
           <button className="listchip" role="tab" aria-selected={sel === 'all'} data-active={sel === 'all'} onClick={() => setSel('all')}>
@@ -171,6 +227,19 @@ export function ReceivedDetailScreen({ id }: { id: string }) {
         </div>
       )}
 
+      {collections.some((c) => c.date) && (
+        <div className="chips" style={{ marginBottom: 10 }}>
+          {collections.filter((c) => c.date).map((c) => {
+            const d = daysUntilIso(c.date!)
+            return (
+              <Chip key={c.id} tone={d !== null && d >= 0 && d <= 14 ? 'warn' : 'neutral'} icon={<CalendarDays size={13} />}>
+                {`${t(c.name)} · ${isoLabel(c.date!)}${d === null ? '' : ` · ${distanceLabel(d, t)}`}`}
+              </Chip>
+            )
+          })}
+        </div>
+      )}
+
       <div className="minirow">
         <span>
           {t.n(visible.length, 'Wunsch', 'Wünsche')} · <b><CountUp value={total} format={(n) => eur(Math.round(n))} /></b> {t('zusammen')}
@@ -180,7 +249,7 @@ export function ReceivedDetailScreen({ id }: { id: string }) {
       <ul className="group">
         <AnimatePresence initial>
           {visible.map((it, i) => (
-            <ReceivedRow key={it.id} it={it} index={i} />
+            <ReceivedRow key={it.id} it={it} index={i} onTake={onTake} />
           ))}
         </AnimatePresence>
       </ul>
@@ -205,6 +274,46 @@ export function ReceivedDetailScreen({ id }: { id: string }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <Presence show={!!take}>
+        {take && <TakeOverSheet item={take} onPick={(pid) => addIdea(take, pid)} onClose={() => setTake(null)} />}
+      </Presence>
     </Page>
+  )
+}
+
+function TakeOverSheet({ item, onPick, onClose }: { item: ReceivedItem; onPick: (personId: string) => void; onClose: () => void }) {
+  const t = useT()
+  const { persons } = useStore()
+  const [pid, setPid] = useState(persons[0]?.id ?? '')
+  return (
+    <Sheet
+      title={t('Als Geschenkidee übernehmen')}
+      subtitle={item.name}
+      onClose={onClose}
+      footer={
+        <button
+          className="btn btn--primary btn--block"
+          disabled={!pid}
+          onClick={() => {
+            onPick(pid)
+            onClose()
+          }}
+        >
+          {t('Übernehmen')}
+        </button>
+      }
+    >
+      <div className="field">
+        <span>{t('Für wen?')}</span>
+        <div className="listbar listbar--form" role="radiogroup" aria-label={t('Für wen?')}>
+          {persons.map((p) => (
+            <button key={p.id} role="radio" aria-checked={p.id === pid} data-active={p.id === pid} className="listchip" onClick={() => setPid(p.id)}>
+              {p.name}
+            </button>
+          ))}
+        </div>
+      </div>
+    </Sheet>
   )
 }

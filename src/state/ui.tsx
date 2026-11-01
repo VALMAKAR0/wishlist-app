@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { MotionConfig } from 'motion/react'
 import type { PlannedId } from '../lib/plannedFeatures'
 import { detectLang, makeT, type TFn } from '../lib/i18n'
-import { setLocale } from '../lib/format'
+import { setLocale, uid } from '../lib/format'
 import type { UiSettings } from '../lib/types'
 import { Overlays } from '../components/Overlays'
 
@@ -43,14 +43,24 @@ interface UI {
 const Ctx = createContext<UI | null>(null)
 
 const STORAGE_KEY = 'wl.ui'
-const defaults = (): UiSettings => ({ theme: 'system', fx: 'full', lang: detectLang(), hue: 14, remind: true, remindDays: 7, showPlanned: false, autoBackup: true })
+const defaults = (): UiSettings => ({ theme: 'system', fx: 'full', lang: detectLang(), hue: 14, remind: true, remindDays: 7, showPlanned: false, autoBackup: true, shareName: '', shareId: '' })
 
 function loadSettings(): UiSettings {
+  let s: UiSettings
   try {
-    return { ...defaults(), ...JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') }
+    s = { ...defaults(), ...JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') }
   } catch {
-    return defaults()
+    s = defaults()
   }
+  if (!s.shareId) {
+    s.shareId = uid()
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
+    } catch {
+      /* ohne Speicher gilt die Kennung nur für diese Sitzung */
+    }
+  }
+  return s
 }
 
 export function UIProvider({ children }: { children: ReactNode }) {
