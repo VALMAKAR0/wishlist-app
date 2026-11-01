@@ -7,7 +7,7 @@ import { Chip, EmptyState, Segmented } from '../components/Primitives'
 import { ItemFormSheet } from '../components/ItemFormSheet'
 import { ShareSheet } from '../components/ShareSheet'
 import { daysUntilIso, distanceLabel, isoLabel } from '../lib/format'
-import { listTitle } from '../lib/lists'
+import { listDate, listOccasion, listTitle } from '../lib/lists'
 import { listStats } from '../lib/stats'
 import type { Item, Owner } from '../lib/types'
 import { useNav } from '../state/nav'
@@ -54,7 +54,9 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) 
   const done = scoped.filter((i) => i.bought).sort((a, b) => (b.boughtAt ?? 0) - (a.boughtAt ?? 0))
   const shown = seg === 'open' ? open : done
   const stats = listStats(scoped)
-  const days = list?.date ? daysUntilIso(list.date) : null
+  const date = list ? listDate(list, persons) : undefined
+  const occ = list ? listOccasion(list, persons) : undefined
+  const days = date ? daysUntilIso(date) : null
 
   const heading = title ?? (list ? listTitle(list, t) : forMe ? t('Meine Wünsche') : (person?.name ?? ''))
   const kicker = eyebrow ?? (forMe ? (list ? t('Meine Wünsche') : t('Zum Teilen')) : (person?.name ?? t('Geschenkideen')))
@@ -91,10 +93,11 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) 
       >
         {top}
 
-        {list?.date && days !== null && (
+        {date && days !== null && (
           <div className="chips" style={{ marginBottom: 10 }}>
             <Chip tone={days >= 0 && days <= 14 ? 'warn' : 'neutral'} icon={<CalendarDays size={13} />}>
-              {isoLabel(list.date)} · {distanceLabel(days, t)}
+              {occ ? `${t(occ.label)} · ` : ''}
+              {isoLabel(date)} · {distanceLabel(days, t)}
             </Chip>
           </div>
         )}

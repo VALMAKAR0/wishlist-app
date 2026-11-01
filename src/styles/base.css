@@ -254,7 +254,7 @@ select {
     right: auto;
     bottom: 0;
     width: var(--rail-w);
-    padding: 22px 12px;
+    padding: calc(22px + var(--safe-t)) 12px 22px;
     border-top: 0;
     border-right: 1px solid var(--hairline);
     background: color-mix(in oklch, var(--card) 55%, transparent);

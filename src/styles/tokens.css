@@ -96,3 +96,10 @@
   --surface-hover: var(--card-hover);
   --border: var(--hairline);
 }
+
+/* Tablet mit Touch: mehr Luft unter der Statusleiste des Geräts */
+@media (min-width: 900px) and (pointer: coarse) {
+  :root {
+    --safe-t: max(env(safe-area-inset-top, 0px), 30px);
+  }
+}

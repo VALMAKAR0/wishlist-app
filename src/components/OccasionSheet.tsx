@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion } from 'motion/react'
 import { Trash2 } from 'lucide-react'
 import { parseMonthDay, toInputDate, uid } from '../lib/format'
+import { listTitle } from '../lib/lists'
 import { OCCASION_PRESETS, occasionEmoji, presetOf } from '../lib/occasions'
 import type { Occasion, Person } from '../lib/types'
 import { useStore } from '../state/store'
@@ -20,8 +21,11 @@ interface Props {
 export function OccasionSheet({ person, occasion, onClose }: Props) {
   const t = useT()
   const ui = useUI()
-  const { dispatch } = useStore()
+  const { dispatch, lists: allLists } = useStore()
   const editing = !!occasion
+  const [id] = useState(() => occasion?.id ?? uid())
+  const lists = allLists.filter((l) => l.owner === person.id)
+  const [linked, setLinked] = useState<string[]>(() => lists.filter((l) => l.occasionId === occasion?.id).map((l) => l.id))
   const [name, setName] = useState(occasion ? (presetOf(occasion.label) ? t(occasion.label) : occasion.label) : '')
   const [date, setDate] = useState(occasion ? toInputDate(occasion) : '')
   const [shake, setShake] = useState(0)
@@ -43,9 +47,14 @@ export function OccasionSheet({ person, occasion, onClose }: Props) {
       return
     }
     const label = OCCASION_PRESETS.find((p) => t(p.label) === typed)?.label ?? typed
-    const next: Occasion = { id: occasion?.id ?? uid(), label, ...md }
+    const next: Occasion = { id, label, ...md }
     const occasions = occasion ? person.occasions.map((o) => (o.id === occasion.id ? next : o)) : [...person.occasions, next]
     dispatch({ type: 'updatePerson', id: person.id, patch: { occasions } })
+    for (const l of lists) {
+      const want = linked.includes(l.id)
+      if (want && l.occasionId !== id) dispatch({ type: 'updateList', id: l.id, patch: { occasionId: id } })
+      if (!want && l.occasionId === id) dispatch({ type: 'updateList', id: l.id, patch: { occasionId: undefined } })
+    }
     ui.toast({ message: editing ? t('Anlass aktualisiert') : t('Anlass hinzugefügt'), emoji: occasionEmoji(label) })
     ui.haptic(18)
     onClose()
@@ -99,6 +108,28 @@ export function OccasionSheet({ person, occasion, onClose }: Props) {
         <span>{t('Datum')}</span>
         <DateField value={date} onChange={setDate} label={t('Datum')} recurring />
         {shake > 0 && !date && <small className="hint hint--bad">{t('Ein Anlass braucht ein Datum.')}</small>}
+      </div>
+      <div className="field">
+        <span>{t('Verknüpfte Listen')}</span>
+        <div className="listbar listbar--form" role="group" aria-label={t('Verknüpfte Listen')}>
+          {lists.map((l) => {
+            const on = linked.includes(l.id)
+            const other = !on && !!l.occasionId && l.occasionId !== id && person.occasions.some((o) => o.id === l.occasionId)
+            return (
+              <button
+                key={l.id}
+                className="listchip"
+                aria-pressed={on}
+                data-active={on}
+                data-dim={other}
+                onClick={() => setLinked((cur) => (on ? cur.filter((x) => x !== l.id) : [...cur, l.id]))}
+              >
+                <span aria-hidden>{l.emoji}</span> {listTitle(l, t)}
+              </button>
+            )
+          })}
+        </div>
+        <small className="hint">{t('Das Datum der Liste folgt dann diesem Anlass.')}</small>
       </div>
     </Sheet>
   )

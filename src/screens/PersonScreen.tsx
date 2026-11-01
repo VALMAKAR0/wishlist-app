@@ -12,6 +12,7 @@ import { PersonFormSheet } from '../components/PersonFormSheet'
 import { dateLabel, daysUntil, eur, untilLabel } from '../lib/format'
 import type { Occasion } from '../lib/types'
 import { nextOccasion, occasionEmoji } from '../lib/occasions'
+import { listTitle } from '../lib/lists'
 import { listStats } from '../lib/stats'
 import { useNav } from '../state/nav'
 import { useStore } from '../state/store'
@@ -121,6 +122,11 @@ export function PersonScreen({ id }: { id: string }) {
                     <span className="occ-tile__main">
                       <strong>{t(o.label)}</strong>
                       <span>{dateLabel(o)}</span>
+                      {lists.some((l) => l.occasionId === o.id) && (
+                        <span className="occ-tile__lists">
+                          <ListChecks size={12} /> {lists.filter((l) => l.occasionId === o.id).map((l) => listTitle(l, t)).join(', ')}
+                        </span>
+                      )}
                     </span>
                     <span className="occ-tile__days">
                       {d <= 1 ? <strong>{d === 0 ? t('Heute') : t('Morgen')}</strong> : (

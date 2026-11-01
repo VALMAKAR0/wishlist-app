@@ -16,6 +16,8 @@ export interface Wishlist {
   hue: number
   /** Optionales Datum der Liste (z. B. Geburtstag), Format JJJJ-MM-TT. */
   date?: string
+  /** Verknüpfter Anlass der Person (Occasion.id). Das Datum folgt dann dem Anlass. */
+  occasionId?: string
   createdAt: number
 }
 

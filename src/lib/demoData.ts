@@ -9,8 +9,8 @@ const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart
 const isoIn = (days: number) => iso(new Date(Date.now() + days * 86_400_000))
 const isoNext = (month: number, day: number) => iso(nextOccurrence({ month, day }))
 
-function list(id: string, owner: string, name: string, emoji: string, hue: number, isDefault = false, date?: string): Wishlist {
-  return { id, owner, name: isDefault ? '' : name, isDefault: isDefault || undefined, emoji, hue, date, createdAt: now() }
+function list(id: string, owner: string, name: string, emoji: string, hue: number, isDefault = false, date?: string, occasionId?: string): Wishlist {
+  return { id, owner, name: isDefault ? '' : name, isDefault: isDefault || undefined, emoji, hue, date, occasionId, createdAt: now() }
 }
 
 function item(id: string, owner: string, listId: string, name: string, emoji: string, hue: number, extra: Partial<Item> = {}): Item {
@@ -24,8 +24,8 @@ export function demoLists(): Wishlist[] {
     list('l-me-1', 'me', '', '📌', 14, true),
     list('l-me-2', 'me', 'Weihnachten', '🎄', 150, false, isoNext(12, 24)),
     list('l-me-3', 'me', 'Geburtstag', '🎂', 45, false, isoIn(12)),
-    list('l-lena-1', 'p-lena', 'Geburtstag', '🎂', 345, false, isoNext(11, 8)),
-    list('l-lena-2', 'p-lena', 'Weihnachten', '🎄', 150, false, isoNext(12, 24)),
+    list('l-lena-1', 'p-lena', 'Geburtstag', '🎂', 345, false, undefined, 'o1'),
+    list('l-lena-2', 'p-lena', 'Weihnachten', '🎄', 150, false, undefined, 'o2'),
     list('l-jonas-1', 'p-jonas', '', '📌', 55, true),
     list('l-papa-1', 'p-papa', '', '📌', 225, true),
     list('l-oma-1', 'p-oma', '', '📌', 160, true),

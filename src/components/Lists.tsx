@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { eur } from '../lib/format'
+import { dateLabel, eur } from '../lib/format'
 import { listTitle } from '../lib/lists'
+import { occasionEmoji } from '../lib/occasions'
 import type { ListStats } from '../lib/stats'
 import type { Owner, Person, Wishlist } from '../lib/types'
 import { uid } from '../lib/format'
@@ -112,10 +113,13 @@ interface ListSheetProps {
 export function ListSheet({ owner: baseOwner, ownerChoices, list, onClose, onCreated, onDeleted }: ListSheetProps) {
   const t = useT()
   const ui = useUI()
-  const { dispatch, lists, items } = useStore()
+  const { dispatch, lists, items, persons } = useStore()
   const editing = !!list
   const [pick, setPick] = useState(ownerChoices?.[0]?.id ?? baseOwner)
   const owner: Owner = ownerChoices && !editing ? pick : baseOwner
+  const occasions = persons.find((p) => p.id === owner)?.occasions ?? []
+  const [occId, setOccId] = useState(list?.occasionId ?? '')
+  const linked = occasions.find((o) => o.id === occId)
   const [date, setDate] = useState(list?.date ?? '')
   const [name, setName] = useState(list && !list.isDefault ? list.name : '')
   const [emoji, setEmoji] = useState(list?.emoji ?? '⭐')
@@ -132,11 +136,11 @@ export function ListSheet({ owner: baseOwner, ownerChoices, list, onClose, onCre
     }
     if (list) {
       // Ein Standardname bleibt "Allgemein", sonst wird die Liste zu einer eigenen.
-      dispatch({ type: 'updateList', id: list.id, patch: { name: finalName, emoji, hue, date: date || undefined, isDefault: finalName ? undefined : list.isDefault } })
+      dispatch({ type: 'updateList', id: list.id, patch: { name: finalName, emoji, hue, occasionId: linked?.id, date: linked ? list.date : date || undefined, isDefault: finalName ? undefined : list.isDefault } })
       ui.toast({ message: t('Liste aktualisiert'), emoji: '✨' })
     } else {
       const id = uid()
-      dispatch({ type: 'addList', list: { id, owner, name: finalName, emoji, hue, date: date || undefined, createdAt: Date.now() } })
+      dispatch({ type: 'addList', list: { id, owner, name: finalName, emoji, hue, occasionId: linked?.id, date: linked ? undefined : date || undefined, createdAt: Date.now() } })
       ui.toast({ message: t('Liste „{name}“ angelegt', { name: finalName }), emoji })
       onCreated?.(id)
     }
@@ -184,7 +188,10 @@ export function ListSheet({ owner: baseOwner, ownerChoices, list, onClose, onCre
           <span>{t('Für wen?')}</span>
           <div className="listbar listbar--form" role="radiogroup" aria-label={t('Für wen?')}>
             {ownerChoices.map((p) => (
-              <button key={p.id} role="radio" aria-checked={p.id === pick} data-active={p.id === pick} className="listchip" onClick={() => setPick(p.id)}>
+              <button key={p.id} role="radio" aria-checked={p.id === pick} data-active={p.id === pick} className="listchip" onClick={() => {
+                  setPick(p.id)
+                  setOccId('')
+                }}>
                 {p.name}
               </button>
             ))}
@@ -195,10 +202,45 @@ export function ListSheet({ owner: baseOwner, ownerChoices, list, onClose, onCre
         <span>{t('Name')}</span>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder={list?.isDefault ? t('Allgemein') : t('z. B. Weihnachten')} autoFocus={!editing} data-invalid={shake > 0 && !name.trim() && !list?.isDefault} />
       </motion.label>
-      <div className="field">
-        <span>{t('Datum')} · {t('optional')}</span>
-        <DateField value={date} onChange={setDate} label={t('Datum')} clearable />
-      </div>
+      {occasions.length > 0 && (
+        <div className="field">
+          <span>{t('Anlass')} · {t('optional')}</span>
+          <div className="listbar listbar--form" role="radiogroup" aria-label={t('Anlass')}>
+            <button role="radio" aria-checked={!linked} data-active={!linked} className="listchip" onClick={() => setOccId('')}>
+              {t('Keiner')}
+            </button>
+            {occasions.map((o) => (
+              <button
+                key={o.id}
+                role="radio"
+                aria-checked={o.id === linked?.id}
+                data-active={o.id === linked?.id}
+                className="listchip"
+                onClick={() => {
+                  setOccId(o.id)
+                  if (!editing && !name.trim()) {
+                    setName(t(o.label))
+                    if (emoji === '⭐') setEmoji(occasionEmoji(o.label))
+                  }
+                }}
+              >
+                <span aria-hidden>{occasionEmoji(o.label)}</span> {t(o.label)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {linked ? (
+        <div className="field">
+          <span>{t('Datum')}</span>
+          <small className="hint">{t('Folgt dem Anlass: {date}', { date: dateLabel(linked) })}</small>
+        </div>
+      ) : (
+        <div className="field">
+          <span>{t('Datum')} · {t('optional')}</span>
+          <DateField value={date} onChange={setDate} label={t('Datum')} clearable />
+        </div>
+      )}
       <div className="field">
         <span>{t('Symbol')}</span>
         <div className="swatches swatches--left" role="radiogroup" aria-label={t('Symbol')}>

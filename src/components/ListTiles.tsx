@@ -1,9 +1,10 @@
 import { motion } from 'motion/react'
 import { CalendarDays, Plus } from 'lucide-react'
 import { daysUntilIso, distanceLabel, eur } from '../lib/format'
-import { listTitle } from '../lib/lists'
+import { listDate, listOccasion, listTitle } from '../lib/lists'
 import type { ListStats } from '../lib/stats'
 import type { Wishlist } from '../lib/types'
+import { useStore } from '../state/store'
 import { useT } from '../state/ui'
 
 export interface TileRow {
@@ -35,11 +36,15 @@ type HueStyle = React.CSSProperties & { '--h': number }
 /** Kacheln der Listen mit Gesamtwert, Fortschritt und Zahlen. Tippen öffnet die Liste. */
 export function ListTiles({ rows, onOpen, onNew }: Props) {
   const t = useT()
+  const { persons } = useStore()
   return (
     <div className="ltiles">
       {rows.map(({ list, stats, owner }, i) => {
         const done = stats.count ? stats.bought / stats.count : 0
         const style: HueStyle = { '--h': list.hue }
+        const occ = listOccasion(list, persons)
+        const date = listDate(list, persons)
+        const sub = [owner, occ && t(occ.label) !== listTitle(list, t) ? t(occ.label) : ''].filter(Boolean).join(' · ')
         return (
           <motion.button
             key={list.id}
@@ -57,10 +62,10 @@ export function ListTiles({ rows, onOpen, onNew }: Props) {
               </span>
               <span className="ltile__name">
                 <strong>{listTitle(list, t)}</strong>
-                {owner && <small>{owner}</small>}
+                {sub && <small>{sub}</small>}
               </span>
             </span>
-            {list.date && <TileDate iso={list.date} />}
+            {date && <TileDate iso={date} />}
             <span className="ltile__total">{stats.count ? eur(stats.total) : t('Leer')}</span>
             <span className="ltile__bar" aria-hidden>
               <span style={{ width: `${done * 100}%` }} />
