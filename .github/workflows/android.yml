@@ -1,0 +1,64 @@
+name: Android-APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'README.md'
+
+concurrency:
+  group: android-apk
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.14.3
+
+      - name: Web-App bauen
+        run: |
+          npm ci
+          npm run build
+          npx cap sync android
+
+      - name: APK bauen
+        working-directory: android
+        run: |
+          VERSION=$(node -p "require('../package.json').version")
+          gradle assembleDebug --no-daemon -PappVersionCode=${{ github.run_number }} -PappVersionName=$VERSION
+          cp app/build/outputs/apk/debug/app-debug.apk ../wunschliste.apk
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wunschliste-apk
+          path: wunschliste.apk
+
+      - name: Als Download veröffentlichen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES="Version $VERSION, Build ${{ github.run_number }}"
+          gh release view apk-neueste >/dev/null 2>&1 || gh release create apk-neueste --title "Neueste APK" --notes "$NOTES"
+          gh release edit apk-neueste --notes "$NOTES"
+          gh release upload apk-neueste wunschliste.apk --clobber

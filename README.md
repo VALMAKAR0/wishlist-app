@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 01.11.2026 · Status: V0.3 (Bilder) · Datenformat: v2
+Stand: 01.11.2026 · Status: V0.3.1 (Android-Hülle) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -170,6 +170,7 @@ Eigener Tab mit Auswertungen über alles: Gesamtausgaben (für mich und für and
 - [x] Backup-Hinweis ab 14 Tagen, nur bei Änderungen
 - [x] Gekaufte Artikel beim Teilen: unauffällig mitsenden, Option "nur gekauft" / "ohne" (siehe 5)
 - [x] Bilder: höchstens 800 Pixel an der längsten Kante, JPEG mit etwa 82 % Qualität, Quelle Galerie und Kamera über die Auswahl des Systems; nur für Wünsche und Geschenkideen, nicht für Personen
+- [x] Android: Capacitor-Hülle um die Web-App, APK als Download über GitHub (kein Store); App-ID `app.wunschliste.local` (lässt sich später nicht mehr ändern, ohne dass Android von einer neuen App ausgeht)
 - [ ] Name der App (Arbeitstitel "Wunschliste", zentral in `src/lib/brand.ts`)
 - [ ] Endgültige visuelle Identität (wird in V0.1 gemeinsam entschieden)
 
@@ -192,7 +193,8 @@ Eigener Tab mit Auswertungen über alles: Gesamtausgaben (für mich und für and
 - **V0.1:** Visuelle Shell, um das Design vollständig zu entscheiden, bevor echte Logik folgt. Alle Tabs, Fenster und Buttons sind da, Animationen, Übergänge und Dynamik (Wischen, Konfetti, Sheets, Zähler) sind schon voll enthalten. Bedienung wirkt im Arbeitsspeicher, gespeichert wird noch nichts. Platzhalter für spätere Funktionen zeigen ein Popup mit Funktion und Ziel-Version (`src/lib/plannedFeatures.ts`).
 - **V0.2 (erledigt):** Datenmodell, lokaler Speicher, Versionsnummer im Datenformat. Der erste Start ist leer, Beispieldaten gibt es nur über "Mehr" → "Demo-Daten laden".
 - **V0.3 (erledigt):** Bilder für Wünsche und Geschenkideen (Galerie oder Kamera, verkleinert auf höchstens 800 Pixel, als JPEG gespeichert). Wünsche, Personen und Ideen anlegen und bearbeiten war schon in V0.1 vorhanden und läuft seit V0.2 mit echtem Speicher.
-- **V0.4:** Papierkorb, Archiv, Löschlogik
+- **V0.3.1 (erledigt, ungetestet auf Gerät):** Android-Hülle mit Capacitor und automatischer APK-Build bei GitHub, damit Android-Funktionen ab jetzt auf dem Handy getestet werden können (siehe 21).
+- **V0.4:** Papierkorb, Archiv, Löschlogik. Dazu die Listen-Übersicht: pro Tab (Wünsche, Ideen) eine Kachel je Liste mit Anzahl, Gesamtpreis, offen/gekauft und Fortschritt, Tippen öffnet die Liste.
 - **V0.5:** Backup, Export, Import, Speicherschutz-Anzeige
 - **V0.6:** Teilen-Button und Import fremder Listen
 - **V0.7:** Android-Funktionen (Auto-Backup, Erinnerungen, Link-Import, Update-Hinweis)
@@ -246,3 +248,16 @@ Technische Leitplanken für Animationen (nach Fehlersuche in V0.1):
 - **Für V0.5 (Backup):** Die Sicherung muss die Bilder enthalten, sonst fehlen sie nach der Wiederherstellung. Die Dateigröße wächst entsprechend.
 - **Für V0.6 (Teilen):** Offen, ob Bilder mitgesendet werden: immer, nie oder per Schalter. Empfangene Listen bekommen erst mit dem Teilen Bilder.
 - **Am echten Gerät testen:** Kamera und Galerie in iOS-Safari/PWA, Speicherverbrauch mit vielen Bildern.
+
+## 21. Android-Hülle und APK (V0.3.1)
+
+- **Aufbau:** Die Web-App läuft unverändert in einer Android-WebView (Capacitor 8). Der Ordner `android/` ist das fertige Android-Projekt, `capacitor.config.ts` die Einstellung. Ein Kopieren der Web-Dateien erledigt `npx cap sync android` beim Build.
+- **Build bei GitHub:** `.github/workflows/android.yml` baut bei jedem Push auf `main` (oder per "Run workflow" im Reiter Actions) die APK und legt sie unter Releases als "Neueste APK" ab. Der Download-Link ist `Releases → Neueste APK → wunschliste.apk`. Dauert einige Minuten. Kostenlos für öffentliche Repos, bei privaten Repos reicht das monatliche Freikontingent bei Weitem.
+- **Signatur:** Die Test-APK ist mit dem festen Debug-Schlüssel `android/app/debug.keystore` signiert. Dadurch lässt sich jede neue APK über die alte installieren, ohne Deinstallieren und ohne Datenverlust. Für ein echtes Release (V1.0) kommt ein eigener, geheimer Schlüssel in die GitHub-Secrets. Der Debug-Schlüssel ist öffentlich und nur für Tests gedacht.
+- **Versionen:** `versionName` kommt aus `package.json`, `versionCode` ist die Build-Nummer von GitHub (steigt von selbst).
+- **Installieren:** APK auf dem Handy herunterladen, öffnen, "Installation aus dieser Quelle" einmalig erlauben. Beim Update einfach die neue APK darüber installieren.
+- **Daten:** IndexedDB liegt in der WebView der App und bleibt bei Updates erhalten. Deinstallieren löscht sie. Android-Auto-Backup ist in der Manifest-Datei eingeschaltet, ersetzt aber kein eigenes Backup (V0.5).
+- **Icon und Startbild:** aus dem Favicon erzeugt (Funke auf dunklem Grund), adaptives Icon für Android 8+.
+- **Ränder:** `viewport-fit=cover`, Capacitor setzt die Safe-Area-Werte für Statusleiste und Navigationsleiste.
+- **Am echten Gerät testen:** Erster Workflow-Lauf, Installation, Update über die alte APK, Icon, Ränder oben und unten, Bild wählen (Galerie/Kamera), Speichern nach Neustart der App, Zurück-Taste.
+- **Offen:** Android-Statusleiste hell/dunkel passend zur App-Darstellung; Die Zurück-Taste schließt vermutlich die App, statt ein offenes Fenster zu schließen (noch nicht geprüft).
