@@ -394,3 +394,10 @@ Technische Leitplanken für Animationen (nach Fehlersuche in V0.1):
 - Export als CSV und Text (Teilen und Speichern), CSV in Excel/Numbers öffnen (Umlaute, Spalten)
 - Backup mit Einstellungen sichern und wiederherstellen
 - Start-Reiter, Sortierung, Schriftgröße, Vibration, Papierkorb-Frist, Auto-Backup-Anzahl (Android)
+
+## 27. Lizenz und Sichtbarkeit
+
+- Das Repo ist öffentlich, damit der Update-Hinweis der App das Release ohne Anmeldung finden kann (GitHub antwortet bei privaten Repos mit 404).
+- `LICENSE`: Alle Rechte vorbehalten (© 2026 VALMAKAR0), zweisprachig. Der Code darf angesehen, aber nicht kopiert, verändert, weitergegeben oder als eigenes Werk ausgegeben werden. Die APK darf privat installiert und genutzt werden. `package.json` führt `"license": "UNLICENSED"`.
+- GitHub erlaubt nach seinen Nutzungsbedingungen trotzdem Forks öffentlicher Repos innerhalb von GitHub. Eine Kopie ohne Erlaubnis kann man über das DMCA-Verfahren von GitHub melden. Der Verlauf (Commits mit Datum) belegt, wer zuerst da war.
+- Offen: Die APK wird mit dem Debug-Schlüssel `android/app/debug.keystore` signiert (Standardpasswort, nicht geheim). Für eine Weitergabe an andere später einen eigenen Schlüssel einrichten und im Repo nicht ablegen.
