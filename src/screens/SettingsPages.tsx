@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import {
-  Archive, Bell, CalendarClock, Clock, DatabaseBackup, FileDown, HardDriveDownload, Lock, Map, Palette, RefreshCw, RotateCcw, Share2, ShieldCheck, Smartphone, Trash2,
+  AlertTriangle, Archive, Bell, CalendarClock, Check, Clock, DatabaseBackup, FileDown, HardDriveDownload, Lock, Map, Palette, RefreshCw, RotateCcw, Share2, ShieldCheck, Smartphone, Trash2,
 } from 'lucide-react'
 import { Page, Section } from '../components/Page'
 import { Presence } from '../components/Presence'
@@ -494,6 +494,29 @@ function PrivacyPage() {
 }
 
 // ---- App und Updates
+function UpdateRow({ upd }: { upd: ReturnType<typeof useUpdate> }) {
+  const t = useT()
+  const { settings } = useUI()
+  const { checking, result } = upd
+  const state = checking ? 'checking' : (result?.kind ?? 'idle')
+  const icon = checking ? <RefreshCw size={18} className="spin" /> : result?.kind === 'fail' ? <AlertTriangle size={18} /> : result ? <Check size={18} /> : <RefreshCw size={18} />
+  const title = checking ? t('Prüfe bei GitHub …') : result?.kind === 'fail' ? t('Prüfung fehlgeschlagen') : result ? result.text : t('Auf Updates prüfen')
+  const idleText = `${t('Version {v}', { v: APP_VERSION })}${settings.updateAt ? ` · ${t('geprüft: {when}', { when: agoLabel(settings.updateAt, t) })}` : ''}`
+  const text = checking ? t('Einen Moment …') : result?.kind === 'fail' ? result.text : result ? idleText : idleText
+  return (
+    <div className="updrow" data-state={state} aria-live="polite">
+      <Row
+        icon={icon}
+        title={title}
+        text={text}
+        right={result?.kind === 'fail' && !checking ? <Chip tone="accent">{t('Nochmal')}</Chip> : checking ? <span /> : undefined}
+        onClick={checking ? undefined : () => void upd.check(true)}
+      />
+      {checking && <span className="updrow__bar" aria-hidden="true" />}
+    </div>
+  )
+}
+
 function AppPage() {
   const t = useT()
   const ui = useUI()
@@ -539,12 +562,7 @@ function AppPage() {
                   </a>
                 </div>
               )}
-              <Row
-                icon={<Bell size={18} />}
-                title={t('Auf Updates prüfen')}
-                text={`${t('Version {v}', { v: APP_VERSION })}${settings.updateAt ? ` · ${t('geprüft: {when}', { when: agoLabel(settings.updateAt, t) })}` : ''}`}
-                onClick={() => void upd.check(true)}
-              />
+              <UpdateRow upd={upd} />
               <div className="setting">
                 <div>
                   <strong>{t('Beim Start prüfen')}</strong>

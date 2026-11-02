@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 02.11.2026 · Status: V0.7.3 (Einstellungen: App-Sperre, Währungen, Export; Update-Prüfung über nativen Netzweg) · Datenformat: v2
+Stand: 02.11.2026 · Status: V0.7.4 (Einstellungen; Update-Prüfung über nativen Netzweg, Fortschritt in der Zeile) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -346,6 +346,7 @@ Technische Leitplanken für Animationen (nach Fehlersuche in V0.1):
 - **Repo-Name:** Der Workflow setzt beim Web-Bau `VITE_REPO=${{ github.repository }}`. Ohne diesen Wert (Browser-Vorschau, lokaler Bau) bleibt der alte Platzhalter "Auf Updates prüfen" mit Hinweis-Popup.
 - **Ablauf:** 4 Sekunden nach dem Start, höchstens alle 12 Stunden, wenn "Beim Start prüfen" an ist (Mehr → App). Ist die Version neuer, erscheint einmal eine Meldung, dauerhaft ein Punkt am Reiter "Mehr" und eine hervorgehobene Zeile mit "Herunterladen". Das Herunterladen öffnet die APK-Adresse im Browser, installiert wird per Hand über die alte App (gleicher Schlüssel, Daten bleiben).
 - **Grenzen:** Ist das Repo privat, antwortet GitHub ohne Anmeldung mit 404, die Prüfung scheitert dann leise (von Hand: Meldung "Bist du online?"). Verglichen wird nur die Versionsnummer, nicht die Build-Nummer. Ein Update innerhalb derselben Version wird nicht erkannt.
+- **Anzeige (V0.7.4):** Die Zeile „Auf Updates prüfen“ zeigt beim Prüfen einen Spinner mit Fortschrittsbalken (mindestens 0,9 s sichtbar), danach das Ergebnis dauerhaft in der Zeile (grün „neueste Version“, „Neue Version“, oder orange „Prüfung fehlgeschlagen“ mit Grund und „Nochmal“). Meldet Android „Unable to resolve host“, erklärt die App den DNS-Fehler (Privates DNS, Werbeblocker, VPN).
 - **Netzweg (V0.7.3):** In der Android-App laufen Update-Prüfung und Kurs-Abfrage über das native Netz (`CapacitorHttp` in `src/lib/http.ts`), nicht über `fetch` der WebView, weil das bei „Keine Verbindung zu GitHub“ trotz Internet scheiterte. Im Browser bleibt es bei `fetch`. Bei Netzfehlern steht die technische Meldung in Klammern hinter dem Text.
 - **Fehlermeldungen (V0.7.2):** Die manuelle Prüfung nennt die Ursache: keine Verbindung, 404 (Repo privat oder Release fehlt; GitHub antwortet bei privaten Repos ohne Anmeldung mit 404), Rate-Limit (60 Anfragen pro Stunde und IP), Release ohne lesbare Version, sonstiger HTTP-Fehler (`UpdateError` in `src/lib/update.ts`). Der automatische Start-Check bleibt still.
 - **Datenschutz:** Die App fragt nur bei GitHub nach dem Release, ohne Konto und ohne Nutzerdaten, und nur wenn der Schalter an ist.
