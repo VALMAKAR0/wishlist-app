@@ -33,9 +33,39 @@ export function readRelease(json: unknown): LatestRelease | null {
   return { version: m[1], build: Number(m[2] ?? 0), url }
 }
 
-export async function fetchLatest(repo = UPDATE_REPO): Promise<LatestRelease | null> {
-  if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) return null
-  const res = await fetch(`https://api.github.com/repos/${repo}/releases/tags/${TAG}`, { headers: { Accept: 'application/vnd.github+json' } })
-  if (!res.ok) throw new Error(String(res.status))
-  return readRelease(await res.json())
+export type UpdateFail = 'repo' | 'notfound' | 'limit' | 'format' | 'network' | 'http'
+
+export class UpdateError extends Error {
+  constructor(
+    public kind: UpdateFail,
+    public status = 0,
+  ) {
+    super(kind)
+  }
+}
+
+export function failKind(status: number, remaining: string | null): UpdateFail {
+  if (status === 404) return 'notfound'
+  if (status === 403 || status === 429) return remaining === '0' || status === 429 ? 'limit' : 'notfound'
+  return 'http'
+}
+
+export async function fetchLatest(repo = UPDATE_REPO): Promise<LatestRelease> {
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) throw new UpdateError('repo')
+  let res: Response
+  try {
+    res = await fetch(`https://api.github.com/repos/${repo}/releases/tags/${TAG}`, { headers: { Accept: 'application/vnd.github+json' } })
+  } catch {
+    throw new UpdateError('network')
+  }
+  if (!res.ok) throw new UpdateError(failKind(res.status, res.headers.get('x-ratelimit-remaining')), res.status)
+  let json: unknown
+  try {
+    json = await res.json()
+  } catch {
+    throw new UpdateError('format')
+  }
+  const rel = readRelease(json)
+  if (!rel) throw new UpdateError('format')
+  return rel
 }
