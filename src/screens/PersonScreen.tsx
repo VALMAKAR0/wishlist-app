@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'motion/react'
-import { CalendarPlus, ListChecks, Pencil, Plus } from 'lucide-react'
+import { CalendarPlus, ChevronRight, ListChecks, Pencil, Plus } from 'lucide-react'
 import { ListSheetHost } from '../components/Lists'
 import { ListTiles } from '../components/ListTiles'
 import { AddButton, Page, Section } from '../components/Page'
@@ -9,7 +9,8 @@ import { Avatar, CountUp } from '../components/Primitives'
 import { OccasionSheet } from '../components/OccasionSheet'
 import { ItemFormSheet } from '../components/ItemFormSheet'
 import { PersonFormSheet } from '../components/PersonFormSheet'
-import { dateLabel, daysUntil, eur, untilLabel } from '../lib/format'
+import { agoLabel, dateLabel, daysUntil, eur, untilLabel } from '../lib/format'
+import { receivedCounts } from '../lib/received'
 import type { Occasion } from '../lib/types'
 import { nextOccasion, occasionEmoji } from '../lib/occasions'
 import { listTitle } from '../lib/lists'
@@ -21,7 +22,7 @@ import { BudgetBar } from './IdeasScreen'
 
 export function PersonScreen({ id }: { id: string }) {
   const t = useT()
-  const { persons, items, lists: allLists } = useStore()
+  const { persons, items, lists: allLists, received } = useStore()
   const { back, open } = useNav()
   const ui = useUI()
   const person = persons.find((p) => p.id === id)
@@ -41,6 +42,7 @@ export function PersonScreen({ id }: { id: string }) {
   const spent = mineAll.filter((i) => i.bought).reduce((s, i) => s + (i.price ?? 0), 0)
   const planned = mineAll.filter((i) => !i.bought).reduce((s, i) => s + (i.price ?? 0), 0)
   const next = nextOccasion(person)
+  const pkgs = received.filter((r) => r.personId === id)
   const rows = lists.map((l) => ({ list: l, stats: listStats(mineAll.filter((i) => i.listId === l.id)) }))
 
   return (
@@ -71,6 +73,27 @@ export function PersonScreen({ id }: { id: string }) {
             <span className="hero__note">{planned > 0 ? t('{amount} in offenen Ideen', { amount: eur(planned) }) : t('Keine offenen Ideen')}</span>
           </div>
         </motion.section>
+
+        {pkgs.length > 0 && (
+          <Section title={t('Erhaltene Listen')} collapseId="person-received" summary={t.n(pkgs.length, 'Paket', 'Pakete')}>
+            {pkgs.map((r) => {
+              const c = receivedCounts(r)
+              return (
+                <div key={r.id} className="linkcard received-link">
+                  <button className="linkcard__main spot" onClick={() => open({ type: 'received', id: r.id })} aria-label={t('Erhaltene Liste von {name} öffnen', { name: r.from })}>
+                    <Avatar name={r.from} hue={r.hue} size={46} />
+                    <span className="linkcard__text">
+                      <small>{t('Erhaltene Liste')}</small>
+                      <strong>{t('Wunschliste von {name}', { name: r.from })}</strong>
+                      <em>{t.n(r.lists.length, 'Liste', 'Listen')} · {t.n(c.wishes, 'Wunsch', 'Wünsche')} · {t('erhalten {when}', { when: agoLabel(r.receivedAt, t) })}</em>
+                    </span>
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              )
+            })}
+          </Section>
+        )}
 
         <Section
           title={t('Listen')}

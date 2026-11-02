@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { CalendarDays, Download, ExternalLink, Eye, EyeOff, Link as LinkIcon, Plus, Trash2 } from 'lucide-react'
-import { AddButton, Page } from '../components/Page'
+import { CalendarDays, Check, ChevronRight, Download, ExternalLink, Eye, EyeOff, Link as LinkIcon, Link2Off, Plus, Trash2 } from 'lucide-react'
+import { AddButton, Page, Section } from '../components/Page'
 import { Avatar, Chip, Cover, CountUp, EmptyState } from '../components/Primitives'
+import { findTaken } from '../lib/received'
 import { agoLabel, eur, hostOf, longDate, toHref } from '../lib/format'
 import { Presence } from '../components/Presence'
 import { Sheet } from '../components/Sheet'
-import { daysUntilIso, distanceLabel, isoLabel, uid } from '../lib/format'
-import type { Item, ReceivedItem, ReceivedList } from '../lib/types'
+import { daysUntilIso, distanceLabel, uid } from '../lib/format'
+import type { Item, Person, ReceivedItem, ReceivedList } from '../lib/types'
 import { useReceive } from '../state/receive'
 import { useNav } from '../state/nav'
 import { useStore } from '../state/store'
@@ -95,10 +96,20 @@ export function ReceivedScreen() {
   )
 }
 
-function ReceivedRow({ it, index, owned, onTake }: { it: ReceivedItem; index: number; owned?: boolean; onTake?: (it: ReceivedItem) => void }) {
+type RowProps = {
+  it: ReceivedItem
+  index: number
+  owned?: boolean
+  taken?: Item
+  person?: Person
+  onTake?: (it: ReceivedItem) => void
+  onPerson?: () => void
+}
+
+function ReceivedRow({ it, index, owned, taken, person, onTake, onPerson }: RowProps) {
   const t = useT()
   return (
-    <motion.li className="item item--static" data-owned={owned} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0, overflow: 'hidden' }} transition={{ type: 'spring', stiffness: 300, damping: 28, delay: 0.1 + Math.min(index, 8) * 0.05 }}>
+    <motion.li className="item item--static" data-owned={owned} data-taken={!!taken} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0, overflow: 'hidden' }} transition={{ type: 'spring', stiffness: 300, damping: 28, delay: 0.1 + Math.min(index, 8) * 0.05 }}>
       <Cover emoji={it.emoji} hue={it.hue} size={44} imageId={it.imageId} />
       <div className="item__main">
         <span className="item__name">{it.name}</span>
@@ -112,11 +123,21 @@ function ReceivedRow({ it, index, owned, onTake }: { it: ReceivedItem; index: nu
         </div>
         {it.note && <p className="item__note">{it.note}</p>}
         {owned && <span className="item__owned">{it.boughtAt ? t('Hat schon, gekauft am {date}', { date: longDate(it.boughtAt) }) : t('Hat schon')}</span>}
+        {taken && person && (
+          <button className="takenchip" onClick={onPerson} aria-label={t('Zu den Ideen für {name}', { name: person.name })}>
+            <Check size={12} strokeWidth={3.2} /> {t('Übernommen · Ideen für {name}', { name: person.name })} <ChevronRight size={12} />
+          </button>
+        )}
       </div>
-      {!owned && (
+      {!owned && !taken && (
         <button className="icon-btn" onClick={() => onTake?.(it)} aria-label={t('Als Geschenkidee übernehmen')}>
           <Plus size={17} />
         </button>
+      )}
+      {!owned && taken && (
+        <span className="icon-btn icon-btn--done" aria-hidden>
+          <Check size={17} strokeWidth={3} />
+        </span>
       )}
     </motion.li>
   )
@@ -124,48 +145,66 @@ function ReceivedRow({ it, index, owned, onTake }: { it: ReceivedItem; index: nu
 
 export function ReceivedDetailScreen({ id }: { id: string }) {
   const t = useT()
-  const { received, persons, lists, dispatch } = useStore()
-  const { back } = useNav()
+  const { received, persons, lists, items, dispatch } = useStore()
+  const { back, open } = useNav()
   const ui = useUI()
   const pkg = received.find((r) => r.id === id)
   const [sel, setSel] = useState<'all' | string>('all')
   const [showOwned, setShowOwned] = useState(false)
-  const [take, setTake] = useState<ReceivedItem | null>(null)
+  const [take, setTake] = useState<ReceivedItem[] | null>(null)
+  const [linkOpen, setLinkOpen] = useState(false)
 
   useEffect(() => {
     if (!pkg) back()
   }, [pkg, back])
-
-  const collections = useMemo(() => (pkg ? (sel === 'all' ? pkg.lists : pkg.lists.filter((l) => l.id === sel)) : []), [pkg, sel])
   if (!pkg) return null
 
-  // Unauffällig mitgesendete Artikel (owned) bleiben standardmäßig verborgen.
+  const linked = persons.find((p) => p.id === pkg.personId)
+  const ideas = linked ? items.filter((i) => i.owner === linked.id && !i.deletedAt) : []
+  const takenOf = (it: ReceivedItem) => (linked ? findTaken(it, ideas) : undefined)
+
+  const collections = sel === 'all' ? pkg.lists : pkg.lists.filter((l) => l.id === sel)
   const visible = collections.flatMap((l) => l.items.filter((i) => !i.owned))
   const owned = collections.flatMap((l) => l.items.filter((i) => i.owned))
-  const linked = persons.find((p) => p.id === pkg.personId)
+  const todo = visible.filter((i) => !takenOf(i))
   const total = visible.reduce((s, i) => s + (i.price ?? 0), 0)
+  const scopeName = sel === 'all' ? '' : t(pkg.lists.find((l) => l.id === sel)?.name ?? '')
 
-  const addIdea = (it: ReceivedItem, personId: string) => {
+  const addIdeas = (list: ReceivedItem[], personId: string) => {
     const person = persons.find((p) => p.id === personId)
-    const listId = lists.find((l) => l.owner === personId)?.id
-    if (!person || !listId) return
-    const idea: Item = {
+    const mine = lists.filter((l) => l.owner === personId)
+    const listId = (mine.find((l) => l.isDefault) ?? mine[0])?.id
+    if (!person || !listId || !list.length) return
+    const made: Item[] = list.map((it) => ({
       id: uid(), owner: personId, listId, name: it.name, kind: it.kind, link: it.link, price: it.price, note: it.note, imageId: it.imageId,
       emoji: it.emoji, hue: it.hue, bought: false, createdAt: Date.now(),
-    }
-    dispatch({ type: 'addItem', item: idea })
+    }))
+    for (const idea of made) dispatch({ type: 'addItem', item: idea })
+    if (pkg.personId !== personId) dispatch({ type: 'updateReceived', id, patch: { personId } })
     ui.haptic(18)
     ui.toast({
-      message: t('„{name}“ als Idee für {person} gemerkt', { name: it.name, person: person.name }),
+      message: made.length === 1 ? t('„{name}“ als Idee für {person} gemerkt', { name: list[0].name, person: person.name }) : t('{n} Wünsche als Ideen für {person} gemerkt', { n: made.length, person: person.name }),
       emoji: '💡',
       actionLabel: t('Rückgängig'),
-      onAction: () => dispatch({ type: 'purgeItem', id: idea.id }),
+      onAction: () => made.forEach((m) => dispatch({ type: 'purgeItem', id: m.id })),
     })
   }
-  const onTake = (it: ReceivedItem) => {
-    if (linked) return addIdea(it, linked.id)
+
+  const start = (list: ReceivedItem[]) => {
+    if (!list.length) return
+    if (linked) return addIdeas(list, linked.id)
     if (!persons.length) return ui.toast({ message: t('Lege zuerst unter „Ideen“ eine Person an.'), emoji: 'ℹ️' })
-    setTake(it)
+    setTake(list)
+  }
+  const takeAll = () => {
+    if (!todo.length) return
+    if (!linked) return start(todo)
+    ui.confirm({
+      title: t('{n} Wünsche übernehmen?', { n: todo.length }),
+      text: t('Sie werden als Geschenkideen für {name} gemerkt. Was dort schon steht, wird übersprungen.', { name: linked.name }),
+      confirmLabel: t('Übernehmen'),
+      onConfirm: () => addIdeas(todo, linked.id),
+    })
   }
 
   const remove = () =>
@@ -180,6 +219,9 @@ export function ReceivedDetailScreen({ id }: { id: string }) {
       },
     })
 
+  const allWishes = pkg.lists.flatMap((l) => l.items.filter((i) => !i.owned))
+  const takenAll = allWishes.filter((i) => takenOf(i)).length
+
   return (
     <Page
       title={pkg.from}
@@ -192,63 +234,101 @@ export function ReceivedDetailScreen({ id }: { id: string }) {
         </button>
       }
     >
-      <motion.aside className="note-card" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-        <LinkIcon size={17} />
-        <p>{linked ? t('Mit Geschenkideen für {name} verknüpft. Wenn eine Idee dort schon vorhanden ist, siehst du das direkt bei der Idee.', { name: linked.name }) : t('Nicht verknüpft. Verknüpfe sie mit einer Person, damit dich doppelte Geschenkideen unauffällig warnen.')}</p>
-      </motion.aside>
-
-      {persons.length > 0 && (
-        <div className="field">
-          <span>{t('Verknüpfen mit')}</span>
-          <div className="listbar listbar--form" role="radiogroup" aria-label={t('Verknüpfen mit')}>
-            <button role="radio" aria-checked={!linked} data-active={!linked} className="listchip" onClick={() => dispatch({ type: 'updateReceived', id, patch: { personId: undefined } })}>
-              {t('Keiner')}
+      <motion.div className="linkcard" data-linked={!!linked} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
+        {linked ? (
+          <>
+            <button className="linkcard__main spot" onClick={() => open({ type: 'person', id: linked.id })} aria-label={t('Zu den Ideen für {name}', { name: linked.name })}>
+              <Avatar name={linked.name} hue={linked.hue} size={46} />
+              <span className="linkcard__text">
+                <small>{t('Verknüpft mit')}</small>
+                <strong>{t('Ideen für {name}', { name: linked.name })}</strong>
+                <em>{t('{n} Ideen · {m} übernommen', { n: items.filter((i) => i.owner === linked.id && !i.deletedAt).length, m: takenAll })}</em>
+              </span>
+              <ChevronRight size={18} />
             </button>
-            {persons.map((p) => (
-              <button key={p.id} role="radio" aria-checked={p.id === linked?.id} data-active={p.id === linked?.id} className="listchip" onClick={() => dispatch({ type: 'updateReceived', id, patch: { personId: p.id } })}>
-                {p.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {pkg.lists.length > 1 && (
-        <div className="listbar" role="tablist" aria-label={t('Listen')}>
-          <button className="listchip" role="tab" aria-selected={sel === 'all'} data-active={sel === 'all'} onClick={() => setSel('all')}>
-            {t('Alle')} <em>{pkg.lists.reduce((n, l) => n + l.items.filter((x) => !x.owned).length, 0)}</em>
-          </button>
-          {pkg.lists.map((l) => (
-            <button key={l.id} className="listchip" role="tab" aria-selected={sel === l.id} data-active={sel === l.id} onClick={() => setSel(l.id)}>
-              <span aria-hidden>{l.emoji}</span> {t(l.name)} <em>{l.items.filter((x) => !x.owned).length}</em>
+            <button className="btn btn--ghost btn--small" onClick={() => setLinkOpen(true)}>
+              {t('Ändern')}
             </button>
-          ))}
-        </div>
-      )}
+          </>
+        ) : (
+          <>
+            <span className="linkcard__icon" aria-hidden>
+              <Link2Off size={20} />
+            </span>
+            <span className="linkcard__text">
+              <small>{t('Nicht verknüpft')}</small>
+              <strong>{t('Mit einer Person verknüpfen')}</strong>
+              <em>{t('So warnt dich die App unauffällig vor doppelten Geschenken.')}</em>
+            </span>
+            <button className="btn btn--primary btn--small" onClick={() => (persons.length ? setLinkOpen(true) : ui.toast({ message: t('Lege zuerst unter „Ideen“ eine Person an.'), emoji: 'ℹ️' }))}>
+              {t('Verknüpfen')}
+            </button>
+          </>
+        )}
+      </motion.div>
 
-      {collections.some((c) => c.date) && (
-        <div className="chips" style={{ marginBottom: 10 }}>
-          {collections.filter((c) => c.date).map((c) => {
-            const d = daysUntilIso(c.date!)
+      <Section title={t('Listen')} collapseId="received-lists" summary={t.n(pkg.lists.length, 'Liste', 'Listen')}>
+        <div className="ltiles">
+          {pkg.lists.map((l, i) => {
+            const wishes = l.items.filter((x) => !x.owned)
+            const done = wishes.filter((x) => takenOf(x)).length
+            const sum = wishes.reduce((s, x) => s + (x.price ?? 0), 0)
+            const days = l.date ? daysUntilIso(l.date) : null
+            const style = { '--h': l.hue } as React.CSSProperties
             return (
-              <Chip key={c.id} tone={d !== null && d >= 0 && d <= 14 ? 'warn' : 'neutral'} icon={<CalendarDays size={13} />}>
-                {`${t(c.name)} · ${isoLabel(c.date!)}${d === null ? '' : ` · ${distanceLabel(d, t)}`}`}
-              </Chip>
+              <motion.button
+                key={l.id}
+                className="ltile spot"
+                style={style}
+                data-on={sel === l.id}
+                aria-pressed={sel === l.id}
+                onClick={() => setSel((s) => (s === l.id ? 'all' : l.id))}
+                initial={{ opacity: 0, y: 14, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 28, delay: 0.1 + Math.min(i, 8) * 0.04 }}
+                whileTap={{ scale: 0.97 }}
+              >
+                <span className="ltile__top">
+                  <span className="ltile__icon" aria-hidden>{l.emoji}</span>
+                  <span className="ltile__name">
+                    <strong>{t(l.name)}</strong>
+                    <small>{t.n(wishes.length, 'Wunsch', 'Wünsche')}</small>
+                  </span>
+                </span>
+                {days !== null && (
+                  <span className="ltile__date" data-past={days < 0} data-soon={days >= 0 && days <= 14}>
+                    <CalendarDays size={12} /> {distanceLabel(days, t)}
+                  </span>
+                )}
+                <span className="ltile__total">{eur(sum)}</span>
+                <span className="ltile__bar" aria-hidden>
+                  <span style={{ width: `${wishes.length ? (done / wishes.length) * 100 : 0}%` }} />
+                </span>
+                <span className="ltile__foot">
+                  <span>{linked ? t('{n} übernommen', { n: done }) : t('Nicht verknüpft')}</span>
+                  <span>{done}/{wishes.length}</span>
+                </span>
+              </motion.button>
             )
           })}
         </div>
-      )}
+      </Section>
 
-      <div className="minirow">
+      <div className="minirow minirow--split">
         <span>
+          {scopeName && <b>{scopeName} · </b>}
           {t.n(visible.length, 'Wunsch', 'Wünsche')} · <b><CountUp value={total} format={(n) => eur(Math.round(n))} /></b> {t('zusammen')}
         </span>
+        <button className="chip chip--button" onClick={takeAll} disabled={todo.length === 0} data-testid="take-all">
+          {todo.length === 0 ? <Check size={14} /> : <Plus size={14} />}
+          {todo.length === 0 ? t('Alles übernommen') : t('Alle übernehmen ({n})', { n: todo.length })}
+        </button>
       </div>
 
       <ul className="group">
         <AnimatePresence initial>
           {visible.map((it, i) => (
-            <ReceivedRow key={it.id} it={it} index={i} onTake={onTake} />
+            <ReceivedRow key={it.id} it={it} index={i} taken={takenOf(it)} person={linked} onTake={(x) => start([x])} onPerson={() => linked && open({ type: 'person', id: linked.id })} />
           ))}
         </AnimatePresence>
       </ul>
@@ -275,20 +355,54 @@ export function ReceivedDetailScreen({ id }: { id: string }) {
       </AnimatePresence>
 
       <Presence show={!!take}>
-        {take && <TakeOverSheet item={take} onPick={(pid) => addIdea(take, pid)} onClose={() => setTake(null)} />}
+        {take && <TakeOverSheet items={take} onPick={(pid) => addIdeas(take, pid)} onClose={() => setTake(null)} />}
       </Presence>
+      <Presence show={linkOpen}>{linkOpen && <LinkSheet pkg={pkg} onClose={() => setLinkOpen(false)} />}</Presence>
     </Page>
   )
 }
 
-function TakeOverSheet({ item, onPick, onClose }: { item: ReceivedItem; onPick: (personId: string) => void; onClose: () => void }) {
+function LinkSheet({ pkg, onClose }: { pkg: ReceivedList; onClose: () => void }) {
+  const t = useT()
+  const { persons, dispatch } = useStore()
+  const ui = useUI()
+  const set = (personId?: string) => {
+    dispatch({ type: 'updateReceived', id: pkg.id, patch: { personId } })
+    const p = persons.find((x) => x.id === personId)
+    ui.toast({ message: p ? t('Verknüpft mit Ideen für {name}', { name: p.name }) : t('Verknüpfung gelöst'), emoji: '🔗' })
+    onClose()
+  }
+  return (
+    <Sheet title={t('Verknüpfen mit')} subtitle={t('Liste von {name}', { name: pkg.from })} onClose={onClose}>
+      <div className="plist" role="radiogroup" aria-label={t('Verknüpfen mit')}>
+        {persons.map((p) => (
+          <button key={p.id} role="radio" aria-checked={p.id === pkg.personId} data-active={p.id === pkg.personId} className="pchoice" onClick={() => set(p.id)}>
+            <Avatar name={p.name} hue={p.hue} size={38} />
+            <strong>{t('Ideen für {name}', { name: p.name })}</strong>
+            {p.id === pkg.personId && <Check size={17} strokeWidth={3} />}
+          </button>
+        ))}
+        <button role="radio" aria-checked={!pkg.personId} data-active={!pkg.personId} className="pchoice" onClick={() => set(undefined)}>
+          <span className="linkcard__icon" aria-hidden>
+            <Link2Off size={18} />
+          </span>
+          <strong>{t('Keiner')}</strong>
+          {!pkg.personId && <Check size={17} strokeWidth={3} />}
+        </button>
+      </div>
+      <p className="hint">{t('Mit Verknüpfung siehst du bei einer Idee, was die Person schon hat, und übernommene Wünsche erscheinen hier als erledigt.')}</p>
+    </Sheet>
+  )
+}
+
+function TakeOverSheet({ items, onPick, onClose }: { items: ReceivedItem[]; onPick: (personId: string) => void; onClose: () => void }) {
   const t = useT()
   const { persons } = useStore()
   const [pid, setPid] = useState(persons[0]?.id ?? '')
   return (
     <Sheet
-      title={t('Als Geschenkidee übernehmen')}
-      subtitle={item.name}
+      title={items.length === 1 ? t('Als Geschenkidee übernehmen') : t('{n} Wünsche übernehmen', { n: items.length })}
+      subtitle={items.length === 1 ? items[0].name : t('Als Ideen für eine Person')}
       onClose={onClose}
       footer={
         <button
@@ -299,20 +413,20 @@ function TakeOverSheet({ item, onPick, onClose }: { item: ReceivedItem; onPick: 
             onClose()
           }}
         >
-          {t('Übernehmen')}
+          {t('Übernehmen und verknüpfen')}
         </button>
       }
     >
-      <div className="field">
-        <span>{t('Für wen?')}</span>
-        <div className="listbar listbar--form" role="radiogroup" aria-label={t('Für wen?')}>
-          {persons.map((p) => (
-            <button key={p.id} role="radio" aria-checked={p.id === pid} data-active={p.id === pid} className="listchip" onClick={() => setPid(p.id)}>
-              {p.name}
-            </button>
-          ))}
-        </div>
+      <div className="plist" role="radiogroup" aria-label={t('Für wen?')}>
+        {persons.map((p) => (
+          <button key={p.id} role="radio" aria-checked={p.id === pid} data-active={p.id === pid} className="pchoice" onClick={() => setPid(p.id)}>
+            <Avatar name={p.name} hue={p.hue} size={38} />
+            <strong>{p.name}</strong>
+            {p.id === pid && <Check size={17} strokeWidth={3} />}
+          </button>
+        ))}
       </div>
+      <p className="hint">{t('Die Liste wird dabei mit dieser Person verknüpft.')}</p>
     </Sheet>
   )
 }

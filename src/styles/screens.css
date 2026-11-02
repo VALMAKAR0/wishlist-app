@@ -1511,3 +1511,165 @@ button.row-item:active {
 .hint[data-warn='true'] {
   color: var(--warn, #e0a030);
 }
+
+/* ---------- Erhaltene Listen: Verknüpfung und Übernehmen ---------- */
+
+.linkcard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 8px 10px 8px 8px;
+  border-radius: var(--r-l);
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-card);
+}
+
+.linkcard[data-linked='false'] {
+  padding: 12px;
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  box-shadow: none;
+}
+
+.linkcard__main {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  padding: 4px;
+  border-radius: 14px;
+  text-align: left;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.linkcard__main > svg {
+  flex: none;
+  color: var(--text-3);
+}
+
+.linkcard__text {
+  display: grid;
+  flex: 1;
+  gap: 1px;
+  min-width: 0;
+}
+
+.linkcard__text small {
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+
+.linkcard[data-linked='false'] .linkcard__text small {
+  color: var(--text-3);
+}
+
+.linkcard__text strong {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.linkcard__text em {
+  font-size: 12px;
+  font-style: normal;
+  color: var(--text-3);
+}
+
+.linkcard__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  color: var(--text-3);
+  background: var(--field);
+}
+
+.minirow--split {
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.minirow--split .chip[disabled] {
+  opacity: 0.7;
+  cursor: default;
+  color: var(--text-3);
+}
+
+.ltile[data-on='true'] {
+  border-color: var(--tile);
+  box-shadow: 0 0 0 1px var(--tile), var(--shadow-card);
+}
+
+.takenchip {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 5px;
+  margin-top: 5px;
+  padding: 3px 9px;
+  border-radius: 99px;
+  font-size: 11.5px;
+  font-weight: 750;
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+  cursor: pointer;
+}
+
+.item[data-taken='true'] .item__name {
+  color: var(--text-2);
+}
+
+.icon-btn--done {
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+
+.plist {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.pchoice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px 8px 8px;
+  border-radius: 16px;
+  text-align: left;
+  color: var(--text);
+  background: var(--card);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+  cursor: pointer;
+}
+
+.pchoice strong {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.pchoice[data-active='true'] {
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+
+.received-link {
+  margin-bottom: 8px;
+}

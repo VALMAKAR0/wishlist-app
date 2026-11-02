@@ -22,10 +22,10 @@ export function useReceive() {
           : t('Das ist keine geteilte Wunschliste.')
 
   const importFile = useCallback(
-    async (file: File) => {
+    async (file: File | Uint8Array) => {
       let r: ShareRead
       try {
-        r = readShare(new Uint8Array(await file.arrayBuffer()))
+        r = readShare(file instanceof Uint8Array ? file : new Uint8Array(await file.arrayBuffer()))
       } catch {
         ui.toast({ message: t('Die Datei lässt sich nicht lesen.'), emoji: '⚠️' })
         return

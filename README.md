@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 01.11.2026 · Status: V0.6.2 (Teilen und Import von Wunschlisten als Datei) · Datenformat: v2
+Stand: 01.11.2026 · Status: V0.6.3 (Teilen und Import von Wunschlisten als Datei) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -308,3 +308,11 @@ Technische Leitplanken für Animationen (nach Fehlersuche in V0.1):
 - **Erneuter Import:** Gleicher Absender (`shareId`) bedeutet gleiches Paket. Listen mit gleicher ID werden ersetzt, andere Listen des Absenders bleiben, die Verknüpfung mit einer Person bleibt erhalten. Ein neues Paket wird automatisch mit der Person verknüpft, deren Name dem Absender entspricht (ohne Groß-/Kleinschreibung).
 - **Erhaltene Listen:** "Verknüpfen mit" (Person oder keine), Listenwahl, Datum-Chips mit Abstand, Bilder, Preissumme, "Schon Vorhandenes anzeigen" für unauffällig Mitgesendetes. Über das Plus-Symbol wird ein Wunsch als Geschenkidee für die verknüpfte Person (sonst nach Auswahl) übernommen, mit "Rückgängig".
 - **Am echten Gerät testen:** (1) Android: Teilen-Menü öffnet sich, WhatsApp bekommt die Datei, Größe mit vielen Bildern; (2) Empfang auf dem iPhone: Datei in WhatsApp antippen, "In Dateien sichern", in der App unter Erhalten → Import wählen; (3) Discord: Datei ab 10 MB wird abgelehnt, Bilder ausschalten hilft; (4) Datei an sich selbst schicken, importieren, ändern, erneut teilen: ersetzt statt doppelt.
+
+### Erhalten-Bildschirm und "Öffnen mit" (V0.6.3)
+
+- **Detailseite einer erhaltenen Liste:** Oben die Verknüpfungskarte (Person mit Avatar, "Ideen für …", Zahl der Ideen und übernommenen Wünsche; Tippen öffnet die Person, "Ändern" öffnet die Auswahl, ohne Verknüpfung steht dort "Verknüpfen"). Darunter die Listen als Kacheln (Name, Datum mit Abstand, Summe, Fortschrittsbalken "x übernommen"), Tippen auf eine Kachel filtert die Wünsche, nochmaliges Tippen hebt den Filter auf. Dann "Alle übernehmen (n)" für die gewählte Auswahl (mit Rückfrage und "Rückgängig"), darunter die Wünsche mit Plus für einzelne.
+- **"Übernommen" wird abgeleitet, nicht gespeichert:** Ein Wunsch gilt als übernommen, wenn bei der verknüpften Person eine Idee mit gleichem Link oder gleichem Namen existiert (`src/lib/received.ts`, `findTaken`). Löscht man die Idee, ist der Wunsch wieder offen. Dafür ist keine Datenformat-Änderung nötig. Der Chip "Übernommen · Ideen für …" führt zur Person.
+- **Übernehmen ohne Verknüpfung:** Es kommt die Personenauswahl, die Liste wird dabei mit dieser Person verknüpft ("Übernehmen und verknüpfen"). Ideen landen in der Standardliste der Person.
+- **Auf der Personenseite:** Abschnitt "Erhaltene Listen" mit einer Karte pro verknüpftem Paket, die zur erhaltenen Liste führt.
+- **Öffnen mit (Android):** `AndroidManifest.xml` hat einen Intent-Filter für `VIEW` mit `content:`/`file:` und den Typen `application/json`, `application/octet-stream`, `application/x-wunschliste`. `IncomingFile` (`src/components/IncomingFile.tsx`) hört auf `appUrlOpen` und auf die Start-URL, liest die Datei über `Capacitor.convertFileSrc` (Rückfall `Filesystem.readFile`) und startet den normalen Import mit Rückfrage. Nur "Öffnen mit" funktioniert, nicht "Teilen an" (das Plugin liefert die Datei dabei nicht). Nachteil: Wegen des Typs `application/json` taucht die App auch bei echten JSON-Dateien in der Auswahl auf. Ungetestet auf Gerät.
