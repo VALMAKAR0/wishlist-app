@@ -4,15 +4,17 @@ import {
   Archive, Bell, CalendarClock, Check, ChevronRight, DatabaseBackup, Flame, HardDriveDownload, Map, Palette, RefreshCw, RotateCcw, Share2, ShieldCheck, Smartphone, Trash2, Undo2,
 } from 'lucide-react'
 import { Page, Section } from '../components/Page'
+import { ReminderSettings } from '../components/ReminderSettings'
 import { Chip, Cover, EmptyState, Ring, Segmented, Switch } from '../components/Primitives'
 import { APP_NAME, APP_VERSION, BACKUP_NUDGE_DAYS, TRASH_DAYS } from '../lib/brand'
 import { clearSafetyCopies } from '../lib/backup'
 import { BACKUP_DIR, AUTO_KEEP } from '../lib/backupFiles'
-import { daysAgo, timeLabel } from '../lib/format'
+import { agoLabel, daysAgo, timeLabel } from '../lib/format'
 import { checkPersist, usePersist } from '../lib/persist'
 import { roadmap } from '../lib/plannedFeatures'
 import type { FxSetting, Lang, ThemeSetting } from '../lib/types'
 import { useBackup } from '../state/backup'
+import { useUpdate } from '../state/update'
 import { useNav } from '../state/nav'
 import { useLists, useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
@@ -42,6 +44,7 @@ export function MoreScreen() {
   const { trash, mine } = useLists()
   const [checking, setChecking] = useState(false)
   const persist = usePersist()
+  const upd = useUpdate()
   const bk = useBackup()
   const fileRef = useRef<HTMLInputElement>(null)
   const [copies, setCopies] = useState<Awaited<ReturnType<typeof bk.listSafetyCopies>>>([])
@@ -102,7 +105,7 @@ export function MoreScreen() {
             </>
           ) : (
             <>
-              <strong>{t('Vorschau (V{v}).', { v: APP_VERSION.split('.').slice(0, 2).join('.') })}</strong> {t('Deine Einträge bleiben auf diesem Gerät gespeichert. Teilen und Erinnerungen folgen.')}{' '}
+              <strong>{t('Vorschau (V{v}).', { v: APP_VERSION.split('.').slice(0, 2).join('.') })}</strong> {t('Deine Einträge bleiben auf diesem Gerät gespeichert. Installieren wie eine App folgt.')}{' '}
               <button onClick={() => open({ type: 'roadmap' })}>{t('Roadmap')}</button>
             </>
           )}
@@ -262,35 +265,7 @@ export function MoreScreen() {
 
       <Section title={t('Erinnerungen')}>
         <div className="card">
-          <div className="setting">
-            <div>
-              <strong>
-                {t('Vor Anlässen erinnern')} <Chip tone="accent">V0.7</Chip>
-              </strong>
-              <p>{t('Android per Benachrichtigung, iPhone per Kalenderdatei. Die Einstellung ist schon da, die Erinnerungen folgen.')}</p>
-            </div>
-            <Switch checked={settings.remind} onChange={(remind) => setSettings({ remind })} label={t('Erinnerungen')} />
-          </div>
-          <AnimatePresence initial={false}>
-            {settings.remind && (
-              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden' }}>
-                <div className="setting">
-                  <div>
-                    <strong>{t('Vorlauf')}</strong>
-                  </div>
-                  <div className="stepper">
-                    <button onClick={() => setSettings({ remindDays: Math.max(1, settings.remindDays - 1) })} aria-label={t('Weniger Tage')}>
-                      −
-                    </button>
-                    <b>{t('{n} Tage', { n: settings.remindDays })}</b>
-                    <button onClick={() => setSettings({ remindDays: Math.min(30, settings.remindDays + 1) })} aria-label={t('Mehr Tage')}>
-                      +
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <ReminderSettings />
           <Row icon={<CalendarClock size={18} />} title={t('Kalenderdatei erzeugen')} text={t('Funktioniert auf iPhone und Android')} onClick={() => ui.planned('ics-export')} />
         </div>
       </Section>
@@ -298,8 +273,37 @@ export function MoreScreen() {
       <Section title={t('App')}>
         <div className="card">
           <Row icon={<Smartphone size={18} />} title={t('Auf dem Home-Bildschirm installieren')} onClick={() => ui.planned('install-hint')} />
-          <Row icon={<Share2 size={18} />} title={t('Links aus dem Browser teilen')} text={t('Nur Android')} right={<Chip tone="accent">V0.7</Chip>} onClick={() => ui.planned('share-link-in')} />
-          <Row icon={<Bell size={18} />} title={t('Auf Updates prüfen')} text={t('Version {v}', { v: APP_VERSION })} onClick={() => ui.planned('update-check')} />
+          <Row icon={<Share2 size={18} />} title={t('Links aus dem Browser teilen')} text={t('Nur Android')} right={<Chip tone="accent">V0.9</Chip>} onClick={() => ui.planned('share-link-in')} />
+          {upd.enabled ? (
+            <>
+              {upd.available && (
+                <div className="setting setting--hl">
+                  <div>
+                    <strong>{t('Version {v} verfügbar', { v: upd.latest })}</strong>
+                    <p>{t('Lade die APK herunter und installiere sie über die alte. Deine Daten bleiben erhalten.')}</p>
+                  </div>
+                  <a className="btn btn--primary btn--small" href={upd.url} target="_blank" rel="noopener noreferrer">
+                    {t('Herunterladen')}
+                  </a>
+                </div>
+              )}
+              <Row
+                icon={<Bell size={18} />}
+                title={t('Auf Updates prüfen')}
+                text={`${t('Version {v}', { v: APP_VERSION })}${settings.updateAt ? ` · ${t('geprüft: {when}', { when: agoLabel(settings.updateAt, t) })}` : ''}`}
+                onClick={() => void upd.check(true)}
+              />
+              <div className="setting">
+                <div>
+                  <strong>{t('Beim Start prüfen')}</strong>
+                  <p>{t('Fragt einmal am Tag bei GitHub nach dem neuesten Release. Sonst nutzt die App kein Internet.')}</p>
+                </div>
+                <Switch checked={settings.updateCheck} onChange={(updateCheck) => setSettings({ updateCheck })} label={t('Beim Start prüfen')} />
+              </div>
+            </>
+          ) : (
+            <Row icon={<Bell size={18} />} title={t('Auf Updates prüfen')} text={t('Version {v}', { v: APP_VERSION })} onClick={() => ui.planned('update-check')} />
+          )}
           <Row icon={<Map size={18} />} title={t('Roadmap')} text={t('Was als Nächstes kommt')} onClick={() => open({ type: 'roadmap' })} />
         </div>
       </Section>

@@ -46,6 +46,8 @@ export interface Occasion {
   label: string
   month: number // 1-12
   day: number // 1-31
+  /** Eigener Vorlauf in Tagen. Fehlt das Feld, gilt der Standard, eine leere Liste schaltet die Erinnerung aus. */
+  remind?: number[]
 }
 
 export interface Person {
@@ -104,8 +106,20 @@ export interface UiSettings {
   fx: FxSetting
   lang: Lang
   hue: number
-  remind: boolean
-  remindDays: number
+  /** Erinnerungen vor Anlässen (nur Android-App). */
+  remindOn: boolean
+  /** Standard-Vorlauf in Tagen vor dem Anlass, 0 = am Tag selbst. */
+  remindDays: number[]
+  /** Uhrzeit der Erinnerungen, "HH:MM". */
+  remindTime: string
+  /** Beim Start nach einer neueren App-Version suchen (nur Android-App). */
+  updateCheck: boolean
+  /** Neueste gefundene Version und Download-Adresse, leer wenn keine bekannt ist. */
+  updateLatest: string
+  updateUrl: string
+  /** Version, auf die schon per Hinweis aufmerksam gemacht wurde. */
+  updateSeen: string
+  updateAt: number
   /** Helle Zusatzleiste im Budget: Summe der noch offenen Ideen. */
   showPlanned: boolean
   /** Automatische Sicherung in Dokumente (nur Android-App). */

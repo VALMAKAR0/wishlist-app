@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 01.11.2026 · Status: V0.6.4 (Teilen und Import von Wunschlisten als Datei) · Datenformat: v2
+Stand: 02.11.2026 · Status: V0.7.0 (Erinnerungen und Update-Hinweis auf Android) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -132,7 +132,7 @@ Eigener Tab mit Auswertungen über alles: Gesamtausgaben (für mich und für and
 
 ## 9. Updates
 
-- **Android:** Neue APK als GitHub-Release, Installation über die alte, Daten bleiben erhalten. Voraussetzung: gleicher Signaturschlüssel (Keystore) und höherer `versionCode`. Keystore sicher sichern, bei Verlust ist nur Neuinstallation möglich (Daten dann nur über Backup). Beim Start (mit Internet) fragt die App das neueste Release ab und zeigt "Update verfügbar" mit Download-Link.
+- **Android:** Neue APK als GitHub-Release, Installation über die alte, Daten bleiben erhalten. Voraussetzung: gleicher Signaturschlüssel (Keystore) und höherer `versionCode`. Keystore sicher sichern, bei Verlust ist nur Neuinstallation möglich (Daten dann nur über Backup). Beim Start (mit Internet) fragt die App das neueste Release ab und zeigt "Update verfügbar" mit Download-Link (umgesetzt in V0.7, siehe 25).
 - **iPhone:** Die PWA lädt die neue Version beim Start mit Internet und zeigt "Neue Version, neu laden". Daten bleiben erhalten.
 - Datenformat-Migration siehe Abschnitt 4.
 
@@ -199,8 +199,9 @@ Eigener Tab mit Auswertungen über alles: Gesamtausgaben (für mich und für and
 - **V0.4 (erledigt):** Papierkorb räumt sich nach 30 Tagen selbst auf (beim App-Start), Archiv und Rückgängig waren schon da. Dazu die Listen-Übersicht (siehe 22).
 - **V0.5 (erledigt, Android-Teil ungetestet auf Gerät):** Backup als ZIP von Hand, Wiederherstellen mit interner Kopie davor, Auto-Backup in Dokumente (Android), echter Speicherschutz-Status (siehe 23).
 - **V0.6 (erledigt, Share-Menü auf Android ungetestet auf Gerät):** Wunschlisten als Datei teilen, Import, Verknüpfung mit Personen, Übernehmen als Idee (siehe 24).
-- **V0.7:** Android-Funktionen (Erinnerungen, Link-Import, Update-Hinweis; das Auto-Backup wurde in V0.5 vorgezogen)
-- **V0.8:** PWA-Feinschliff für iPhone (.ics, Update-Hinweis)
+- **V0.7 (erledigt, ungetestet auf Gerät):** Erinnerungen vor Anlässen und Update-Hinweis auf Android (siehe 25). Das Auto-Backup wurde schon in V0.5 vorgezogen.
+- **V0.8:** PWA-Feinschliff für iPhone (.ics, Installationshinweis, Update-Hinweis "Neu laden")
+- **V0.9:** Link-Import (Name, Bild, Preis aus einer Adresse) als eigene Version, dazu "Links aus dem Browser teilen" auf Android
 - **V1.0:** Test auf echten Geräten, Release
 
 ## 17. Entwicklung
@@ -321,6 +322,33 @@ Technische Leitplanken für Animationen (nach Fehlersuche in V0.1):
 
 - **Kacheln öffnen die Liste:** Ein Tipp auf eine Kachel öffnet die einzelne Liste (`{type:'received', id, listId}`, eigene Ansicht mit Zurück). Der Knopf in der Kachel übernimmt die ganze Liste ("Übernehmen") bzw. nimmt sie wieder zurück ("Zurücknehmen"). Die frühere Filter-Auswahl ist weg.
 - **Wunsch-Karten sind antippbar:** Ein Tipp übernimmt den Wunsch als Idee, ein weiterer Tipp nimmt ihn zurück. Links und der Chip "Übernommen · Ideen für …" behalten ihre eigene Funktion.
-- **Jederzeit zurücknehmen:** Zurückgenommene Ideen gehen in den Papierkorb (30 Tage), mehrere auf einmal fragen vorher nach. Jede Übernahme und jedes Zurücknehmen bietet zusätzlich "Rückgängig" an. Beim Rückgängig einer Übernahme verschwinden auch dabei neu angelegte Listen.
+- **Jederzeit zurücknehmen:** Zurückgenommene Ideen gehen in den Papierkorb (30 Tage), ohne Rückfrage (seit V0.6.5, weil es sofort rückgängig geht). Jede Übernahme und jedes Zurücknehmen bietet zusätzlich "Rückgängig" an. Beim Rückgängig einer Übernahme verschwinden auch dabei neu angelegte Listen.
 - **Zielliste (`targetList` in `src/lib/received.ts`):** Beim Übernehmen ganzer Listen oder aller Wünsche sucht die App bei der Person eine Liste mit gleichem Namen oder eine Liste, die mit dem gleichnamigen Anlass verknüpft ist. Gefunden: Die Ideen landen dort. Nicht gefunden: Meldung "Keine passende Liste" mit "Liste anlegen und übernehmen" (neue Liste mit Name, Symbol, Datum; gibt es einen gleichnamigen Anlass, wird sie damit verknüpft und folgt ihm), "Trotzdem in „Allgemein“ übernehmen" oder Abbrechen. Einzelne Wünsche per Tipp fragen nicht nach: Sie gehen in die passende Liste, sonst in die Standardliste.
 - **Hinweis:** Beim Zurücknehmen einer Übernahme bleibt eine dabei angelegte Liste bestehen (nur das sofortige "Rückgängig" entfernt sie wieder). Ob eine Idee "übernommen" ist, wird weiter über Link oder Namen abgeglichen, nicht gespeichert.
+- **Preise (V0.6.5):** `eur()` zeigt immer zwei Nachkommastellen (35,00 €), auch bei Summen, Budgets und in der Statistik. Es wird nirgends mehr auf ganze Euro gerundet.
+
+## 25. Erinnerungen und Update-Hinweis (V0.7)
+
+### Erinnerungen (nur Android-App)
+
+- **Plugin:** `@capacitor/local-notifications`. Benötigt `POST_NOTIFICATIONS` (ab Android 13 Abfrage beim Einschalten), das Plugin bringt außerdem Boot-Empfänger mit, damit geplante Erinnerungen einen Neustart überstehen. Symbol: `ic_stat_wunsch` (weißer Funke), Farbe in `capacitor.config.ts`.
+- **Einstellungen (Mehr → Erinnerungen):** Schalter, Standard-Vorlauf als Mehrfachauswahl (am Tag selbst, 1, 2, 3, 7, 14, 21, 30 Tage davor; Voreinstellung 14, 3, 0), Uhrzeit (08:00 bis 20:00, Voreinstellung 09:00), Anzahl geplanter Erinnerungen und ein Test-Knopf (Benachrichtigung nach 10 Sekunden).
+- **Pro Anlass (Anlass bearbeiten → Erinnerung):** Standard, Eigene (eigene Tage) oder Aus. Gespeichert in `Occasion.remind` (`undefined` = Standard, `[]` = aus). Pro Person gibt es keinen eigenen Vorlauf, nur pro Anlass.
+- **Planung (`src/lib/reminders.ts`):** Je Anlass die nächsten zwei Termine. Bei jeder Änderung an Personen, Ideen oder Einstellungen (1,5 s Verzögerung) löscht die App alle geplanten Erinnerungen und plant sie neu (`Reminders.tsx`). Das hält sie ohne Hintergrunddienst aktuell, setzt aber voraus, dass die App ab und zu geöffnet wird (zwei Termine im Voraus reichen mindestens ein Jahr). Vergangene Zeitpunkte werden übersprungen. Die ID ist ein Hash aus Anlass, Datum und Vorlauf, also stabil. Der 29. Februar fällt in Nicht-Schaltjahren auf den 1. März.
+- **Datenschutz:** Der Text nennt nur Anlass, Person und die Zahl offener Ideen ("Offen: 3 Ideen"), nie einen Namen von Wünschen oder Ideen.
+- **Genauigkeit:** Geplant mit `allowWhileIdle`, ohne die Erlaubnis für exakte Alarme. Android darf die Zustellung daher um einige Minuten verschieben. Das ist für Anlass-Erinnerungen gewollt (kein Zusatzrecht nötig).
+- **iPhone:** keine zeitgesteuerten Benachrichtigungen, dort kommt die Kalenderdatei (.ics) mit V0.8.
+
+### Update-Hinweis (nur Android-App)
+
+- **Quelle:** GitHub-Release mit dem Tag `apk-neueste` (`src/lib/update.ts`, Abfrage der öffentlichen API). Die Release-Notiz "Version X, Build N" liefert die Versionsnummer, die APK-Adresse muss mit `https://github.com/` beginnen.
+- **Repo-Name:** Der Workflow setzt beim Web-Bau `VITE_REPO=${{ github.repository }}`. Ohne diesen Wert (Browser-Vorschau, lokaler Bau) bleibt der alte Platzhalter "Auf Updates prüfen" mit Hinweis-Popup.
+- **Ablauf:** 4 Sekunden nach dem Start, höchstens alle 12 Stunden, wenn "Beim Start prüfen" an ist (Mehr → App). Ist die Version neuer, erscheint einmal eine Meldung, dauerhaft ein Punkt am Reiter "Mehr" und eine hervorgehobene Zeile mit "Herunterladen". Das Herunterladen öffnet die APK-Adresse im Browser, installiert wird per Hand über die alte App (gleicher Schlüssel, Daten bleiben).
+- **Grenzen:** Ist das Repo privat, antwortet GitHub ohne Anmeldung mit 404, die Prüfung scheitert dann leise (von Hand: Meldung "Bist du online?"). Verglichen wird nur die Versionsnummer, nicht die Build-Nummer. Ein Update innerhalb derselben Version wird nicht erkannt.
+- **Datenschutz:** Die App fragt nur bei GitHub nach dem Release, ohne Konto und ohne Nutzerdaten, und nur wenn der Schalter an ist.
+
+### Am Gerät zu prüfen
+
+- Berechtigungsabfrage beim Einschalten (Android 13+), Test-Knopf, Zustellung bei gesperrtem Bildschirm
+- Erinnerung kommt zur eingestellten Uhrzeit, auch nach App-Neustart und Handy-Neustart
+- Update-Hinweis nach dem Hochladen einer höheren Version (Punkt, Meldung, Download)

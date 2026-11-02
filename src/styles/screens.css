@@ -1705,3 +1705,27 @@ button.row-item:active {
   display: grid;
   gap: 8px;
 }
+
+/* ---------- Erinnerungen und Update ---------- */
+
+.field--pad {
+  padding: 4px 12px 10px;
+}
+
+.hint--row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 12px 10px;
+}
+
+.setting--hl {
+  margin: 4px 8px;
+  border-radius: 14px;
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+
+.setting--hl p {
+  color: var(--text-2);
+}

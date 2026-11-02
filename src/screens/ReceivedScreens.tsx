@@ -265,16 +265,7 @@ export function ReceivedDetailScreen({ id, listId }: { id: string; listId?: stri
       onAction: () => found.forEach((f) => dispatch({ type: 'restoreItem', id: f.id })),
     })
   }
-  const untakeAsk = (list: ReceivedCollection[]) => {
-    const its = takenIn(list)
-    if (its.length <= 1) return untake(its)
-    ui.confirm({
-      title: t('{n} Ideen zurücknehmen?', { n: its.length }),
-      text: t('Die Ideen wandern in den Papierkorb und lassen sich dort 30 Tage lang zurückholen.'),
-      confirmLabel: t('Zurücknehmen'),
-      onConfirm: () => untake(its),
-    })
-  }
+  const untakeAsk = (list: ReceivedCollection[]) => untake(takenIn(list))
 
   const toggleRow = (it: ReceivedItem, col: ReceivedCollection) => (takenOf(it) ? untake([it]) : begin([{ col, items: [it] }], false))
 
@@ -406,7 +397,7 @@ export function ReceivedDetailScreen({ id, listId }: { id: string; listId?: stri
 
       <div className="minirow minirow--split">
         <span>
-          {t.n(rows.length, 'Wunsch', 'Wünsche')} · <b><CountUp value={total} format={(n) => eur(Math.round(n))} /></b> {t('zusammen')}
+          {t.n(rows.length, 'Wunsch', 'Wünsche')} · <b><CountUp value={total} format={eur} /></b> {t('zusammen')}
         </span>
         <button
           className="chip chip--button"

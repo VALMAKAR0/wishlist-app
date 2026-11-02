@@ -43,7 +43,7 @@ interface UI {
 const Ctx = createContext<UI | null>(null)
 
 const STORAGE_KEY = 'wl.ui'
-const defaults = (): UiSettings => ({ theme: 'system', fx: 'full', lang: detectLang(), hue: 14, remind: true, remindDays: 7, showPlanned: false, autoBackup: true, shareName: '', shareId: '' })
+const defaults = (): UiSettings => ({ theme: 'system', fx: 'full', lang: detectLang(), hue: 14, remindOn: false, remindDays: [14, 3, 0], remindTime: '09:00', updateCheck: true, updateLatest: '', updateUrl: '', updateSeen: '', updateAt: 0, showPlanned: false, autoBackup: true, shareName: '', shareId: '' })
 
 function loadSettings(): UiSettings {
   let s: UiSettings
@@ -52,6 +52,8 @@ function loadSettings(): UiSettings {
   } catch {
     s = defaults()
   }
+  if (!Array.isArray(s.remindDays) || s.remindDays.some((n) => !Number.isInteger(n))) s.remindDays = defaults().remindDays
+  if (!/^\d{2}:\d{2}$/.test(s.remindTime)) s.remindTime = defaults().remindTime
   if (!s.shareId) {
     s.shareId = uid()
     try {

@@ -69,7 +69,7 @@ export function ListStatsCard({ title, emoji, stats, onEdit }: StatsCardProps) {
         )}
       </div>
       <div className="lstats__total">
-        <CountUp value={stats.total} format={(n) => eur(Math.round(n))} />
+        <CountUp value={stats.total} format={eur} />
         <span>{t('Gesamtwert')}</span>
       </div>
       <div className="lstats__bar" aria-hidden>
@@ -90,7 +90,7 @@ export function ListStatsCard({ title, emoji, stats, onEdit }: StatsCardProps) {
         </div>
         <div>
           <dt>{t('Ø Preis')}</dt>
-          <dd>{stats.avg ? eur(Math.round(stats.avg)) : '–'}</dd>
+          <dd>{stats.avg ? eur(stats.avg) : '–'}</dd>
         </div>
       </dl>
     </section>

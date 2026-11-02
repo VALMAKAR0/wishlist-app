@@ -6,6 +6,7 @@ import { cap } from '../lib/i18n'
 import { useNav, type Tab } from '../state/nav'
 import { useT, useUI } from '../state/ui'
 import { useStore } from '../state/store'
+import { useUpdate } from '../state/update'
 import { Logo } from './Primitives'
 
 export function Aurora() {
@@ -32,6 +33,7 @@ export function TabBar() {
   const { tab, setTab } = useNav()
   const { haptic } = useUI()
   const { received } = useStore()
+  const { available: updateReady } = useUpdate()
   const index = Math.max(0, TABS.findIndex((x) => x.id === tab))
   const style = { '--n': TABS.length, '--i': index } as CSSProperties
 
@@ -59,6 +61,7 @@ export function TabBar() {
               <span className="tab__icon">
                 <Icon size={21} strokeWidth={active ? 2.3 : 1.8} />
                 {id === 'received' && received.length > 0 && !active && <i className="tab__dot" />}
+                {id === 'more' && updateReady && !active && <i className="tab__dot" />}
               </span>
               <span className="tab__label">{cap(t(label))}</span>
             </button>

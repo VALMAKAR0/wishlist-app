@@ -8,7 +8,7 @@ import { overview } from '../lib/stats'
 import { useStore } from '../state/store'
 import { useT } from '../state/ui'
 
-const money = (n: number) => eur(Math.round(n))
+const money = (n: number) => eur(n)
 const ease = [0.22, 1, 0.36, 1] as const
 
 function Tile({ label, value, sub, delay = 0 }: { label: string; value: string; sub?: string; delay?: number }) {

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
 import { Trash2 } from 'lucide-react'
+import { isNative } from '../lib/backupFiles'
 import { parseMonthDay, toInputDate, uid } from '../lib/format'
 import { listTitle } from '../lib/lists'
 import { OCCASION_PRESETS, occasionEmoji, presetOf } from '../lib/occasions'
@@ -8,6 +9,8 @@ import type { Occasion, Person } from '../lib/types'
 import { useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
 import { DateField } from './DateField'
+import { LeadChips } from './ReminderSettings'
+import { Segmented } from './Primitives'
 import { Sheet } from './Sheet'
 
 interface Props {
@@ -29,6 +32,8 @@ export function OccasionSheet({ person, occasion, onClose }: Props) {
   const [name, setName] = useState(occasion ? (presetOf(occasion.label) ? t(occasion.label) : occasion.label) : '')
   const [date, setDate] = useState(occasion ? toInputDate(occasion) : '')
   const [shake, setShake] = useState(0)
+  const [mode, setMode] = useState<'default' | 'custom' | 'off'>(() => (occasion?.remind === undefined ? 'default' : occasion.remind.length === 0 ? 'off' : 'custom'))
+  const [days, setDays] = useState<number[]>(() => (occasion?.remind?.length ? occasion.remind : ui.settings.remindDays))
   const preset = presetOf(name) ?? OCCASION_PRESETS.find((p) => t(p.label) === name.trim())
 
   const use = (label: string) => {
@@ -47,7 +52,8 @@ export function OccasionSheet({ person, occasion, onClose }: Props) {
       return
     }
     const label = OCCASION_PRESETS.find((p) => t(p.label) === typed)?.label ?? typed
-    const next: Occasion = { id, label, ...md }
+    const remind = mode === 'default' ? undefined : mode === 'off' ? [] : days.length ? days : undefined
+    const next: Occasion = { id, label, ...md, ...(remind ? { remind } : {}) }
     const occasions = occasion ? person.occasions.map((o) => (o.id === occasion.id ? next : o)) : [...person.occasions, next]
     dispatch({ type: 'updatePerson', id: person.id, patch: { occasions } })
     for (const l of lists) {
@@ -131,6 +137,31 @@ export function OccasionSheet({ person, occasion, onClose }: Props) {
         </div>
         <small className="hint">{t('Das Datum der Liste folgt dann diesem Anlass.')}</small>
       </div>
+      {isNative() && (
+        <div className="field">
+          <span>{t('Erinnerung')}</span>
+          <Segmented
+            id="occ-remind"
+            value={mode}
+            onChange={setMode}
+            options={[
+              { value: 'default', label: t('Standard') },
+              { value: 'custom', label: t('Eigene') },
+              { value: 'off', label: t('Aus') },
+            ]}
+          />
+          {mode === 'custom' && <LeadChips value={days} onChange={setDays} />}
+          <small className="hint">
+            {mode === 'default'
+              ? ui.settings.remindOn
+                ? t('Es gilt der Standard-Vorlauf aus „Mehr“.')
+                : t('Erinnerungen sind in „Mehr“ noch aus.')
+              : mode === 'off'
+                ? t('Für diesen Anlass kommt keine Erinnerung.')
+                : t('Nur für diesen Anlass.')}
+          </small>
+        </div>
+      )}
     </Sheet>
   )
 }

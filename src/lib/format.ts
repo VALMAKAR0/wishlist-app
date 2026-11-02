@@ -10,7 +10,7 @@ export const setLocale = (l: string) => {
 }
 
 export const eur = (n: number) =>
-  new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR', maximumFractionDigits: n % 1 ? 2 : 0 }).format(n)
+  new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
 
 export const daysBetween = (a: number, b: number) => Math.round((b - a) / DAY)
 

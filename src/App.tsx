@@ -3,6 +3,8 @@ import { Capacitor } from '@capacitor/core'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { AutoBackup } from './components/AutoBackup'
 import { IncomingFile } from './components/IncomingFile'
+import { Reminders } from './components/Reminders'
+import { UpdateCheck } from './components/UpdateCheck'
 import { Aurora, Splash, TabBar } from './components/Chrome'
 import { Stage } from './components/Stage'
 import { MoreScreen, RoadmapScreen, TrashScreen } from './screens/MoreScreens'
@@ -109,6 +111,8 @@ function Shell() {
       <TabBar />
       <AutoBackup />
       <IncomingFile />
+      <Reminders />
+      <UpdateCheck />
       {splash && <Splash onDone={() => setSplash(false)} />}
     </div>
   )

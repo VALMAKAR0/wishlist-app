@@ -36,6 +36,8 @@ jobs:
           gradle-version: 8.14.3
 
       - name: Web-App bauen
+        env:
+          VITE_REPO: ${{ github.repository }}
         run: |
           npm ci
           npm run build

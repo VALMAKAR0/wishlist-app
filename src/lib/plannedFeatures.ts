@@ -14,14 +14,14 @@ export const planned = {
   'link-import': {
     title: 'Link-Import',
     text: 'Aus einem Produktlink werden Name, Bild und wenn möglich der Preis automatisch gelesen. Alle Felder bleiben von Hand korrigierbar.',
-    version: 'V0.7',
+    version: 'V0.9',
     platform: 'android',
     emoji: '🪄',
   },
   'share-link-in': {
     title: 'Link aus anderer App teilen',
     text: 'Einen Produktlink direkt aus dem Browser oder Shop über das Teilen-Menü in die App schicken.',
-    version: 'V0.7',
+    version: 'V0.9',
     platform: 'android',
     emoji: '📲',
   },
@@ -63,7 +63,8 @@ export const roadmap: RoadmapStep[] = [
   { version: 'V0.4', title: 'Papierkorb, Archiv, Listen', text: 'Aufräumen nach 30 Tagen und Listen-Übersicht mit Kennzahlen.' },
   { version: 'V0.5', title: 'Backup', text: 'Sichern und Wiederherstellen als ZIP, Auto-Backup auf Android, Speicherschutz-Anzeige.' },
   { version: 'V0.6', title: 'Teilen', text: 'Liste als Datei teilen, Import fremder Listen, inklusive unauffälligem „Schon vorhanden“.' },
-  { version: 'V0.7', title: 'Android-Funktionen', text: 'Erinnerungen, Link-Import, Update-Hinweis.' },
+  { version: 'V0.7', title: 'Android-Funktionen', text: 'Erinnerungen vor Anlässen, Update-Hinweis.' },
   { version: 'V0.8', title: 'PWA-Feinschliff', text: 'iPhone-Installation, Kalenderdatei, Update-Hinweis.' },
+  { version: 'V0.9', title: 'Link-Import', text: 'Name, Bild und Preis aus einem Produktlink lesen, Links aus dem Browser teilen.' },
   { version: 'V1.0', title: 'Release', text: 'Test auf echten Geräten.' },
 ]

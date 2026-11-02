@@ -5,6 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Wunschliste',
   webDir: 'dist',
   plugins: {
+    LocalNotifications: { smallIcon: 'ic_stat_wunsch', iconColor: '#E8546A' },
     SystemBars: { insetsHandling: 'native', initialViewportFitValueHint: 'cover' },
   },
 }

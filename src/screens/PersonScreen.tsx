@@ -66,7 +66,7 @@ export function PersonScreen({ id }: { id: string }) {
           <div className="hero__text hero__text--grow">
             <span className="hero__label">{t('Budget')}</span>
             <strong className="hero__value hero__value--nowrap">
-              <CountUp value={spent} format={(n) => eur(Math.round(n))} />
+              <CountUp value={spent} format={eur} />
               <small> {t('von {total}', { total: eur(person.budget) })}</small>
             </strong>
             <BudgetBar spent={spent} planned={planned} budget={person.budget} hideText />
