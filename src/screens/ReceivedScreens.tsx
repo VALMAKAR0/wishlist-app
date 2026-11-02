@@ -33,7 +33,6 @@ export function ReceivedScreen() {
       <input
         ref={fileRef}
         type="file"
-        accept=".zip,application/zip,application/x-zip-compressed"
         hidden
         data-testid="import-input"
         onChange={(e) => {

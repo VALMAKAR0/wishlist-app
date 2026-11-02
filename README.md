@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 01.11.2026 · Status: V0.6.0 (Teilen und Import von Wunschlisten als Datei) · Datenformat: v2
+Stand: 01.11.2026 · Status: V0.6.1 (Teilen und Import von Wunschlisten als Datei) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -299,7 +299,7 @@ Technische Leitplanken für Animationen (nach Fehlersuche in V0.1):
 
 ## 24. Teilen und Import (V0.6)
 
-- **Format:** ZIP wie beim Backup (`src/lib/share.ts`, Container `packZip`/`unpackZip` aus `backup.ts`): `daten.json` mit Kennung `wunschliste-teilen` (Format 1), `bilder/<id>.jpg` und `pruefsummen.json`. Das Backup trägt die Kennung `wunschliste-backup`. Beide Dateien werden nicht verwechselt: Eine Sicherung im Import ergibt den Hinweis auf "Mehr" → Wiederherstellen und umgekehrt. Dateiname `wunschliste-von-<name>-JJJJ-MM-TT.zip`.
+- **Format:** ZIP wie beim Backup (`src/lib/share.ts`, Container `packZip`/`unpackZip` aus `backup.ts`): `daten.json` mit Kennung `wunschliste-teilen` (Format 1), `bilder/<id>.jpg` und `pruefsummen.json`. Das Backup trägt die Kennung `wunschliste-backup`. Beide Dateien werden nicht verwechselt: Eine Sicherung im Import ergibt den Hinweis auf "Mehr" → Wiederherstellen und umgekehrt. Dateiname `wunschliste-von-<name>-JJJJ-MM-TT.wunsch` (V0.6.1). **Eigene Endung, weil WhatsApp und Android eine `.zip` als Archiv behandeln:** Man kann sie dann nur entpacken, aber nicht als Datei speichern. Der Inhalt ist weiterhin eine ZIP, nur die Endung ist anders. Der Import-Dialog filtert nicht nach Endung (Android-Dateiauswahl zeigt sonst unbekannte Endungen nicht zuverlässig), geprüft wird der Inhalt. Alte `.zip`-Dateien aus V0.6.0 lassen sich weiter importieren. Backups bleiben `.zip`.
 - **Teilen-Fenster** (`ShareSheet`, erreichbar über das Teilen-Symbol auf "Wünsche" und in jeder Liste): Name des Absenders (Pflicht, wird gemerkt, so steht er beim Empfänger), Listenauswahl, Vorschau mit Zahlen (sichtbar, unauffällig, Notizen), ungefähre Dateigröße. Darunter einklappbar "Erweiterte Einstellungen".
 - **Standard:** Preise an, Bilder an, Datum der Liste an, Notizen aus, Gekauftes unauffällig. In den erweiterten Einstellungen schaltbar: Preise, Bilder, Notizen, Datum, und "Gekaufte Artikel" (Unauffällig / Nur gekauft / Ohne).
 - **Was nie mitgeht:** Geschenkideen für andere und der Papierkorb. Die Art (`kind`) geht mit, wird beim Empfänger aber nicht angezeigt. Der Absender bekommt eine zufällige `shareId` (in den UI-Einstellungen). Nach einer Neuinstallation ist sie neu, dann legt ein erneuter Import ein zweites Paket an statt das alte zu ersetzen.

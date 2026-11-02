@@ -63,8 +63,8 @@ async function shareNative(bytes: Uint8Array, name: string, text?: string): Prom
 
 const touch = () => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches
 
-async function shareOrDownload(bytes: Uint8Array, name: string, text?: string): Promise<Delivered> {
-  const file = new File([bytes as BlobPart], name, { type: 'application/zip' })
+async function shareOrDownload(bytes: Uint8Array, name: string, text?: string, type = 'application/zip'): Promise<Delivered> {
+  const file = new File([bytes as BlobPart], name, { type })
   if (touch() && navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({ files: [file], title: name, text })
@@ -99,5 +99,5 @@ export async function deliverBackup(bytes: Uint8Array, name: string): Promise<De
 
 /** Öffnet zum Teilen einer Liste das Teilen-Menü (Android, Handy) oder lädt die Datei herunter (Rechner). */
 export async function shareFile(bytes: Uint8Array, name: string, text?: string): Promise<Delivered> {
-  return isNative() ? shareNative(bytes, name, text) : shareOrDownload(bytes, name, text)
+  return isNative() ? shareNative(bytes, name, text) : shareOrDownload(bytes, name, text, 'application/octet-stream')
 }

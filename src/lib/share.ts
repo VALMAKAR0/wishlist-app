@@ -5,6 +5,8 @@ import type { Item, ReceivedCollection, ReceivedItem, ReceivedList, ShareBought,
 
 export const SHARE_FORMAT = 1
 export const SHARE_MARKER = 'wunschliste-teilen'
+/** Eigene Endung, damit WhatsApp und Android die Datei nicht als ZIP-Archiv zum Entpacken öffnen. Der Inhalt bleibt eine ZIP. */
+export const SHARE_EXT = 'wunsch'
 const MAX_LISTS = 100
 const MAX_ITEMS = 5000
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024
@@ -40,7 +42,7 @@ const pad = (n: number) => String(n).padStart(2, '0')
 
 export function shareFileName(name: string, at = new Date()): string {
   const slug = name.normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'liste'
-  return `wunschliste-von-${slug}-${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}.zip`
+  return `wunschliste-von-${slug}-${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}.${SHARE_EXT}`
 }
 
 interface Source {
