@@ -6,7 +6,7 @@ export const TAB_ORDER: Tab[] = ['wishes', 'ideas', 'received', 'stats', 'more']
 
 export type View =
   | { type: 'person'; id: string }
-  | { type: 'received'; id: string }
+  | { type: 'received'; id: string; listId?: string }
   | { type: 'list'; id: string }
   | { type: 'trash' }
   | { type: 'roadmap' }

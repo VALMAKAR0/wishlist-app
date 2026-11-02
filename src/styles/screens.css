@@ -1673,3 +1673,35 @@ button.row-item:active {
 .received-link {
   margin-bottom: 8px;
 }
+
+.item[data-tap='true'] {
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.item[data-tap='true']:hover {
+  background: var(--card-hover);
+}
+
+.item[data-tap='true']:active {
+  transform: scale(0.99);
+}
+
+.item[data-tap='true']:focus-visible,
+.ltile:focus-visible {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 2px;
+}
+
+.ltile .ltile__foot {
+  align-items: center;
+}
+
+.ltile .chip--button[disabled] {
+  opacity: 0.5;
+}
+
+.stack-btns {
+  display: grid;
+  gap: 8px;
+}

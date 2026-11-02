@@ -24,10 +24,10 @@ function Screens() {
   let screen
   let key: string
   if (view) {
-    key = `view:${view.type}:${'id' in view ? view.id : ''}`
+    key = `view:${view.type}:${'id' in view ? view.id : ''}${view.type === 'received' && view.listId ? ':' + view.listId : ''}`
     screen =
       view.type === 'person' ? <PersonScreen id={view.id} /> :
-      view.type === 'received' ? <ReceivedDetailScreen id={view.id} /> :
+      view.type === 'received' ? <ReceivedDetailScreen id={view.id} listId={view.listId} /> :
       view.type === 'list' ? <ListScreen id={view.id} /> :
       view.type === 'trash' ? <TrashScreen /> :
       <RoadmapScreen />

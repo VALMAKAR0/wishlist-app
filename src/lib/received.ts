@@ -1,5 +1,7 @@
 import { normalize } from './format'
-import type { Item, ReceivedItem, ReceivedList } from './types'
+import type { TFn } from './i18n'
+import { listTitle } from './lists'
+import type { Item, Occasion, Person, ReceivedItem, ReceivedList, Wishlist } from './types'
 
 const linkKey = (s?: string) => (s ?? '').trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/+$/, '')
 
@@ -15,4 +17,15 @@ export function receivedCounts(r: ReceivedList) {
   let owned = 0
   for (const l of r.lists) for (const i of l.items) i.owned ? owned++ : wishes++
   return { wishes, owned }
+}
+
+/** Passende Liste bei der Person: gleicher Name oder eine Liste, die mit dem gleichnamigen Anlass verknüpft ist. */
+export function targetList(col: { name: string }, person: Person, lists: Wishlist[], t: TFn): { list?: Wishlist; occasion?: Occasion } {
+  const names = new Set([normalize(col.name), normalize(t(col.name))])
+  const mine = lists.filter((l) => l.owner === person.id)
+  const byName = mine.find((l) => names.has(normalize(listTitle(l, t))))
+  if (byName) return { list: byName }
+  const occasion = person.occasions.find((o) => names.has(normalize(o.label)) || names.has(normalize(t(o.label))))
+  if (!occasion) return {}
+  return { list: mine.find((l) => l.occasionId === occasion.id), occasion }
 }

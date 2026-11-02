@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 01.11.2026 · Status: V0.6.3 (Teilen und Import von Wunschlisten als Datei) · Datenformat: v2
+Stand: 01.11.2026 · Status: V0.6.4 (Teilen und Import von Wunschlisten als Datei) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -316,3 +316,11 @@ Technische Leitplanken für Animationen (nach Fehlersuche in V0.1):
 - **Übernehmen ohne Verknüpfung:** Es kommt die Personenauswahl, die Liste wird dabei mit dieser Person verknüpft ("Übernehmen und verknüpfen"). Ideen landen in der Standardliste der Person.
 - **Auf der Personenseite:** Abschnitt "Erhaltene Listen" mit einer Karte pro verknüpftem Paket, die zur erhaltenen Liste führt.
 - **Öffnen mit (Android):** `AndroidManifest.xml` hat einen Intent-Filter für `VIEW` mit `content:`/`file:` und den Typen `application/json`, `application/octet-stream`, `application/x-wunschliste`. `IncomingFile` (`src/components/IncomingFile.tsx`) hört auf `appUrlOpen` und auf die Start-URL, liest die Datei über `Capacitor.convertFileSrc` (Rückfall `Filesystem.readFile`) und startet den normalen Import mit Rückfrage. Nur "Öffnen mit" funktioniert, nicht "Teilen an" (das Plugin liefert die Datei dabei nicht). Nachteil: Wegen des Typs `application/json` taucht die App auch bei echten JSON-Dateien in der Auswahl auf. Ungetestet auf Gerät.
+
+### Erhaltene Listen: öffnen, übernehmen, zurücknehmen (V0.6.4)
+
+- **Kacheln öffnen die Liste:** Ein Tipp auf eine Kachel öffnet die einzelne Liste (`{type:'received', id, listId}`, eigene Ansicht mit Zurück). Der Knopf in der Kachel übernimmt die ganze Liste ("Übernehmen") bzw. nimmt sie wieder zurück ("Zurücknehmen"). Die frühere Filter-Auswahl ist weg.
+- **Wunsch-Karten sind antippbar:** Ein Tipp übernimmt den Wunsch als Idee, ein weiterer Tipp nimmt ihn zurück. Links und der Chip "Übernommen · Ideen für …" behalten ihre eigene Funktion.
+- **Jederzeit zurücknehmen:** Zurückgenommene Ideen gehen in den Papierkorb (30 Tage), mehrere auf einmal fragen vorher nach. Jede Übernahme und jedes Zurücknehmen bietet zusätzlich "Rückgängig" an. Beim Rückgängig einer Übernahme verschwinden auch dabei neu angelegte Listen.
+- **Zielliste (`targetList` in `src/lib/received.ts`):** Beim Übernehmen ganzer Listen oder aller Wünsche sucht die App bei der Person eine Liste mit gleichem Namen oder eine Liste, die mit dem gleichnamigen Anlass verknüpft ist. Gefunden: Die Ideen landen dort. Nicht gefunden: Meldung "Keine passende Liste" mit "Liste anlegen und übernehmen" (neue Liste mit Name, Symbol, Datum; gibt es einen gleichnamigen Anlass, wird sie damit verknüpft und folgt ihm), "Trotzdem in „Allgemein“ übernehmen" oder Abbrechen. Einzelne Wünsche per Tipp fragen nicht nach: Sie gehen in die passende Liste, sonst in die Standardliste.
+- **Hinweis:** Beim Zurücknehmen einer Übernahme bleibt eine dabei angelegte Liste bestehen (nur das sofortige "Rückgängig" entfernt sie wieder). Ob eine Idee "übernommen" ist, wird weiter über Link oder Namen abgeglichen, nicht gespeichert.
