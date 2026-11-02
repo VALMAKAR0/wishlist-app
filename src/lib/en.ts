@@ -335,6 +335,8 @@ export const en: Record<string, string> = {
   'Verknüpfen mit': 'Link to',
   'Wird mit den Ideen für {name} verknüpft.': 'Will be linked to the ideas for {name}.',
   'Wunschliste geteilt': 'Wish list shared',
+  'Gespeichert unter Dokumente/Wunschliste. Hänge sie in WhatsApp als Dokument an.': 'Saved in Documents/Wunschliste. Attach it in WhatsApp as a document.',
+  'Als Datei speichern': 'Save as file',
   'Zum Beispiel der Geburtstag, mit Tagen bis dahin.': 'For example the birthday, with days to go.',
   '{a}, {b}.': '{a}, {b}.',
   '{name} schickt dir die Wunschliste. Öffne die Datei in der App „Wunschliste“ unter „Erhalten“ → „Import“.': '{name} sent you their wish list. Open the file in the “Wunschliste” app under “Received” → “Import”.',

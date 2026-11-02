@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Check, ChevronDown, EyeOff, Lock, Send } from 'lucide-react'
+import { Check, ChevronDown, EyeOff, FolderDown, Lock, Send } from 'lucide-react'
 import { APP_VERSION } from '../lib/brand'
-import { shareFile } from '../lib/backupFiles'
+import { isNative, saveFile, shareFile } from '../lib/backupFiles'
 import { listTitle } from '../lib/lists'
 import { buildShare, DEFAULT_SHARE, estimateBytes, type ShareOptions } from '../lib/share'
 import type { ShareBought } from '../lib/types'
@@ -76,7 +76,7 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
     }
   }, [optsKey, items, lists])
 
-  const send = async () => {
+  const send = async (save = false) => {
     if (!name.trim()) {
       setShake((n) => n + 1)
       ui.haptic(30)
@@ -87,10 +87,10 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
       setSettings({ shareName: name.trim() })
       const out = await buildShare({ items, lists }, opts, t, APP_VERSION)
       const text = t('{name} schickt dir die Wunschliste. Öffne die Datei in der App „Wunschliste“ unter „Erhalten“ → „Import“.', { name: name.trim() })
-      const r = await shareFile(out.bytes, out.name, text)
+      const r = save ? await saveFile(out.bytes, out.name) : await shareFile(out.bytes, out.name, text)
       if (r.where === 'cancelled') return
       ui.haptic(18)
-      ui.toast({ emoji: '📤', message: r.where === 'download' ? t('Datei heruntergeladen. Schick sie z. B. per WhatsApp.') : t('Wunschliste geteilt') })
+      ui.toast({ emoji: '📤', message: r.where === 'download' ? t('Datei heruntergeladen. Schick sie z. B. per WhatsApp.') : r.where === 'documents' ? t('Gespeichert unter Dokumente/Wunschliste. Hänge sie in WhatsApp als Dokument an.') : t('Wunschliste geteilt') })
       onClose()
     } catch {
       ui.toast({ message: t('Teilen hat nicht geklappt.'), emoji: '⚠️' })
@@ -108,9 +108,16 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
       subtitle={t('Du schickst einen Schnappschuss der gewählten Listen')}
       onClose={onClose}
       footer={
-        <button className="btn btn--primary btn--block" disabled={nothing || busy} onClick={() => void send()}>
-          <Send size={17} /> {t('Datei teilen')}
-        </button>
+        <>
+          <button className="btn btn--primary btn--block" disabled={nothing || busy} onClick={() => void send()}>
+            <Send size={17} /> {t('Datei teilen')}
+          </button>
+          {isNative() && (
+            <button className="btn btn--ghost btn--block" style={{ marginTop: 8 }} disabled={nothing || busy} onClick={() => void send(true)}>
+              <FolderDown size={17} /> {t('Als Datei speichern')}
+            </button>
+          )}
+        </>
       }
     >
       <motion.label key={`n${shake}`} className="field" animate={shake ? { x: [0, -9, 9, -6, 6, 0] } : undefined} transition={{ duration: 0.4 }}>

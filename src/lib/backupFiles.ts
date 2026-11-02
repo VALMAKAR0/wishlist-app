@@ -99,5 +99,13 @@ export async function deliverBackup(bytes: Uint8Array, name: string): Promise<De
 
 /** Öffnet zum Teilen einer Liste das Teilen-Menü (Android, Handy) oder lädt die Datei herunter (Rechner). */
 export async function shareFile(bytes: Uint8Array, name: string, text?: string): Promise<Delivered> {
-  return isNative() ? shareNative(bytes, name, text) : shareOrDownload(bytes, name, text, 'application/octet-stream')
+  // Das Teilen-Plugin leitet den Dateityp aus der Endung ab. Bei unbekannter Endung wird "*/*" gesendet, und WhatsApp reicht dann nur den Text weiter.
+  return isNative() ? shareNative(bytes, `${name}.json`, text) : shareOrDownload(bytes, name, text, 'application/octet-stream')
+}
+
+/** Legt die Datei zum Selbstversenden ab: Android-App in Dokumente/Wunschliste, sonst Download. */
+export async function saveFile(bytes: Uint8Array, name: string): Promise<Delivered> {
+  if (!isNative()) return shareOrDownload(bytes, name, undefined, 'application/octet-stream')
+  await writeToDocuments(bytes, name)
+  return { where: 'documents' }
 }
