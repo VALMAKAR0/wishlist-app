@@ -33,7 +33,7 @@ export function useUpdate() {
         else if (manual) ui.toast({ message: t('Du hast die neueste Version.'), emoji: '✅' })
         return newer
       } catch (e) {
-        if (manual) ui.toast({ message: t(failText(e)), emoji: '📡' })
+        if (manual) ui.toast({ message: t(failText(e)) + (e instanceof UpdateError && e.detail ? ` (${e.detail})` : ''), emoji: '📡' })
         return false
       }
     },

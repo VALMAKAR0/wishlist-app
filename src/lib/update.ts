@@ -1,3 +1,5 @@
+import { httpGet, type HttpReply } from './http'
+
 export const UPDATE_REPO: string = import.meta.env.VITE_REPO ?? ''
 const TAG = 'apk-neueste'
 
@@ -39,6 +41,7 @@ export class UpdateError extends Error {
   constructor(
     public kind: UpdateFail,
     public status = 0,
+    public detail = '',
   ) {
     super(kind)
   }
@@ -52,13 +55,13 @@ export function failKind(status: number, remaining: string | null): UpdateFail {
 
 export async function fetchLatest(repo = UPDATE_REPO): Promise<LatestRelease> {
   if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) throw new UpdateError('repo')
-  let res: Response
+  let res: HttpReply
   try {
-    res = await fetch(`https://api.github.com/repos/${repo}/releases/tags/${TAG}`, { headers: { Accept: 'application/vnd.github+json' } })
-  } catch {
-    throw new UpdateError('network')
+    res = await httpGet(`https://api.github.com/repos/${repo}/releases/tags/${TAG}`, { Accept: 'application/vnd.github+json' })
+  } catch (e) {
+    throw new UpdateError('network', 0, e instanceof Error ? e.message.slice(0, 80) : '')
   }
-  if (!res.ok) throw new UpdateError(failKind(res.status, res.headers.get('x-ratelimit-remaining')), res.status)
+  if (!res.ok) throw new UpdateError(failKind(res.status, res.header('x-ratelimit-remaining')), res.status)
   let json: unknown
   try {
     json = await res.json()

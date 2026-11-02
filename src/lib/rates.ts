@@ -1,4 +1,5 @@
 import { CURRENCIES } from './format'
+import { httpGet } from './http'
 
 const BASE = 'https://api.frankfurter.dev/v1/latest'
 
@@ -19,7 +20,7 @@ export function parseRates(json: unknown): Record<string, number> | null {
 
 /** Holt die Tageskurse der Europäischen Zentralbank (je 1 Euro). Wirft bei Fehlern. */
 export async function fetchRates(): Promise<Record<string, number>> {
-  const res = await fetch(ratesUrl(), { headers: { Accept: 'application/json' } })
+  const res = await httpGet(ratesUrl(), { Accept: 'application/json' })
   if (!res.ok) throw new Error(String(res.status))
   const parsed = parseRates(await res.json())
   if (!parsed) throw new Error('format')
