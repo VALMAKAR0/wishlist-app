@@ -5,6 +5,8 @@ import { AppLock } from './components/AppLock'
 import { AutoBackup } from './components/AutoBackup'
 import { IncomingFile } from './components/IncomingFile'
 import { Reminders } from './components/Reminders'
+import { InstallNotice } from './components/InstallNotice'
+import { PwaNotice } from './components/PwaNotice'
 import { UpdateCheck } from './components/UpdateCheck'
 import { Aurora, Splash, TabBar } from './components/Chrome'
 import { Stage } from './components/Stage'
@@ -116,6 +118,8 @@ function Shell() {
       <IncomingFile />
       <Reminders />
       <UpdateCheck />
+      <PwaNotice />
+      <InstallNotice />
       {splash && <Splash onDone={() => setSplash(false)} />}
     </div>
   )

@@ -64,7 +64,7 @@ export const roadmap: RoadmapStep[] = [
   { version: 'V0.5', title: 'Backup', text: 'Sichern und Wiederherstellen als ZIP, Auto-Backup auf Android, Speicherschutz-Anzeige.' },
   { version: 'V0.6', title: 'Teilen', text: 'Liste als Datei teilen, Import fremder Listen, inklusive unauffälligem „Schon vorhanden“.' },
   { version: 'V0.7', title: 'Android-Funktionen', text: 'Erinnerungen vor Anlässen, Update-Hinweis, neue Einstellungen mit App-Sperre, Währungen und Export.' },
-  { version: 'V0.8', title: 'PWA-Feinschliff', text: 'iPhone-Installation, Kalenderdatei, Update-Hinweis.' },
+  { version: 'V0.8', title: 'PWA-Feinschliff', text: 'Web-App fürs iPhone mit Offline-Speicher und Installationshinweis, Kalenderdatei, „Neu laden“.' },
   { version: 'V0.9', title: 'Link-Import', text: 'Name, Bild und Preis aus einem Produktlink lesen, Links aus dem Browser teilen.' },
   { version: 'V1.0', title: 'Release', text: 'Test auf echten Geräten.' },
 ]

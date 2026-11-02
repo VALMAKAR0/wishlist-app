@@ -24,6 +24,31 @@ export function LeadChips({ value, onChange }: { value: number[]; onChange: (v: 
   )
 }
 
+/** Standard-Vorlauf und Uhrzeit. Gilt für die Benachrichtigungen (Android) und für die Kalenderdatei. */
+function LeadTimeFields() {
+  const t = useT()
+  const { settings, setSettings } = useUI()
+  return (
+    <>
+      <div className="field field--pad">
+        <span>{t('Standard-Vorlauf')}</span>
+        <LeadChips value={settings.remindDays} onChange={(remindDays) => setSettings({ remindDays })} />
+        {settings.remindDays.length === 0 && <small className="hint hint--bad">{t('Ohne Vorlauf gibt es keine Erinnerung, außer ein Anlass hat einen eigenen.')}</small>}
+      </div>
+      <div className="field field--pad">
+        <span>{t('Uhrzeit')}</span>
+        <div className="listbar listbar--form" role="radiogroup" aria-label={t('Uhrzeit')}>
+          {TIME_CHOICES.map((x) => (
+            <button key={x} className="listchip" role="radio" aria-checked={settings.remindTime === x} data-active={settings.remindTime === x} onClick={() => setSettings({ remindTime: x })}>
+              {x}
+            </button>
+          ))}
+        </div>
+      </div>
+    </>
+  )
+}
+
 /** Erinnerungen vor Anlässen: Schalter, Standard-Vorlauf, Uhrzeit, Test. Wirkt nur in der Android-App. */
 export function ReminderSettings() {
   const t = useT()
@@ -67,31 +92,24 @@ export function ReminderSettings() {
 
   return (
     <>
-      <div className="setting">
-        <div>
-          <strong>{t('Vor Anlässen erinnern')}</strong>
-          <p>{native ? t('Benachrichtigung vor jedem Anlass. Vorlauf pro Anlass änderbar. In den Benachrichtigungen steht nie, was auf deinen Listen steht.') : t('Nur in der Android-App. Auf dem iPhone kommt die Kalenderdatei mit V0.8.')}</p>
+      {native ? (
+        <div className="setting">
+          <div>
+            <strong>{t('Vor Anlässen erinnern')}</strong>
+            <p>{t('Benachrichtigung vor jedem Anlass. Vorlauf pro Anlass änderbar. In den Benachrichtigungen steht nie, was auf deinen Listen steht.')}</p>
+          </div>
+          <Switch checked={settings.remindOn} onChange={(v) => void toggle(v)} label={t('Erinnerungen')} />
         </div>
-        <Switch checked={native && settings.remindOn} onChange={(v) => void toggle(v)} label={t('Erinnerungen')} />
-      </div>
+      ) : (
+        <>
+          <div className="hint hint--pad">{t('Im Browser und auf dem iPhone gibt es keine Benachrichtigungen der App. Stattdessen erzeugst du eine Kalenderdatei, dein Kalender erinnert dich dann.')}</div>
+          <LeadTimeFields />
+        </>
+      )}
       <AnimatePresence initial={false}>
         {native && settings.remindOn && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden' }}>
-            <div className="field field--pad">
-              <span>{t('Standard-Vorlauf')}</span>
-              <LeadChips value={settings.remindDays} onChange={(remindDays) => setSettings({ remindDays })} />
-              {settings.remindDays.length === 0 && <small className="hint hint--bad">{t('Ohne Vorlauf gibt es keine Erinnerung, außer ein Anlass hat einen eigenen.')}</small>}
-            </div>
-            <div className="field field--pad">
-              <span>{t('Uhrzeit')}</span>
-              <div className="listbar listbar--form" role="radiogroup" aria-label={t('Uhrzeit')}>
-                {TIME_CHOICES.map((x) => (
-                  <button key={x} className="listchip" role="radio" aria-checked={settings.remindTime === x} data-active={settings.remindTime === x} onClick={() => setSettings({ remindTime: x })}>
-                    {x}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <LeadTimeFields />
             <div className="setting">
               <div>
                 <strong>{count === null ? t('Geplant …') : t.n(count, 'Erinnerung geplant', 'Erinnerungen geplant')}</strong>

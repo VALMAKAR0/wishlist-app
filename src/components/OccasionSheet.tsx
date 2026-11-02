@@ -137,31 +137,29 @@ export function OccasionSheet({ person, occasion, onClose }: Props) {
         </div>
         <small className="hint">{t('Das Datum der Liste folgt dann diesem Anlass.')}</small>
       </div>
-      {isNative() && (
-        <div className="field">
-          <span>{t('Erinnerung')}</span>
-          <Segmented
-            id="occ-remind"
-            value={mode}
-            onChange={setMode}
-            options={[
-              { value: 'default', label: t('Standard') },
-              { value: 'custom', label: t('Eigene') },
-              { value: 'off', label: t('Aus') },
-            ]}
-          />
-          {mode === 'custom' && <LeadChips value={days} onChange={setDays} />}
-          <small className="hint">
-            {mode === 'default'
-              ? ui.settings.remindOn
-                ? t('Es gilt der Standard-Vorlauf aus „Mehr“.')
-                : t('Erinnerungen sind in „Mehr“ noch aus.')
-              : mode === 'off'
-                ? t('Für diesen Anlass kommt keine Erinnerung.')
-                : t('Nur für diesen Anlass.')}
-          </small>
-        </div>
-      )}
+      <div className="field">
+        <span>{t('Erinnerung')}</span>
+        <Segmented
+          id="occ-remind"
+          value={mode}
+          onChange={setMode}
+          options={[
+            { value: 'default', label: t('Standard') },
+            { value: 'custom', label: t('Eigene') },
+            { value: 'off', label: t('Aus') },
+          ]}
+        />
+        {mode === 'custom' && <LeadChips value={days} onChange={setDays} />}
+        <small className="hint">
+          {mode === 'default'
+            ? !isNative() || ui.settings.remindOn
+              ? t('Es gilt der Standard-Vorlauf aus „Mehr“.')
+              : t('Erinnerungen sind in „Mehr“ noch aus.')
+            : mode === 'off'
+              ? t('Für diesen Anlass kommt keine Erinnerung.')
+              : t('Nur für diesen Anlass.')}
+        </small>
+      </div>
     </Sheet>
   )
 }

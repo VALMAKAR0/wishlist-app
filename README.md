@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 02.11.2026 · Status: V0.7.4 (Einstellungen; Update-Prüfung über nativen Netzweg, Fortschritt in der Zeile) · Datenformat: v2
+Stand: 02.11.2026 · Status: V0.8.0 (Web-App fürs iPhone, Kalenderdatei, Update-Hinweis „Neu laden“) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -201,7 +201,7 @@ Eigener Tab mit Auswertungen über alles: Gesamtausgaben (für mich und für and
 - **V0.6 (erledigt, Share-Menü auf Android ungetestet auf Gerät):** Wunschlisten als Datei teilen, Import, Verknüpfung mit Personen, Übernehmen als Idee (siehe 24).
 - **V0.7 (erledigt, ungetestet auf Gerät):** Erinnerungen vor Anlässen und Update-Hinweis auf Android (siehe 25). Das Auto-Backup wurde schon in V0.5 vorgezogen.
 - **V0.7.1 (erledigt, ungetestet auf Gerät):** Einstellungen neu geordnet („Mehr“ mit Kategorien und Suche), App-Sperre, Währungen, Datumsformat, Schriftgröße, Export und mehr (siehe 26).
-- **V0.8:** PWA-Feinschliff für iPhone (.ics, Installationshinweis, Update-Hinweis "Neu laden")
+- **V0.8 (erledigt, ungetestet auf iPhone):** Web-App fürs iPhone: Manifest, Symbole, Offline-Speicher (Service Worker), GitHub-Pages-Workflow, Installationshinweis, "Neu laden", Kalenderdatei .ics (siehe 28)
 - **V0.9:** Link-Import (Name, Bild, Preis aus einer Adresse) als eigene Version, dazu "Links aus dem Browser teilen" auf Android
 - **V1.0:** Test auf echten Geräten, Release
 
@@ -401,3 +401,27 @@ Technische Leitplanken für Animationen (nach Fehlersuche in V0.1):
 - `LICENSE`: Alle Rechte vorbehalten (© 2026 VALMAKAR0), zweisprachig. Der Code darf angesehen, aber nicht kopiert, verändert, weitergegeben oder als eigenes Werk ausgegeben werden. Die APK darf privat installiert und genutzt werden. `package.json` führt `"license": "UNLICENSED"`.
 - GitHub erlaubt nach seinen Nutzungsbedingungen trotzdem Forks öffentlicher Repos innerhalb von GitHub. Eine Kopie ohne Erlaubnis kann man über das DMCA-Verfahren von GitHub melden. Der Verlauf (Commits mit Datum) belegt, wer zuerst da war.
 - Offen: Die APK wird mit dem Debug-Schlüssel `android/app/debug.keystore` signiert (Standardpasswort, nicht geheim). Für eine Weitergabe an andere später einen eigenen Schlüssel einrichten und im Repo nicht ablegen.
+
+## 28. Web-App fürs iPhone und Kalenderdatei (V0.8)
+
+### Web-App (PWA)
+
+- **Dateien:** `public/manifest.webmanifest` (Name, Standalone, Farben, Symbole), `public/icons/` (192, 512, maskierbar 512, `apple-touch-icon` 180, aus dem Funken-Symbol erzeugt), Verweise in `index.html`. Alle Pfade sind relativ, deshalb läuft der Bau unter dem Unterpfad von GitHub Pages.
+- **Offline-Speicher (`sw.js`):** Ein kleines Vite-Plugin (`offlineWorker` in `vite.config.ts`) schreibt nach jedem Bau `dist/sw.js` mit der Liste aller gebauten Dateien und einer Kennung (Hash über alle Dateien, Cache-Name `wl-<kennung>`). Installieren lädt alles vor, danach antwortet der Worker zuerst aus dem Speicher (`ignoreSearch`, `ignoreVary`, weil manche Server `Vary: Origin` senden), Seitenaufrufe ohne Treffer fallen auf `index.html` zurück. Beim Aktivieren werden alte `wl-`-Speicher gelöscht. Der Worker läuft nur im Produktionsbau und nie in der Android-App (`registerPwa` in `src/lib/pwa.ts`).
+- **Hosting:** `.github/workflows/pages.yml` baut bei jedem Push auf `main` und veröffentlicht `dist` über GitHub Pages (kostenlos, braucht das öffentliche Repo). **Einmal von Hand:** Repo → Settings → Pages → Source: "GitHub Actions". Die Adresse lautet `https://<konto>.github.io/<repo>/`.
+- **Update "Neu laden":** Der neue Worker lädt im Hintergrund, übernimmt aber erst nach Bestätigung (kein automatisches Neuladen mitten in einer Eingabe). Die App sucht beim Start des Browsers und jedes Mal, wenn sie wieder in den Vordergrund kommt (`registration.update()`). Liegt eine neue Version bereit, erscheint einmal eine Meldung mit "Neu laden", dazu der Punkt am Reiter "Mehr" und eine Karte unter Mehr → App. "Auf Updates prüfen" zeigt Spinner und Ergebnis wie in der Android-App. Daten bleiben erhalten.
+- **Installationshinweis (Mehr → App, nur in der Web-App):** Chrome/Edge bieten die Installation direkt an (`beforeinstallprompt`), sonst zeigt ein Fenster die Schritte für iPhone/iPad (Safari → Teilen → Zum Home-Bildschirm), Android und Rechner. Ist die App schon installiert (Standalone), steht dort "Schon installiert". Auf dem iPhone im Browser erscheint einmalig (3 Sekunden nach dem Start, Merker `wl.installTip`) ein Tipp: erst installieren, weil die installierte App einen eigenen Speicher hat. In der Anleitung steht der Weg für schon vorhandene Daten: im Browser sichern, in der installierten App wiederherstellen.
+
+### Kalenderdatei (.ics)
+
+- **Ort:** Mehr → Erinnerungen → "Kalenderdatei erzeugen" (alle Personen) und auf der Personenseite der Knopf "Kalender" bei den Anlässen (nur diese Person). Im Browser und auf dem iPhone sieht man dort auch Standard-Vorlauf und Uhrzeit, und im Anlass-Fenster die Erinnerungsart (Standard, Eigene, Aus). Alles gilt für die Datei. Auf Android bleiben die Benachrichtigungen, die Datei geht dort auch.
+- **Inhalt (`src/lib/ics.ts`):** Pro Anlass ein Ganztagstermin ab dem nächsten Vorkommen, jährlich wiederkehrend (`RRULE:FREQ=YEARLY`), kein belegter Zeitraum (`TRANSP:TRANSPARENT`), stabile `UID` je Anlass. Je Vorlauf ein Alarm (`VALARM`, relativ zum Tagesbeginn, so dass er zur gewählten Uhrzeit auslöst). Anlässe ohne Vorlauf (Erinnerung "Aus" oder kein Standard) fehlen. Der Text nennt nur Anlass, Person und die Zahl offener Ideen, nie die Namen von Wünschen. Zeilen werden nach 75 Byte umbrochen, Sonderzeichen maskiert.
+- **29. Februar:** Der Termin wird auf den 1. März gelegt (jedes Jahr), auch in Schaltjahren. In der Android-App gilt in Schaltjahren der 29.2.
+- **Grenzen:** Importiert man die Datei zweimal, entstehen je nach Kalender-App doppelte Termine (die UID gleicht das bei Apple Kalender meist aus). Änderungen an Anlässen oder Vorlauf wirken erst, wenn man die Datei neu erzeugt und importiert. Ausgabe: Teilen-Menü (Handy) oder Download (Rechner).
+
+### Am Gerät zu prüfen
+
+- iPhone: Seite öffnen, Tipp erscheint, Anleitung funktioniert, nach der Installation läuft die App ohne Browserleiste, Flugmodus-Start, Neu-laden-Meldung nach einem Push, Daten bleiben
+- Kalenderdatei auf dem iPhone: Teilen-Menü bietet "Kalender" an, Termine und Alarme erscheinen, Alarmzeit stimmt
+- Android: Datei teilen und in Google Kalender öffnen
+- Nach dem Push: GitHub → Settings → Pages → Source "GitHub Actions" einstellen, Adresse im Workflow-Lauf ablesen

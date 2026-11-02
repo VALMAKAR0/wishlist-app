@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { isNative } from '../lib/backupFiles'
 import { fetchLatest, isNewer, UPDATE_REPO, UpdateError } from '../lib/update'
 import { APP_VERSION } from '../lib/brand'
+import { applyPwaUpdate, checkPwaUpdate, usePwa } from '../lib/pwa'
 import { useT, useUI } from './ui'
 
 const failText = (e: unknown): string => {
@@ -19,25 +20,34 @@ export type UpdateResult = { kind: 'ok' | 'new' | 'fail'; text: string } | null
 
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
-/** Update-Hinweis über das GitHub-Release "apk-neueste". Nur in der Android-App. */
+/** Update-Hinweis. Android-App: GitHub-Release "apk-neueste". Web-App (iPhone, Browser): neue Version im Offline-Speicher, "Neu laden". */
 export function useUpdate() {
   const t = useT()
   const ui = useUI()
   const { settings, setSettings } = ui
-  const available = isNative() && !!settings.updateLatest && isNewer(settings.updateLatest, APP_VERSION)
-  const enabled = isNative() && !!UPDATE_REPO
+  const pwa = usePwa()
+  const native = isNative()
+  const available = native ? !!settings.updateLatest && isNewer(settings.updateLatest, APP_VERSION) : pwa.waiting
+  const enabled = native ? !!UPDATE_REPO : pwa.supported
   const [checking, setChecking] = useState(false)
   const [result, setResult] = useState<UpdateResult>(null)
 
   const check = useCallback(
     async (manual: boolean): Promise<boolean> => {
-      if (!isNative() || !UPDATE_REPO) return false
+      if (!enabled) return false
       if (manual) {
         setChecking(true)
         setResult(null)
       }
       const started = Date.now()
       try {
+        if (!native) {
+          const waiting = await checkPwaUpdate()
+          await pause(900 - (Date.now() - started))
+          setResult(waiting ? { kind: 'new', text: t('Neue Version bereit.') } : { kind: 'ok', text: t('Du hast die neueste Version.') })
+          ui.haptic(waiting ? 40 : 15)
+          return waiting
+        }
         const latest = await fetchLatest()
         const newer = isNewer(latest.version, APP_VERSION)
         setSettings({ updateAt: Date.now(), updateLatest: newer ? latest.version : '', updateUrl: newer ? latest.url : '', updateSeen: newer ? latest.version : settings.updateSeen })
@@ -52,7 +62,7 @@ export function useUpdate() {
       } catch (e) {
         if (manual) {
           await pause(900 - (Date.now() - started))
-          setResult({ kind: 'fail', text: t(failText(e)) + (e instanceof UpdateError && e.detail ? ` (${e.detail})` : '') })
+          setResult({ kind: 'fail', text: native ? t(failText(e)) + (e instanceof UpdateError && e.detail ? ` (${e.detail})` : '') : t('Keine Verbindung zum Server. Bist du online?') })
           ui.haptic(60)
         }
         return false
@@ -60,8 +70,8 @@ export function useUpdate() {
         if (manual) setChecking(false)
       }
     },
-    [settings.updateSeen, setSettings, ui, t],
+    [enabled, native, settings.updateSeen, setSettings, ui, t],
   )
 
-  return { available, enabled, check, checking, result, latest: settings.updateLatest, url: settings.updateUrl }
+  return { available, enabled, native, check, checking, result, apply: applyPwaUpdate, latest: settings.updateLatest, url: settings.updateUrl }
 }

@@ -5,6 +5,9 @@ import {
 } from 'lucide-react'
 import { Page, Section } from '../components/Page'
 import { Presence } from '../components/Presence'
+import { useCalendarFile } from '../components/CalendarFile'
+import { InstallSheet } from '../components/InstallSheet'
+import { promptInstall, useInstall } from '../lib/install'
 import { ReminderSettings } from '../components/ReminderSettings'
 import { Chip, Ring, Segmented, Switch } from '../components/Primitives'
 import { ChipChoice, Choice, Row, SwitchRow } from '../components/SettingsUi'
@@ -418,13 +421,13 @@ function MoneyPage() {
 // ---- Erinnerungen
 function RemindPage() {
   const t = useT()
-  const ui = useUI()
+  const calendarFile = useCalendarFile()
   return (
     <SubPage title={t('Erinnerungen')} subtitle={t('Vor Anlässen benachrichtigt werden')}>
       <Section title={t('Erinnerungen')}>
         <div className="card">
           <ReminderSettings />
-          <Row icon={<CalendarClock size={18} />} title={t('Kalenderdatei erzeugen')} text={t('Funktioniert auf iPhone und Android')} onClick={() => ui.planned('ics-export')} />
+          <Row icon={<CalendarClock size={18} />} title={t('Kalenderdatei erzeugen')} text={t('Alle Anlässe, jährlich, mit Erinnerung. Für iPhone und Android.')} onClick={() => void calendarFile()} />
         </div>
       </Section>
     </SubPage>
@@ -500,7 +503,7 @@ function UpdateRow({ upd }: { upd: ReturnType<typeof useUpdate> }) {
   const { checking, result } = upd
   const state = checking ? 'checking' : (result?.kind ?? 'idle')
   const icon = checking ? <RefreshCw size={18} className="spin" /> : result?.kind === 'fail' ? <AlertTriangle size={18} /> : result ? <Check size={18} /> : <RefreshCw size={18} />
-  const title = checking ? t('Prüfe bei GitHub …') : result?.kind === 'fail' ? t('Prüfung fehlgeschlagen') : result ? result.text : t('Auf Updates prüfen')
+  const title = checking ? (upd.native ? t('Prüfe bei GitHub …') : t('Suche neue Version …')) : result?.kind === 'fail' ? t('Prüfung fehlgeschlagen') : result ? result.text : t('Auf Updates prüfen')
   const idleText = `${t('Version {v}', { v: APP_VERSION })}${settings.updateAt ? ` · ${t('geprüft: {when}', { when: agoLabel(settings.updateAt, t) })}` : ''}`
   const text = checking ? t('Einen Moment …') : result?.kind === 'fail' ? result.text : result ? idleText : idleText
   return (
@@ -525,6 +528,8 @@ function AppPage() {
   const { items, persons, dispatch } = useStore()
   const upd = useUpdate()
   const bk = useBackup()
+  const inst = useInstall()
+  const [howTo, setHowTo] = useState(false)
 
   const loadDemo = () => {
     const apply = () => {
@@ -547,32 +552,47 @@ function AppPage() {
     <SubPage title={t('App und Updates')} subtitle={`${t('Version {v}', { v: APP_VERSION })}`}>
       <Section title={t('App')}>
         <div className="card">
-          <Row icon={<Smartphone size={18} />} title={t('Auf dem Home-Bildschirm installieren')} onClick={() => ui.planned('install-hint')} />
+          {!upd.native && (
+            <Row
+              icon={inst.installed ? <Check size={18} /> : <Smartphone size={18} />}
+              title={inst.installed ? t('Schon installiert') : t('Auf dem Home-Bildschirm installieren')}
+              text={inst.installed ? t('Du nutzt die App gerade ohne Browserleiste.') : t('Anleitung und Hinweis zum Speicher')}
+              onClick={inst.installed ? undefined : () => (inst.canPrompt ? void promptInstall() : setHowTo(true))}
+            />
+          )}
           <Row icon={<Share2 size={18} />} title={t('Links aus dem Browser teilen')} text={t('Nur Android')} right={<Chip tone="accent">V0.9</Chip>} onClick={() => ui.planned('share-link-in')} />
           {upd.enabled ? (
             <>
               {upd.available && (
                 <div className="setting setting--hl">
                   <div>
-                    <strong>{t('Version {v} verfügbar', { v: upd.latest })}</strong>
-                    <p>{t('Lade die APK herunter und installiere sie über die alte. Deine Daten bleiben erhalten.')}</p>
+                    <strong>{upd.native ? t('Version {v} verfügbar', { v: upd.latest }) : t('Neue Version bereit')}</strong>
+                    <p>{upd.native ? t('Lade die APK herunter und installiere sie über die alte. Deine Daten bleiben erhalten.') : t('Lade neu, um sie zu nutzen. Deine Daten bleiben erhalten.')}</p>
                   </div>
-                  <a className="btn btn--primary btn--small" href={upd.url} target="_blank" rel="noopener noreferrer">
-                    {t('Herunterladen')}
-                  </a>
+                  {upd.native ? (
+                    <a className="btn btn--primary btn--small" href={upd.url} target="_blank" rel="noopener noreferrer">
+                      {t('Herunterladen')}
+                    </a>
+                  ) : (
+                    <button className="btn btn--primary btn--small" onClick={upd.apply}>
+                      {t('Neu laden')}
+                    </button>
+                  )}
                 </div>
               )}
               <UpdateRow upd={upd} />
-              <div className="setting">
-                <div>
-                  <strong>{t('Beim Start prüfen')}</strong>
-                  <p>{t('Fragt einmal am Tag bei GitHub nach dem neuesten Release. Sonst nutzt die App kein Internet.')}</p>
+              {upd.native && (
+                <div className="setting">
+                  <div>
+                    <strong>{t('Beim Start prüfen')}</strong>
+                    <p>{t('Fragt einmal am Tag bei GitHub nach dem neuesten Release. Sonst nutzt die App kein Internet.')}</p>
+                  </div>
+                  <Switch checked={settings.updateCheck} onChange={(updateCheck) => setSettings({ updateCheck })} label={t('Beim Start prüfen')} />
                 </div>
-                <Switch checked={settings.updateCheck} onChange={(updateCheck) => setSettings({ updateCheck })} label={t('Beim Start prüfen')} />
-              </div>
+              )}
             </>
           ) : (
-            <Row icon={<Bell size={18} />} title={t('Auf Updates prüfen')} text={t('Version {v}', { v: APP_VERSION })} onClick={() => ui.planned('update-check')} />
+            <Row icon={<Bell size={18} />} title={t('Auf Updates prüfen')} text={`${t('Version {v}', { v: APP_VERSION })} · ${t('In dieser Ansicht nicht verfügbar')}`} />
           )}
           <Row icon={<Map size={18} />} title={t('Roadmap')} text={t('Was als Nächstes kommt')} onClick={() => open({ type: 'roadmap' })} />
         </div>
@@ -583,6 +603,7 @@ function AppPage() {
           <Row icon={<Palette size={18} />} title={t('Demo-Daten laden')} text={t('Ersetzt alle Daten durch Beispieldaten')} onClick={loadDemo} />
         </div>
       </Section>
+      {howTo && <InstallSheet onClose={() => setHowTo(false)} />}
     </SubPage>
   )
 }

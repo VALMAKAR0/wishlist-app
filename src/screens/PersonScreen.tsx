@@ -17,14 +17,15 @@ import { listTitle } from '../lib/lists'
 import { listStats } from '../lib/stats'
 import { useNav } from '../state/nav'
 import { useStore } from '../state/store'
-import { useT, useUI } from '../state/ui'
+import { useT } from '../state/ui'
+import { useCalendarFile } from '../components/CalendarFile'
 import { BudgetBar } from './IdeasScreen'
 
 export function PersonScreen({ id }: { id: string }) {
   const t = useT()
   const { persons, items, lists: allLists, received } = useStore()
   const { back, open } = useNav()
-  const ui = useUI()
+  const calendarFile = useCalendarFile()
   const person = persons.find((p) => p.id === id)
   const lists = useMemo(() => allLists.filter((l) => l.owner === id), [allLists, id])
   const [form, setForm] = useState(false)
@@ -114,8 +115,8 @@ export function PersonScreen({ id }: { id: string }) {
           summary={t.n(person.occasions.length, 'Anlass', 'Anlässe')}
           aside={
             <span className="row row--gap">
-              <button className="chip chip--button" onClick={() => ui.planned('ics-export')}>
-                <CalendarPlus size={14} /> {t('Erinnerung')}
+              <button className="chip chip--button" onClick={() => void calendarFile(person)} aria-label={t('Anlässe als Kalenderdatei')}>
+                <CalendarPlus size={14} /> {t('Kalender')}
               </button>
               <button className="chip chip--button" onClick={() => setOcc({ occasion: null })}>
                 <Plus size={14} /> {t('Anlass')}
