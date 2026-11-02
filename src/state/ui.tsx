@@ -1,8 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { MotionConfig } from 'motion/react'
 import type { PlannedId } from '../lib/plannedFeatures'
-import { detectLang, makeT, type TFn } from '../lib/i18n'
-import { setLocale, uid } from '../lib/format'
+import { makeT, type TFn } from '../lib/i18n'
+import { setDateFmt, setLocale, setMoney, uid } from '../lib/format'
+import { normalize, SCALES } from '../lib/settings'
 import type { UiSettings } from '../lib/types'
 import { Overlays } from '../components/Overlays'
 
@@ -43,17 +44,14 @@ interface UI {
 const Ctx = createContext<UI | null>(null)
 
 const STORAGE_KEY = 'wl.ui'
-const defaults = (): UiSettings => ({ theme: 'system', fx: 'full', lang: detectLang(), hue: 14, remindOn: false, remindDays: [14, 3, 0], remindTime: '09:00', updateCheck: true, updateLatest: '', updateUrl: '', updateSeen: '', updateAt: 0, showPlanned: false, autoBackup: true, shareName: '', shareId: '' })
-
 function loadSettings(): UiSettings {
-  let s: UiSettings
+  let raw: unknown = {}
   try {
-    s = { ...defaults(), ...JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') }
+    raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
   } catch {
-    s = defaults()
+    raw = {}
   }
-  if (!Array.isArray(s.remindDays) || s.remindDays.some((n) => !Number.isInteger(n))) s.remindDays = defaults().remindDays
-  if (!/^\d{2}:\d{2}$/.test(s.remindTime)) s.remindTime = defaults().remindTime
+  const s = normalize(raw)
   if (!s.shareId) {
     s.shareId = uid()
     try {
@@ -75,6 +73,8 @@ export function UIProvider({ children }: { children: ReactNode }) {
   const t = useMemo(() => makeT(settings.lang), [settings.lang])
   // Zahlen- und Datumsformat gelten ab dem nächsten Rendern der Kinder.
   setLocale(t.locale)
+  setMoney(settings.currency, settings.rates)
+  setDateFmt(settings.dateFmt)
 
   // Theme, Effekt-Stufe und Akzentfarbe auf das Dokument übertragen.
   useEffect(() => {
@@ -90,6 +90,7 @@ export function UIProvider({ children }: { children: ReactNode }) {
     root.dataset.fx = settings.fx
     root.lang = settings.lang
     root.style.setProperty('--hue', String(settings.hue))
+    root.style.setProperty('--fs', String(SCALES[settings.fontScale]))
     mq.addEventListener('change', apply)
     return () => mq.removeEventListener('change', apply)
   }, [settings])
@@ -108,9 +109,9 @@ export function UIProvider({ children }: { children: ReactNode }) {
 
   const haptic = useCallback(
     (ms = 12) => {
-      if (settings.fx !== 'off') navigator.vibrate?.(ms)
+      if (settings.fx !== 'off' && settings.haptics) navigator.vibrate?.(ms)
     },
-    [settings.fx],
+    [settings.fx, settings.haptics],
   )
 
   const value = useMemo<UI>(

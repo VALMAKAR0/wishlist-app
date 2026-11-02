@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Camera, ExternalLink, Trash2, Wand2, X } from 'lucide-react'
-import { toHref, uid } from '../lib/format'
+import { CURRENCIES, hasRate, toHref, uid } from '../lib/format'
 import { processImage, saveImage } from '../lib/images'
 import { listTitle } from '../lib/lists'
 import { candidatesFor, findSimilar, suggestKind } from '../lib/match'
@@ -37,6 +37,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, onClose }: Pro
   const [listId, setListId] = useState(item?.listId ?? (ownerLists.some((l) => l.id === initialList) ? (initialList as string) : (ownerLists[0]?.id ?? '')))
   const [link, setLink] = useState(item?.link ?? '')
   const [price, setPrice] = useState(item?.price !== undefined ? String(item.price).replace('.', ',') : '')
+  const [cur, setCur] = useState(item ? (item.currency ?? 'EUR') : ui.settings.currency)
   const [note, setNote] = useState(item?.note ?? '')
   const [emoji, setEmoji] = useState(item?.emoji ?? EMOJIS[0])
   const [hue, setHue] = useState(item?.hue ?? HUES[Math.floor(Math.random() * HUES.length)])
@@ -112,6 +113,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, onClose }: Pro
       listId,
       link: link.trim() || undefined,
       price: parsed !== undefined && Number.isFinite(parsed) ? parsed : undefined,
+      currency: parsed !== undefined && Number.isFinite(parsed) && cur !== 'EUR' ? cur : undefined,
       note: note.trim() || undefined,
       imageId,
       emoji,
@@ -248,10 +250,19 @@ export function ItemFormSheet({ owner, item, listId: initialList, onClose }: Pro
 
       <label className="field">
         <span>{t('Preis')}</span>
-        <div className="field__row field__row--suffix">
+        <div className="field__row">
           <input value={price} onChange={(e) => setPrice(e.target.value.replace(/[^0-9.,]/g, ''))} placeholder="0,00" inputMode="decimal" />
-          <b>€</b>
+          <select className="cursel" value={cur} onChange={(e) => setCur(e.target.value)} aria-label={t('Währung')}>
+            {CURRENCIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
         </div>
+        {price.trim() && cur !== ui.settings.currency && (!hasRate(cur) || !hasRate(ui.settings.currency)) && (
+          <small className="hint hint--warn">{t('Für {cur} fehlt ein Kurs. Trag ihn unter „Mehr“ → „Währung und Format“ ein, bis dahin zählt der Betrag ohne Umrechnung.', { cur })}</small>
+        )}
       </label>
 
       <label className="field">

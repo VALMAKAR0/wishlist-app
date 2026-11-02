@@ -1,101 +1,63 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import {
-  Archive, Bell, CalendarClock, Check, ChevronRight, DatabaseBackup, Flame, HardDriveDownload, Map, Palette, RefreshCw, RotateCcw, Share2, ShieldCheck, Smartphone, Trash2, Undo2,
+  Archive, Bell, Check, DatabaseBackup, Flame, HardDriveDownload, Lock, Map, Palette, Search, SlidersHorizontal, Trash2, Undo2, Wallet, X,
 } from 'lucide-react'
 import { Page, Section } from '../components/Page'
-import { ReminderSettings } from '../components/ReminderSettings'
-import { Chip, Cover, EmptyState, Ring, Segmented, Switch } from '../components/Primitives'
-import { APP_NAME, APP_VERSION, BACKUP_NUDGE_DAYS, TRASH_DAYS } from '../lib/brand'
-import { clearSafetyCopies } from '../lib/backup'
-import { BACKUP_DIR, AUTO_KEEP } from '../lib/backupFiles'
-import { agoLabel, daysAgo, timeLabel } from '../lib/format'
-import { checkPersist, usePersist } from '../lib/persist'
+import { Chip, Cover, EmptyState, Ring } from '../components/Primitives'
+import { Row } from '../components/SettingsUi'
+import { APP_NAME, APP_VERSION, BACKUP_NUDGE_DAYS } from '../lib/brand'
+import { daysAgo, longDate } from '../lib/format'
 import { roadmap } from '../lib/plannedFeatures'
-import type { FxSetting, Lang, ThemeSetting } from '../lib/types'
+import { PAGE_TITLES, searchSettings } from '../lib/settingsIndex'
 import { useBackup } from '../state/backup'
-import { useUpdate } from '../state/update'
-import { useNav } from '../state/nav'
+import { useNav, type SettingsPageId } from '../state/nav'
 import { useLists, useStore } from '../state/store'
+import { useUpdate } from '../state/update'
 import { useT, useUI } from '../state/ui'
 
-const HUES = [14, 45, 150, 200, 265, 330]
-
-function Row({ icon, title, text, right, onClick }: { icon: ReactNode; title: string; text?: string; right?: ReactNode; onClick?: () => void }) {
-  const Tag = onClick ? 'button' : 'div'
-  return (
-    <Tag className="row-item" onClick={onClick}>
-      <span className="row-item__icon">{icon}</span>
-      <span className="row-item__main">
-        <strong>{title}</strong>
-        {text && <small>{text}</small>}
-      </span>
-      {right ?? (onClick && <ChevronRight size={18} className="row-item__chev" />)}
-    </Tag>
-  )
+const PAGE_ICONS: Record<SettingsPageId, typeof Bell> = {
+  data: DatabaseBackup,
+  look: Palette,
+  money: Wallet,
+  remind: Bell,
+  privacy: Lock,
+  app: SlidersHorizontal,
 }
+
+const PAGE_ORDER: SettingsPageId[] = ['data', 'look', 'money', 'remind', 'privacy', 'app']
+
+let lastQuery = ''
 
 export function MoreScreen() {
   const t = useT()
   const ui = useUI()
-  const { settings, setSettings } = ui
+  const { settings } = ui
   const { open, setTab } = useNav()
-  const { lastBackupAt, dispatch, items, persons, storage } = useStore()
+  const { lastBackupAt, storage } = useStore()
   const { trash, mine } = useLists()
-  const [checking, setChecking] = useState(false)
-  const persist = usePersist()
   const upd = useUpdate()
   const bk = useBackup()
-  const fileRef = useRef<HTMLInputElement>(null)
-  const [copies, setCopies] = useState<Awaited<ReturnType<typeof bk.listSafetyCopies>>>([])
-  useEffect(() => {
-    void bk.listSafetyCopies().then(setCopies).catch(() => setCopies([]))
-  }, [bk.busy, lastBackupAt])
+  const [q, setQ] = useState(lastQuery)
+  lastQuery = q
 
   const days = lastBackupAt ? daysAgo(lastBackupAt) : null
   const stale = days === null || days >= BACKUP_NUDGE_DAYS
   const archived = mine.filter((i) => i.bought).length
+  const hits = searchSettings(q, t)
 
-  const recheck = async () => {
-    setChecking(true)
-    ui.haptic(10)
-    await Promise.all([checkPersist(true), new Promise((r) => setTimeout(r, 500))])
-    setChecking(false)
-  }
-
-  const wipe = () =>
-    ui.confirm({
-      title: t('Alle Daten löschen?'),
-      text: t('Wünsche, Personen, Ideen, Papierkorb, Archiv und erhaltene Listen werden endgültig entfernt. Mach vorher ein Backup.'),
-      confirmLabel: t('Alles löschen'),
-      tone: 'danger',
-      hold: true,
-      onConfirm: () => {
-        void clearSafetyCopies().catch(() => undefined)
-        dispatch({ type: 'wipe' })
-        ui.toast({ message: t('Alle Daten gelöscht'), emoji: '🧹' })
-      },
-    })
-
-  const loadDemo = () => {
-    const apply = () => {
-      void bk.safetyBefore('demo')
-      dispatch({ type: 'loadDemo' })
-      ui.toast({ message: t('Demo-Daten geladen'), emoji: '🎁' })
-    }
-    if (!items.length && !persons.length) return apply()
-    ui.confirm({
-      title: t('Demo-Daten laden?'),
-      text: t('Deine echten Einträge werden durch Beispieldaten ersetzt. Mach vorher ein Backup.'),
-      confirmLabel: t('Ersetzen'),
-      tone: 'danger',
-      hold: true,
-      onConfirm: apply,
-    })
+  const dateExample = settings.dateFmt === 'auto' ? t('Automatisch') : longDate(Date.now())
+  const summary: Record<SettingsPageId, string> = {
+    data: days === null ? t('Noch kein Backup') : days === 0 ? t('Heute gesichert') : t('Backup vor {n} Tagen', { n: days }),
+    look: `${settings.theme === 'system' ? t('Auto') : settings.theme === 'dark' ? t('Dunkel') : t('Hell')} · ${settings.lang === 'de' ? 'Deutsch' : 'English'}`,
+    money: `${settings.currency} · ${dateExample}`,
+    remind: settings.remindOn ? t('An · {n} Vorlauf', { n: settings.remindDays.length }) : t('Aus'),
+    privacy: settings.lockHash ? t('Sperre an') : t('Keine Sperre'),
+    app: upd.available ? t('Update verfügbar') : t('Version {v}', { v: APP_VERSION }),
   }
 
   return (
-    <Page title={t('Mehr')} eyebrow={`${APP_NAME} · V${APP_VERSION}`} subtitle={t('Sicherheit, Aussehen und alles andere')}>
+    <Page title={t('Mehr')} eyebrow={`${APP_NAME} · V${APP_VERSION}`} subtitle={t('Einstellungen und alles andere')}>
       <motion.aside className="preview-note" data-warn={storage === 'memory'} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
         <Flame size={18} />
         <p>
@@ -112,218 +74,64 @@ export function MoreScreen() {
         </p>
       </motion.aside>
 
-      <Section title={t('Sicherung')}>
-        <div className="card spot">
-          <div className="backup">
-            <Ring value={days === null ? 0.04 : Math.max(0.06, 1 - Math.min(days, 30) / 30)} size={56} stroke={6} hue={stale ? 20 : 150}>
-              <DatabaseBackup size={22} />
-            </Ring>
-            <div className="backup__text">
-              <strong>{days === null ? t('Noch kein Backup') : days === 0 ? t('Heute gesichert') : t('Letztes Backup vor {n} Tagen', { n: days })}</strong>
-              <span>{stale ? t('Ab {n} Tagen erinnert dich die App beim Start, sofern sich etwas geändert hat.', { n: BACKUP_NUDGE_DAYS }) : t('Alles im grünen Bereich.')}</span>
-            </div>
-          </div>
-          <div className="row row--gap">
-            <button className="btn btn--primary btn--grow" onClick={() => void bk.backupNow()} disabled={bk.busy}>
-              <HardDriveDownload size={17} /> {t('Jetzt sichern')}
-            </button>
-            <button className="btn btn--ghost btn--grow" onClick={() => fileRef.current?.click()} disabled={bk.busy}>
-              <RotateCcw size={17} /> {t('Wiederherstellen')}
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".zip,application/zip,application/x-zip-compressed"
-              hidden
-              data-testid="restore-input"
-              onChange={(e) => {
-                const f = e.target.files?.[0]
-                e.target.value = ''
-                if (f) void bk.restoreFile(f)
-              }}
-            />
-          </div>
-          {bk.native ? (
-            <div className="setting">
-              <div>
-                <strong>{t('Automatisch sichern')}</strong>
-                <p>{t('Täglich beim Start, wenn sich etwas geändert hat. Ordner: Dokumente/{dir}, die letzten {n} bleiben.', { dir: BACKUP_DIR, n: AUTO_KEEP })}</p>
-              </div>
-              <Switch checked={settings.autoBackup} onChange={(autoBackup) => setSettings({ autoBackup })} label={t('Automatisch sichern')} />
-            </div>
-          ) : (
-            <Row icon={<RefreshCw size={18} />} title={t('Automatisch sichern')} text={t('Nur in der Android-App. Hier sicherst du von Hand.')} right={<Chip>Android</Chip>} />
-          )}
+      <div className="card spot bkmini">
+        <Ring value={days === null ? 0.04 : Math.max(0.06, 1 - Math.min(days, 30) / 30)} size={44} stroke={5} hue={stale ? 20 : 150}>
+          <DatabaseBackup size={18} />
+        </Ring>
+        <div className="backup__text">
+          <strong>{days === null ? t('Noch kein Backup') : days === 0 ? t('Heute gesichert') : t('Letztes Backup vor {n} Tagen', { n: days })}</strong>
+          <span>{stale ? t('Zeit für ein neues Backup.') : t('Alles im grünen Bereich.')}</span>
         </div>
-
-        {copies.length > 0 && (
-          <div className="card spot">
-            <strong className="card__title">{t('Interne Kopien')}</strong>
-            {copies.map((c) => (
-              <div key={c.id} className="row-item row-item--static">
-                <span className="row-item__main">
-                  <strong>{timeLabel(c.at)}</strong>
-                  <small>
-                    {c.reason === 'restore' ? t('vor dem Wiederherstellen') : t('vor den Demo-Daten')} · {t.n(c.counts.items, 'Eintrag', 'Einträge')}
-                  </small>
-                </span>
-                <button className="btn btn--small btn--ghost" onClick={() => void bk.restoreSafety(c.id)} disabled={bk.busy}>
-                  {t('Zurückholen')}
-                </button>
-              </div>
-            ))}
-            <p className="hint">{t('Bleiben nur auf diesem Gerät, es gibt die letzten 3. Das ersetzt kein Backup.')}</p>
-          </div>
-        )}
-
-        <div className="card spot">
-          <div className="persist">
-            <span className="persist__icon" data-ok={persist.state === 'active' || persist.state === 'native'}>
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.span key={checking ? 'busy' : 'idle'} initial={{ scale: 0.4, opacity: 0, rotate: -40 }} animate={{ scale: 1, opacity: 1, rotate: 0 }} exit={{ scale: 0.4, opacity: 0 }} transition={{ type: 'spring', stiffness: 400, damping: 20 }}>
-                  {checking ? <RefreshCw size={22} className="spin" /> : <ShieldCheck size={22} />}
-                </motion.span>
-              </AnimatePresence>
-            </span>
-            <div className="backup__text">
-              <strong>
-                {t('Speicherschutz: {state}', {
-                  state:
-                    persist.state === 'active' ? t('aktiv')
-                    : persist.state === 'inactive' ? t('nicht aktiv')
-                    : persist.state === 'native' ? t('App-Speicher')
-                    : persist.state === 'unsupported' ? t('nicht verfügbar')
-                    : t('wird geprüft'),
-                })}
-              </strong>
-              <span>{persist.at ? t('zuletzt geprüft: {date}', { date: timeLabel(persist.at) }) : t('noch nicht geprüft')}</span>
-            </div>
-          </div>
-          <div className="row">
-            <button className="btn btn--ghost btn--block" onClick={() => void recheck()} disabled={checking}>
-              <RefreshCw size={16} className={checking ? 'spin' : undefined} /> {t('Status prüfen')}
-            </button>
-          </div>
-          {(persist.state === 'inactive' || persist.state === 'unsupported') && (
-            <p className="hint hint--warn">{t('Das System darf die Daten bei Speichermangel aufräumen. Mach regelmäßig ein Backup.')}</p>
-          )}
-          <p className="hint">
-            {persist.state === 'native'
-              ? t('In der Android-App liegen die Daten im geschützten App-Speicher. „Daten löschen“ oder Deinstallieren entfernt sie, ein Backup bleibt Pflicht.')
-              : t('Der Schutz hilft nur gegen automatisches Aufräumen bei Speichermangel. Das Backup bleibt Pflicht.')}
-          </p>
-        </div>
-      </Section>
-
-      <Section title={t('Aufbewahrung')}>
-        <div className="card">
-          <Row icon={<Archive size={18} />} title={t('Archiv')} text={t.n(archived, 'gekaufter Wunsch', 'gekaufte Wünsche')} onClick={() => setTab('wishes')} />
-          <Row icon={<Trash2 size={18} />} title={t('Papierkorb')} text={t('{count} · wird nach {n} Tagen geleert', { count: t.n(trash.length, 'Eintrag', 'Einträge'), n: TRASH_DAYS })} onClick={() => open({ type: 'trash' })} />
-        </div>
-      </Section>
-
-      <Section title={t('Aussehen')}>
-        <div className="card">
-          <div className="setting setting--col">
-            <div>
-              <strong>{t('Sprache')}</strong>
-            </div>
-            <Segmented<Lang> id="lang" value={settings.lang} onChange={(lang) => setSettings({ lang })} options={[{ value: 'de', label: 'Deutsch' }, { value: 'en', label: 'English' }]} />
-          </div>
-          <div className="setting setting--col">
-            <div>
-              <strong>{t('Darstellung')}</strong>
-            </div>
-            <Segmented<ThemeSetting> id="theme" value={settings.theme} onChange={(theme) => setSettings({ theme })} options={[{ value: 'system', label: t('Auto') }, { value: 'dark', label: t('Dunkel') }, { value: 'light', label: t('Hell') }]} />
-          </div>
-          <div className="setting setting--col">
-            <div>
-              <strong>{t('Akzentfarbe')}</strong>
-            </div>
-            <div className="swatches swatches--left" role="radiogroup" aria-label={t('Akzentfarbe')}>
-              {HUES.map((h) => (
-                <button key={h} role="radio" aria-checked={settings.hue === h} aria-label={`${t('Akzentfarbe')} ${h}`} data-active={settings.hue === h} className="swatch swatch--color" style={{ ['--h' as string]: h }} onClick={() => setSettings({ hue: h })} />
-              ))}
-            </div>
-          </div>
-          <div className="setting setting--col">
-            <div>
-              <strong>{t('Effekte')}</strong>
-              <p>{t('Weniger Bewegung spart Akku und ist ruhiger.')}</p>
-            </div>
-            <Segmented<FxSetting> id="fx" value={settings.fx} onChange={(fx) => setSettings({ fx })} options={[{ value: 'full', label: t('Voll') }, { value: 'calm', label: t('Dezent') }, { value: 'off', label: t('Aus') }]} />
-          </div>
-          <div className="setting">
-            <div>
-              <strong>{t('Offene Ideen im Budget zeigen')}</strong>
-              <p>{t('Blendet in der Budget-Leiste einen hellen Balken mit der Summe der noch offenen Ideen ein.')}</p>
-            </div>
-            <Switch checked={settings.showPlanned} onChange={(showPlanned) => setSettings({ showPlanned })} label={t('Offene Ideen im Budget zeigen')} />
-          </div>
-        </div>
-      </Section>
-
-      <Section title={t('Erinnerungen')}>
-        <div className="card">
-          <ReminderSettings />
-          <Row icon={<CalendarClock size={18} />} title={t('Kalenderdatei erzeugen')} text={t('Funktioniert auf iPhone und Android')} onClick={() => ui.planned('ics-export')} />
-        </div>
-      </Section>
-
-      <Section title={t('App')}>
-        <div className="card">
-          <Row icon={<Smartphone size={18} />} title={t('Auf dem Home-Bildschirm installieren')} onClick={() => ui.planned('install-hint')} />
-          <Row icon={<Share2 size={18} />} title={t('Links aus dem Browser teilen')} text={t('Nur Android')} right={<Chip tone="accent">V0.9</Chip>} onClick={() => ui.planned('share-link-in')} />
-          {upd.enabled ? (
-            <>
-              {upd.available && (
-                <div className="setting setting--hl">
-                  <div>
-                    <strong>{t('Version {v} verfügbar', { v: upd.latest })}</strong>
-                    <p>{t('Lade die APK herunter und installiere sie über die alte. Deine Daten bleiben erhalten.')}</p>
-                  </div>
-                  <a className="btn btn--primary btn--small" href={upd.url} target="_blank" rel="noopener noreferrer">
-                    {t('Herunterladen')}
-                  </a>
-                </div>
-              )}
-              <Row
-                icon={<Bell size={18} />}
-                title={t('Auf Updates prüfen')}
-                text={`${t('Version {v}', { v: APP_VERSION })}${settings.updateAt ? ` · ${t('geprüft: {when}', { when: agoLabel(settings.updateAt, t) })}` : ''}`}
-                onClick={() => void upd.check(true)}
-              />
-              <div className="setting">
-                <div>
-                  <strong>{t('Beim Start prüfen')}</strong>
-                  <p>{t('Fragt einmal am Tag bei GitHub nach dem neuesten Release. Sonst nutzt die App kein Internet.')}</p>
-                </div>
-                <Switch checked={settings.updateCheck} onChange={(updateCheck) => setSettings({ updateCheck })} label={t('Beim Start prüfen')} />
-              </div>
-            </>
-          ) : (
-            <Row icon={<Bell size={18} />} title={t('Auf Updates prüfen')} text={t('Version {v}', { v: APP_VERSION })} onClick={() => ui.planned('update-check')} />
-          )}
-          <Row icon={<Map size={18} />} title={t('Roadmap')} text={t('Was als Nächstes kommt')} onClick={() => open({ type: 'roadmap' })} />
-        </div>
-      </Section>
-
-      <Section title={t('Vorschau-Werkzeuge')}>
-        <div className="card">
-          <Row
-            icon={<Palette size={18} />}
-            title={t('Demo-Daten laden')}
-            text={t('Ersetzt alle Daten durch Beispieldaten')}
-            onClick={loadDemo}
-          />
-        </div>
-      </Section>
-
-      <Section title={t('Gefahrenzone')}>
-        <button className="btn btn--danger-soft btn--block" onClick={wipe}>
-          <Trash2 size={17} /> {t('Alle Daten löschen')}
+        <button className="btn btn--primary btn--small" onClick={() => void bk.backupNow()} disabled={bk.busy}>
+          <HardDriveDownload size={15} /> {t('Sichern')}
         </button>
-      </Section>
+      </div>
+
+      <div className="setsearch">
+        <Search size={16} aria-hidden />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('Einstellung suchen')} aria-label={t('Einstellung suchen')} data-testid="settings-search" />
+        {q && (
+          <button className="icon-btn" onClick={() => setQ('')} aria-label={t('Suche leeren')}>
+            <X size={15} />
+          </button>
+        )}
+      </div>
+
+      {q.trim() ? (
+        <div className="card" data-testid="search-results">
+          {hits.length === 0 && <p className="hint hint--pad">{t('Nichts gefunden.')}</p>}
+          {hits.map((h) => {
+            const Icon = PAGE_ICONS[h.page]
+            return <Row key={`${h.page}:${h.label}`} icon={<Icon size={18} />} title={t(h.label)} text={t(PAGE_TITLES[h.page])} onClick={() => open({ type: 'settings', page: h.page })} />
+          })}
+        </div>
+      ) : (
+        <>
+          <div className="settiles">
+            {PAGE_ORDER.map((p) => {
+              const Icon = PAGE_ICONS[p]
+              return (
+                <button key={p} className="settile spot" onClick={() => open({ type: 'settings', page: p })} data-testid={`tile-${p}`}>
+                  <span className="settile__icon">
+                    <Icon size={20} />
+                    {p === 'app' && upd.available && <i className="settile__dot" aria-label={t('Update verfügbar')} />}
+                  </span>
+                  <strong>{t(PAGE_TITLES[p])}</strong>
+                  <small>{summary[p]}</small>
+                </button>
+              )
+            })}
+          </div>
+
+          <Section title={t('Aufbewahrung')}>
+            <div className="card">
+              <Row icon={<Archive size={18} />} title={t('Archiv')} text={t.n(archived, 'gekaufter Wunsch', 'gekaufte Wünsche')} onClick={() => setTab('wishes')} />
+              <Row icon={<Trash2 size={18} />} title={t('Papierkorb')} text={t('{count} · wird nach {n} Tagen geleert', { count: t.n(trash.length, 'Eintrag', 'Einträge'), n: settings.trashDays })} onClick={() => open({ type: 'trash' })} />
+              <Row icon={<Map size={18} />} title={t('Roadmap')} text={t('Was als Nächstes kommt')} onClick={() => open({ type: 'roadmap' })} />
+            </div>
+          </Section>
+        </>
+      )}
     </Page>
   )
 }
@@ -335,7 +143,7 @@ export function TrashScreen() {
   const { back } = useNav()
   const ui = useUI()
 
-  const left = (deletedAt: number) => Math.max(0, TRASH_DAYS - daysAgo(deletedAt))
+  const left = (deletedAt: number) => Math.max(0, ui.settings.trashDays - daysAgo(deletedAt))
 
   const empty = () =>
     ui.confirm({
@@ -352,7 +160,7 @@ export function TrashScreen() {
   return (
     <Page
       title={t('Papierkorb')}
-      eyebrow={t('Automatisch nach {n} Tagen', { n: TRASH_DAYS })}
+      eyebrow={t('Automatisch nach {n} Tagen', { n: ui.settings.trashDays })}
       subtitle={trash.length ? t.n(trash.length, 'Eintrag', 'Einträge') : undefined}
       onBack={back}
       actions={

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { dateLabel, eur } from '../lib/format'
+import { dateLabel, money } from '../lib/format'
 import { listTitle } from '../lib/lists'
 import { occasionEmoji } from '../lib/occasions'
 import type { ListStats } from '../lib/stats'
@@ -69,7 +69,7 @@ export function ListStatsCard({ title, emoji, stats, onEdit }: StatsCardProps) {
         )}
       </div>
       <div className="lstats__total">
-        <CountUp value={stats.total} format={eur} />
+        <CountUp value={stats.total} format={ money } />
         <span>{t('Gesamtwert')}</span>
       </div>
       <div className="lstats__bar" aria-hidden>
@@ -82,15 +82,15 @@ export function ListStatsCard({ title, emoji, stats, onEdit }: StatsCardProps) {
         </div>
         <div>
           <dt>{t('Offen')}</dt>
-          <dd>{eur(stats.openValue)}</dd>
+          <dd>{money(stats.openValue)}</dd>
         </div>
         <div>
           <dt>{t('Gekauft')}</dt>
-          <dd>{eur(stats.boughtValue)}</dd>
+          <dd>{money(stats.boughtValue)}</dd>
         </div>
         <div>
           <dt>{t('Ø Preis')}</dt>
-          <dd>{stats.avg ? eur(stats.avg) : '–'}</dd>
+          <dd>{stats.avg ? money(stats.avg) : '–'}</dd>
         </div>
       </dl>
     </section>

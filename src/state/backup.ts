@@ -5,6 +5,7 @@ import {
   backupName, buildBackup, listSafetyCopies, loadSafetyCopy, readBackup, restoreImages, saveSafetyCopy, type ReadResult,
 } from '../lib/backup'
 import { longDate, timeLabel } from '../lib/format'
+import { applyBackupSettings, syncPart } from '../lib/settings'
 import { useStore } from './store'
 import { useT, useUI } from './ui'
 
@@ -21,7 +22,7 @@ export function useBackup() {
     if (busy) return
     setBusy(true)
     try {
-      const { bytes, meta } = await buildBackup(data, APP_VERSION)
+      const { bytes, meta } = await buildBackup(data, APP_VERSION, Date.now(), syncPart(ui.settings))
       const out = await deliverBackup(bytes, backupName('manual', new Date(meta.createdAt)))
       if (out.where === 'cancelled') return
       dispatch({ type: 'backedUp', at: meta.createdAt })
@@ -69,6 +70,7 @@ export function useBackup() {
         t('Alle aktuellen Daten werden ersetzt. Vorher legt die App eine interne Kopie des jetzigen Stands an.'),
       ]
       if (r.missingImages) lines.push(t('{n} fehlen in der Datei.', { n: t.n(r.missingImages, 'Bild', 'Bilder') }))
+      if (r.settings) lines.push(t('Deine Einstellungen aus der Sicherung werden mit übernommen.'))
       ui.confirm({
         title: t('Backup wiederherstellen?'),
         text: lines.join(' '),
@@ -79,11 +81,12 @@ export function useBackup() {
             setBusy(true)
             try {
               if (hasData) {
-                const cur = await buildBackup(data, APP_VERSION)
+                const cur = await buildBackup(data, APP_VERSION, Date.now(), syncPart(ui.settings))
                 await saveSafetyCopy(cur.bytes, cur.meta, 'restore')
               }
               await restoreImages(r.images)
               dispatch({ type: 'restore', data: r.data, at: r.meta.createdAt })
+              if (r.settings) ui.setSettings(applyBackupSettings(ui.settings, r.settings))
               ui.haptic(25)
               ui.toast({ message: t('Wiederhergestellt'), emoji: '♻️' })
             } catch {
@@ -126,7 +129,7 @@ export function useBackup() {
     async (reason: string) => {
       if (!hasData) return
       try {
-        const cur = await buildBackup(data, APP_VERSION)
+        const cur = await buildBackup(data, APP_VERSION, Date.now(), syncPart(ui.settings))
         await saveSafetyCopy(cur.bytes, cur.meta, reason)
       } catch {
         /* Kopie ist Zugabe */

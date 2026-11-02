@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 02.11.2026 · Status: V0.7.0 (Erinnerungen und Update-Hinweis auf Android) · Datenformat: v2
+Stand: 02.11.2026 · Status: V0.7.1 (neue Einstellungen: App-Sperre, Währungen, Export) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -200,6 +200,7 @@ Eigener Tab mit Auswertungen über alles: Gesamtausgaben (für mich und für and
 - **V0.5 (erledigt, Android-Teil ungetestet auf Gerät):** Backup als ZIP von Hand, Wiederherstellen mit interner Kopie davor, Auto-Backup in Dokumente (Android), echter Speicherschutz-Status (siehe 23).
 - **V0.6 (erledigt, Share-Menü auf Android ungetestet auf Gerät):** Wunschlisten als Datei teilen, Import, Verknüpfung mit Personen, Übernehmen als Idee (siehe 24).
 - **V0.7 (erledigt, ungetestet auf Gerät):** Erinnerungen vor Anlässen und Update-Hinweis auf Android (siehe 25). Das Auto-Backup wurde schon in V0.5 vorgezogen.
+- **V0.7.1 (erledigt, ungetestet auf Gerät):** Einstellungen neu geordnet („Mehr“ mit Kategorien und Suche), App-Sperre, Währungen, Datumsformat, Schriftgröße, Export und mehr (siehe 26).
 - **V0.8:** PWA-Feinschliff für iPhone (.ics, Installationshinweis, Update-Hinweis "Neu laden")
 - **V0.9:** Link-Import (Name, Bild, Preis aus einer Adresse) als eigene Version, dazu "Links aus dem Browser teilen" auf Android
 - **V1.0:** Test auf echten Geräten, Release
@@ -352,3 +353,41 @@ Technische Leitplanken für Animationen (nach Fehlersuche in V0.1):
 - Berechtigungsabfrage beim Einschalten (Android 13+), Test-Knopf, Zustellung bei gesperrtem Bildschirm
 - Erinnerung kommt zur eingestellten Uhrzeit, auch nach App-Neustart und Handy-Neustart
 - Update-Hinweis nach dem Hochladen einer höheren Version (Punkt, Meldung, Download)
+
+## 26. Einstellungen (V0.7.1)
+
+### Aufbau von „Mehr“
+
+- **Startseite:** Hinweis zur Vorschau, kleine Backup-Karte (letzte Sicherung, Knopf „Sichern“), Suchfeld für Einstellungen (`src/lib/settingsIndex.ts`, Treffer springen direkt zur Unterseite; die letzte Suche bleibt beim Zurückgehen erhalten), sechs Kacheln und eine Karte „Aufbewahrung“ (Archiv, Papierkorb, Roadmap).
+- **Unterseiten (`SettingsPageId`, `src/screens/SettingsPages.tsx`):** Daten & Sicherung (`data`), Aussehen (`look`), Geld & Datum (`money`), Erinnerungen (`remind`), Datenschutz (`privacy`), App (`app`). Die Unterseite ist ein eigener Eintrag im Navigations-Stapel, Zurück führt zu „Mehr“.
+- **Wiederverwendbare Bausteine:** `src/components/SettingsUi.tsx` (`Row`, `ChipChoice`, `SwitchRow`, `Choice`).
+
+### Neue Einstellungen (`src/lib/settings.ts`)
+
+- **Papierkorb-Frist:** 7, 14, 30 (Voreinstellung), 60 oder 90 Tage. Gilt beim App-Start (`purgeExpired(items, now, days)`).
+- **Auto-Backups behalten:** 3, 5 (Voreinstellung), 10 oder 20 Stück. Beim Schreiben eines Auto-Backups werden ältere gelöscht (`pruneAuto`).
+- **Start-Reiter:** Wünsche, Ideen, Erhalten, Statistik oder „Zuletzt benutzt“ (`wl.lastTab` in localStorage).
+- **Standard-Sortierung:** Neueste, Älteste, Name, Preis absteigend/aufsteigend (`sortItems`). Wirkt auf offene Wünsche in der Liste.
+- **Währung:** Hauptwährung (EUR, USD, GBP, CHF, CZK, PLN, DKK, SEK, NOK, JPY, CAD, AUD). Jeder Wunsch hat eine eigene Währung (`Item.currency`, `undefined` = EUR, alte Daten bleiben gültig; bei Erhalten `ReceivedItem.cur`). Kurse stehen in `settings.rates[code]` als Einheiten pro 1 EUR (EUR = 1 implizit), von Hand einstellbar oder per Knopf „Kurse online holen“ (`src/lib/rates.ts`, `api.frankfurter.dev`, EZB-Kurse, nur beim Tippen auf den Knopf). Summen, Budget und Statistik rechnen über `priceOf` in die Hauptwährung. Fehlt ein Kurs, zählt der Betrag unumgerechnet, die Oberfläche warnt.
+- **Datumsformat:** Automatisch, TT.MM.JJJJ, MM/TT/JJJJ oder ISO (`DateFmt`).
+- **Schriftgröße:** Klein, Normal, Groß, Sehr groß. Alle CSS-Schriftgrößen sind `calc(Npx * var(--fs, 1))`, `--fs` sitzt auf `<html>`.
+- **Vibration:** Schalter, wirkt auf `haptic()`.
+- **Teilen-Voreinstellungen:** Die Schalter im Teilen-Fenster werden beim Senden gemerkt (`shareDefaults`).
+- **Export (Daten & Sicherung → Export):** CSV (UTF-8 mit BOM, Trennzeichen `;` auf Deutsch, Schutz vor Formel-Einschleusung, Spalte mit umgerechnetem Preis) oder Text (`src/lib/exportData.ts`). Android: Teilen oder in Dokumente speichern, Browser: Download.
+- **Einstellungen im Backup:** `daten.json` enthält optional `settings` (`syncPart`). Nicht enthalten, weil gerätegebunden: Erinnerungen an/aus, Teilen-ID, Update-Stand, App-Sperre. Beim Wiederherstellen steht in der Rückfrage „Deine Einstellungen aus der Sicherung werden mit übernommen.“ Ungültige Werte werden verworfen, die aktuelle Einstellung bleibt (`applyBackupSettings`).
+
+### App-Sperre (PIN)
+
+- 4 bis 8 Ziffern. Gespeichert werden nur Salt (16 Byte) und Hash (PBKDF2-SHA256, 150.000 Runden) in den Einstellungen, nicht im Backup.
+- Sperren nach: sofort, 1, 5 oder 15 Minuten im Hintergrund (`visibilitychange`), außerdem beim Start. Solange gesperrt, ist `.app` `inert`.
+- Falsche Eingaben: nach 5 Fehlversuchen 30 Sekunden Pause, danach jeweils verdoppelt bis 15 Minuten (nur im Arbeitsspeicher, ein Neustart setzt zurück).
+- „PIN vergessen?“ löscht alle Daten dieses Geräts (nach Rückfrage). Danach hilft nur ein Backup.
+- **Grenzen, ehrlich:** Das ist ein Sichtschutz, keine Verschlüsselung. Die Daten liegen unverschlüsselt in der Datenbank, Backups in Dokumente sind lesbar. Es gibt kein `FLAG_SECURE`, die App-Vorschau in der Übersicht der laufenden Apps ist nicht abgedunkelt.
+
+### Am Gerät zu prüfen
+
+- PIN: setzen, ändern, entfernen, Sperre nach Hintergrund (Zeit), „PIN vergessen?“, Pause nach Fehlversuchen
+- Währung je Wunsch, Kurse von Hand und per „Kurse online holen“, Summen und Statistik
+- Export als CSV und Text (Teilen und Speichern), CSV in Excel/Numbers öffnen (Umlaute, Spalten)
+- Backup mit Einstellungen sichern und wiederherstellen
+- Start-Reiter, Sortierung, Schriftgröße, Vibration, Papierkorb-Frist, Auto-Backup-Anzahl (Android)

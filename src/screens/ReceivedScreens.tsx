@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { CalendarDays, Check, ChevronRight, Download, ExternalLink, Eye, EyeOff, Link as LinkIcon, Link2Off, Plus, Trash2, Undo2 } from 'lucide-react'
 import { AddButton, Page, Section } from '../components/Page'
-import { Avatar, Chip, Cover, CountUp, EmptyState } from '../components/Primitives'
+import { Avatar, Chip, Cover, CountUp, EmptyState, PriceTag } from '../components/Primitives'
 import { findTaken, targetList } from '../lib/received'
 import { listTitle } from '../lib/lists'
-import { agoLabel, eur, hostOf, longDate, toHref } from '../lib/format'
+import { agoLabel, money, hostOf, longDate, priceOf, toHref } from '../lib/format'
 import { Presence } from '../components/Presence'
 import { Sheet } from '../components/Sheet'
 import { daysUntilIso, distanceLabel, uid } from '../lib/format'
@@ -133,7 +133,7 @@ function ReceivedRow({ it, index, owned, taken, person, onToggle, onPerson }: Ro
       <div className="item__main">
         <span className="item__name">{it.name}</span>
         <div className="item__meta">
-          {it.price !== undefined && <span className="item__price">{eur(it.price)}</span>}
+          {it.price !== undefined && <PriceTag price={it.price} cur={it.cur} />}
           {it.link && (
             <a className="linkbtn" href={toHref(it.link)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} aria-label={t('Link öffnen: {host}', { host: hostOf(it.link) })}>
               <ExternalLink size={12} /> {hostOf(it.link)}
@@ -189,7 +189,7 @@ export function ReceivedDetailScreen({ id, listId }: { id: string; listId?: stri
   const wishesOf = (c: ReceivedCollection) => c.items.filter((i) => !i.owned)
   const rows = cols.flatMap((col) => wishesOf(col).map((it) => ({ it, col })))
   const owned = cols.flatMap((l) => l.items.filter((i) => i.owned))
-  const total = rows.reduce((s, r) => s + (r.it.price ?? 0), 0)
+  const total = rows.reduce((s, r) => s + priceOf(r.it), 0)
   const partsOf = (list: ReceivedCollection[]): Part[] => list.map((col) => ({ col, items: wishesOf(col).filter((i) => !takenOf(i)) })).filter((p) => p.items.length)
   const takenIn = (list: ReceivedCollection[]) => list.flatMap(wishesOf).filter((i) => takenOf(i))
   const todo = partsOf(cols).reduce((n, p) => n + p.items.length, 0)
@@ -215,7 +215,7 @@ export function ReceivedDetailScreen({ id, listId }: { id: string; listId?: stri
       if (!dest) continue
       where = listTitle(dest, t)
       for (const it of its) {
-        made.push({ id: uid(), owner: personId, listId: dest.id, name: it.name, kind: it.kind, link: it.link, price: it.price, note: it.note, imageId: it.imageId, emoji: it.emoji, hue: it.hue, bought: false, createdAt: Date.now() })
+        made.push({ id: uid(), owner: personId, listId: dest.id, name: it.name, kind: it.kind, link: it.link, price: it.price, currency: it.cur, note: it.note, imageId: it.imageId, emoji: it.emoji, hue: it.hue, bought: false, createdAt: Date.now() })
       }
     }
     if (!made.length) return
@@ -338,7 +338,7 @@ export function ReceivedDetailScreen({ id, listId }: { id: string; listId?: stri
             {pkg.lists.map((l, i) => {
               const wishes = wishesOf(l)
               const done = wishes.filter((x) => takenOf(x)).length
-              const sum = wishes.reduce((s, x) => s + (x.price ?? 0), 0)
+              const sum = wishes.reduce((s, x) => s + priceOf(x), 0)
               const days = l.date ? daysUntilIso(l.date) : null
               const style = { '--h': l.hue } as React.CSSProperties
               const all = wishes.length > 0 && done === wishes.length
@@ -369,7 +369,7 @@ export function ReceivedDetailScreen({ id, listId }: { id: string; listId?: stri
                       <CalendarDays size={12} /> {distanceLabel(days, t)}
                     </span>
                   )}
-                  <span className="ltile__total">{eur(sum)}</span>
+                  <span className="ltile__total">{money(sum)}</span>
                   <span className="ltile__bar" aria-hidden>
                     <span style={{ width: `${wishes.length ? (done / wishes.length) * 100 : 0}%` }} />
                   </span>
@@ -397,7 +397,7 @@ export function ReceivedDetailScreen({ id, listId }: { id: string; listId?: stri
 
       <div className="minirow minirow--split">
         <span>
-          {t.n(rows.length, 'Wunsch', 'Wünsche')} · <b><CountUp value={total} format={eur} /></b> {t('zusammen')}
+          {t.n(rows.length, 'Wunsch', 'Wünsche')} · <b><CountUp value={total} format={ money } /></b> {t('zusammen')}
         </span>
         <button
           className="chip chip--button"

@@ -2,13 +2,12 @@ import { useMemo } from 'react'
 import { motion } from 'motion/react'
 import { Page, Section } from '../components/Page'
 import { Avatar, CountUp, EmptyState } from '../components/Primitives'
-import { eur, monthShort } from '../lib/format'
+import { money, monthShort, priceOf } from '../lib/format'
 import { listTitle } from '../lib/lists'
 import { overview } from '../lib/stats'
 import { useStore } from '../state/store'
 import { useT } from '../state/ui'
 
-const money = (n: number) => eur(n)
 const ease = [0.22, 1, 0.36, 1] as const
 
 function Tile({ label, value, sub, delay = 0 }: { label: string; value: string; sub?: string; delay?: number }) {
@@ -166,11 +165,11 @@ export function StatsScreen() {
             <dl className="card facts">
               <div>
                 <dt>{t('Teuerster Eintrag')}</dt>
-                <dd>{o.priciest ? `${o.priciest.name} · ${money(o.priciest.price ?? 0)}` : '–'}</dd>
+                <dd>{o.priciest ? `${o.priciest.name} · ${money(priceOf(o.priciest))}` : '–'}</dd>
               </div>
               <div>
                 <dt>{t('Günstigster Eintrag')}</dt>
-                <dd>{o.cheapest ? `${o.cheapest.name} · ${money(o.cheapest.price ?? 0)}` : '–'}</dd>
+                <dd>{o.cheapest ? `${o.cheapest.name} · ${money(priceOf(o.cheapest))}` : '–'}</dd>
               </div>
               <div>
                 <dt>{t('Doppelte erkannt')}</dt>

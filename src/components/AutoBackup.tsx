@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { APP_VERSION } from '../lib/brand'
 import { backupName, buildBackup } from '../lib/backup'
+import { syncPart } from '../lib/settings'
 import { isNative, writeAutoBackup } from '../lib/backupFiles'
 import { useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
@@ -31,8 +32,8 @@ export function AutoBackup() {
       if (s.lastBackupAt && now - s.lastBackupAt < MIN_GAP_MS) return
       void (async () => {
         try {
-          const { bytes, meta } = await buildBackup(s, APP_VERSION, now)
-          await writeAutoBackup(bytes, backupName('auto', new Date(now)))
+          const { bytes, meta } = await buildBackup(s, APP_VERSION, now, syncPart(settings.current))
+          await writeAutoBackup(bytes, backupName('auto', new Date(now)), settings.current.autoKeep)
           latest.current.dispatch({ type: 'backedUp', at: meta.createdAt })
           ui.toast({ message: t('Automatisch gesichert'), emoji: '🗄️' })
         } catch {

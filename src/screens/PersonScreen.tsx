@@ -9,7 +9,7 @@ import { Avatar, CountUp } from '../components/Primitives'
 import { OccasionSheet } from '../components/OccasionSheet'
 import { ItemFormSheet } from '../components/ItemFormSheet'
 import { PersonFormSheet } from '../components/PersonFormSheet'
-import { agoLabel, dateLabel, daysUntil, eur, untilLabel } from '../lib/format'
+import { agoLabel, dateLabel, daysUntil, money, priceOf, untilLabel } from '../lib/format'
 import { receivedCounts } from '../lib/received'
 import type { Occasion } from '../lib/types'
 import { nextOccasion, occasionEmoji } from '../lib/occasions'
@@ -39,8 +39,8 @@ export function PersonScreen({ id }: { id: string }) {
   if (!person) return null
 
   const mineAll = items.filter((i) => i.owner === id && !i.deletedAt)
-  const spent = mineAll.filter((i) => i.bought).reduce((s, i) => s + (i.price ?? 0), 0)
-  const planned = mineAll.filter((i) => !i.bought).reduce((s, i) => s + (i.price ?? 0), 0)
+  const spent = mineAll.filter((i) => i.bought).reduce((s, i) => s + priceOf(i), 0)
+  const planned = mineAll.filter((i) => !i.bought).reduce((s, i) => s + priceOf(i), 0)
   const next = nextOccasion(person)
   const pkgs = received.filter((r) => r.personId === id)
   const rows = lists.map((l) => ({ list: l, stats: listStats(mineAll.filter((i) => i.listId === l.id)) }))
@@ -66,11 +66,11 @@ export function PersonScreen({ id }: { id: string }) {
           <div className="hero__text hero__text--grow">
             <span className="hero__label">{t('Budget')}</span>
             <strong className="hero__value hero__value--nowrap">
-              <CountUp value={spent} format={eur} />
-              <small> {t('von {total}', { total: eur(person.budget) })}</small>
+              <CountUp value={spent} format={ money } />
+              <small> {t('von {total}', { total: money(person.budget) })}</small>
             </strong>
             <BudgetBar spent={spent} planned={planned} budget={person.budget} hideText />
-            <span className="hero__note">{planned > 0 ? t('{amount} in offenen Ideen', { amount: eur(planned) }) : t('Keine offenen Ideen')}</span>
+            <span className="hero__note">{planned > 0 ? t('{amount} in offenen Ideen', { amount: money(planned) }) : t('Keine offenen Ideen')}</span>
           </div>
         </motion.section>
 

@@ -1,4 +1,4 @@
-import { daysUntil, normalize } from './format'
+import { daysUntil, normalize, priceOf } from './format'
 import type { Item, Person, ReceivedList, Wishlist } from './types'
 
 export interface ListStats {
@@ -14,13 +14,13 @@ export interface ListStats {
   priciest?: Item
 }
 
-const sum = (items: Item[]) => items.reduce((s, i) => s + (i.price ?? 0), 0)
+const sum = (items: Item[]) => items.reduce((s, i) => s + priceOf(i), 0)
 
 export function listStats(items: Item[]): ListStats {
   const open = items.filter((i) => !i.bought)
   const bought = items.filter((i) => i.bought)
   const priced = items.filter((i) => i.price !== undefined)
-  const priciest = priced.reduce<Item | undefined>((m, i) => (!m || (i.price ?? 0) > (m.price ?? 0) ? i : m), undefined)
+  const priciest = priced.reduce<Item | undefined>((m, i) => (!m || priceOf(i) > priceOf(m) ? i : m), undefined)
   return {
     count: items.length,
     open: open.length,
@@ -105,12 +105,12 @@ export function overview(
       const md = new Date(m.ts)
       return md.getFullYear() === d.getFullYear() && md.getMonth() === d.getMonth()
     })
-    if (idx >= 0) months[idx][i.owner === 'me' ? 'self' : 'gifts'] += i.price ?? 0
+    if (idx >= 0) months[idx][i.owner === 'me' ? 'self' : 'gifts'] += priceOf(i)
   }
 
   const priced = live.filter((i) => i.price !== undefined)
-  const priciest = priced.reduce<Item | undefined>((m, i) => (!m || (i.price ?? 0) > (m.price ?? 0) ? i : m), undefined)
-  const cheapest = priced.reduce<Item | undefined>((m, i) => (!m || (i.price ?? 0) < (m.price ?? 0) ? i : m), undefined)
+  const priciest = priced.reduce<Item | undefined>((m, i) => (!m || priceOf(i) > priceOf(m) ? i : m), undefined)
+  const cheapest = priced.reduce<Item | undefined>((m, i) => (!m || priceOf(i) < priceOf(m) ? i : m), undefined)
 
   const kindCount = new Map<string, { kind: string; count: number }>()
   for (const i of live) {

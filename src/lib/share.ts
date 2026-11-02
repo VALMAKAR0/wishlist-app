@@ -1,4 +1,5 @@
 import { loadImages, packZip, unpackZip, type Packable } from './backup'
+import { CURRENCIES } from './format'
 import { listTitle } from './lists'
 import type { TFn } from './i18n'
 import type { Item, ReceivedCollection, ReceivedItem, ReceivedList, ShareBought, Wishlist } from './types'
@@ -66,7 +67,10 @@ export function pickShared(src: Source, o: ShareOptions, t: TFn) {
       const it: ReceivedItem = { id: i.id, name: i.name, emoji: i.emoji, hue: i.hue, owned: isOwned }
       if (i.kind) it.kind = i.kind
       if (i.link) it.link = i.link
-      if (o.price && i.price !== undefined) it.price = i.price
+      if (o.price && i.price !== undefined) {
+        it.price = i.price
+        if (i.currency && i.currency !== 'EUR') it.cur = i.currency
+      }
       if (isOwned) {
         if (i.boughtAt) it.boughtAt = i.boughtAt
       } else {
@@ -151,7 +155,10 @@ export function readShare(bytes: Uint8Array): ShareRead {
       const note = str(r.note, 2000)
       if (kind) it.kind = kind
       if (link) it.link = link
-      if (price !== undefined) it.price = price
+      if (price !== undefined) {
+        it.price = price
+        if (typeof r.cur === 'string' && r.cur !== 'EUR' && CURRENCIES.includes(r.cur)) it.cur = r.cur
+      }
       if (note && !it.owned) it.note = note
       const bat = num(r.boughtAt, 1, 4_102_444_800_000)
       if (it.owned && bat) it.boughtAt = bat

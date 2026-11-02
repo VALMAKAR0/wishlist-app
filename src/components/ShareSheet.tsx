@@ -4,7 +4,7 @@ import { Check, ChevronDown, EyeOff, FolderDown, Lock, Send } from 'lucide-react
 import { APP_VERSION } from '../lib/brand'
 import { isNative, saveFile, shareFile } from '../lib/backupFiles'
 import { listTitle } from '../lib/lists'
-import { buildShare, DEFAULT_SHARE, estimateBytes, type ShareOptions } from '../lib/share'
+import { buildShare, estimateBytes, type ShareOptions } from '../lib/share'
 import type { ShareBought } from '../lib/types'
 import { useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
@@ -18,11 +18,11 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
   const { settings, setSettings } = ui
   const myLists = lists.filter((l) => l.owner === 'me')
   const [picked, setPicked] = useState<Set<string>>(() => new Set(initialList && myLists.some((l) => l.id === initialList) ? [initialList] : myLists.map((l) => l.id)))
-  const [notes, setNotes] = useState(DEFAULT_SHARE.notes)
-  const [price, setPrice] = useState(DEFAULT_SHARE.price)
-  const [images, setImages] = useState(DEFAULT_SHARE.images)
-  const [listDate, setListDate] = useState(DEFAULT_SHARE.listDate)
-  const [mode, setMode] = useState<ShareBought>(DEFAULT_SHARE.bought)
+  const [notes, setNotes] = useState(settings.shareDefaults.notes)
+  const [price, setPrice] = useState(settings.shareDefaults.price)
+  const [images, setImages] = useState(settings.shareDefaults.images)
+  const [listDate, setListDate] = useState(settings.shareDefaults.listDate)
+  const [mode, setMode] = useState<ShareBought>(settings.shareDefaults.bought)
   const [name, setName] = useState(settings.shareName)
   const [adv, setAdv] = useState(false)
   const [shake, setShake] = useState(0)
@@ -84,7 +84,7 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
     }
     setBusy(true)
     try {
-      setSettings({ shareName: name.trim() })
+      setSettings({ shareName: name.trim(), shareDefaults: { notes, price, images, listDate, bought: mode } })
       const out = await buildShare({ items, lists }, opts, t, APP_VERSION)
       const text = t('{name} schickt dir die Wunschliste. Öffne die Datei in der App „Wunschliste“ unter „Erhalten“ → „Import“.', { name: name.trim() })
       const r = save ? await saveFile(out.bytes, out.name) : await shareFile(out.bytes, out.name, text)

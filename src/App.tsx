@@ -1,6 +1,7 @@
 import { App as CapApp } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { AppLock } from './components/AppLock'
 import { AutoBackup } from './components/AutoBackup'
 import { IncomingFile } from './components/IncomingFile'
 import { Reminders } from './components/Reminders'
@@ -8,6 +9,7 @@ import { UpdateCheck } from './components/UpdateCheck'
 import { Aurora, Splash, TabBar } from './components/Chrome'
 import { Stage } from './components/Stage'
 import { MoreScreen, RoadmapScreen, TrashScreen } from './screens/MoreScreens'
+import { SettingsPage } from './screens/SettingsPages'
 import { IdeasScreen } from './screens/IdeasScreen'
 import { ListScreen } from './screens/ListPage'
 import { PersonScreen } from './screens/PersonScreen'
@@ -26,8 +28,9 @@ function Screens() {
   let screen
   let key: string
   if (view) {
-    key = `view:${view.type}:${'id' in view ? view.id : ''}${view.type === 'received' && view.listId ? ':' + view.listId : ''}`
+    key = `view:${view.type}:${'id' in view ? view.id : 'page' in view ? view.page : ''}${view.type === 'received' && view.listId ? ':' + view.listId : ''}`
     screen =
+      view.type === 'settings' ? <SettingsPage page={view.page} /> :
       view.type === 'person' ? <PersonScreen id={view.id} /> :
       view.type === 'received' ? <ReceivedDetailScreen id={view.id} listId={view.listId} /> :
       view.type === 'list' ? <ListScreen id={view.id} /> :
@@ -124,6 +127,7 @@ export default function App() {
       <StoreProvider>
         <NavProvider>
           <Shell />
+          <AppLock />
         </NavProvider>
       </StoreProvider>
     </UIProvider>

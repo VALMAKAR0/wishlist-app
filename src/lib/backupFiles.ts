@@ -31,12 +31,12 @@ async function writeToDocuments(bytes: Uint8Array, name: string) {
   await Filesystem.writeFile({ path: `${BACKUP_DIR}/${name}`, data: toBase64(bytes), directory: Directory.Documents, recursive: true })
 }
 
-/** Behält die letzten AUTO_KEEP automatischen Sicherungen, ältere eigene Dateien werden gelöscht. */
-async function pruneAuto() {
+/** Behält die letzten `keep` automatischen Sicherungen, ältere eigene Dateien werden gelöscht. */
+async function pruneAuto(keep: number) {
   try {
     const { files } = await Filesystem.readdir({ path: BACKUP_DIR, directory: Directory.Documents })
     const mine = files.map((f) => f.name).filter((n) => n.startsWith(AUTO_PREFIX) && n.endsWith('.zip')).sort()
-    for (const n of mine.slice(0, Math.max(0, mine.length - AUTO_KEEP))) {
+    for (const n of mine.slice(0, Math.max(0, mine.length - keep))) {
       await Filesystem.deleteFile({ path: `${BACKUP_DIR}/${n}`, directory: Directory.Documents }).catch(() => undefined)
     }
   } catch {
@@ -45,9 +45,9 @@ async function pruneAuto() {
 }
 
 /** Automatische Sicherung in Dokumente. Wirft bei Fehlern, damit der Aufrufer nichts als gesichert markiert. */
-export async function writeAutoBackup(bytes: Uint8Array, name: string): Promise<void> {
+export async function writeAutoBackup(bytes: Uint8Array, name: string, keep = AUTO_KEEP): Promise<void> {
   await writeToDocuments(bytes, name)
-  await pruneAuto()
+  await pruneAuto(keep)
 }
 
 async function shareNative(bytes: Uint8Array, name: string, text?: string): Promise<Delivered> {
@@ -108,4 +108,9 @@ export async function saveFile(bytes: Uint8Array, name: string): Promise<Deliver
   if (!isNative()) return shareOrDownload(bytes, name, undefined, 'application/octet-stream')
   await writeToDocuments(bytes, name)
   return { where: 'documents' }
+}
+
+/** Gibt eine fertige Datei (z. B. CSV) aus: Teilen-Menü oder Download. */
+export async function exportFile(bytes: Uint8Array, name: string, type: string): Promise<Delivered> {
+  return isNative() ? shareNative(bytes, name) : shareOrDownload(bytes, name, undefined, type)
 }

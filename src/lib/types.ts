@@ -30,6 +30,8 @@ export interface Item {
   kind?: string
   link?: string
   price?: number
+  /** Währung des Preises (ISO-Code). Fehlt das Feld, gilt Euro. */
+  currency?: string
   note?: string
   /** Verweis auf ein verkleinertes Bild im Bilderspeicher (lib/images.ts). Ohne Bild gilt Emoji und Farbe. */
   imageId?: string
@@ -63,6 +65,8 @@ export interface ReceivedItem {
   name: string
   kind?: string
   price?: number
+  /** Währung des Preises, fehlt = Euro. */
+  cur?: string
   note?: string
   link?: string
   emoji: string
@@ -100,6 +104,18 @@ export interface ReceivedList {
 export type ThemeSetting = 'system' | 'dark' | 'light'
 export type FxSetting = 'full' | 'calm' | 'off'
 export type Lang = 'de' | 'en'
+export type DateFmt = 'auto' | 'dmy' | 'mdy' | 'iso'
+export type FontScale = 'small' | 'normal' | 'large' | 'xl'
+export type SortMode = 'new' | 'old' | 'name' | 'priceDown' | 'priceUp'
+export type StartTab = 'wishes' | 'ideas' | 'received' | 'stats' | 'last'
+
+export interface ShareDefaults {
+  notes: boolean
+  price: boolean
+  images: boolean
+  listDate: boolean
+  bought: ShareBought
+}
 
 export interface UiSettings {
   theme: ThemeSetting
@@ -128,6 +144,26 @@ export interface UiSettings {
   shareName: string
   /** Zufällige Kennung dieses Geräts als Absender. */
   shareId: string
+  /** Hauptwährung für Summen, Budget und Statistik. */
+  currency: string
+  /** Kurse: Einheiten der Währung für 1 Euro (Euro selbst = 1). */
+  rates: Record<string, number>
+  ratesAt: number
+  dateFmt: DateFmt
+  fontScale: FontScale
+  haptics: boolean
+  /** Tage, die Einträge im Papierkorb bleiben. */
+  trashDays: number
+  /** Anzahl der automatischen Sicherungen, die bleiben. */
+  autoKeep: number
+  startTab: StartTab
+  sort: SortMode
+  shareDefaults: ShareDefaults
+  /** PIN-Sperre: gesalzener Hash, leer = aus. Bleibt auf diesem Gerät. */
+  lockHash: string
+  lockSalt: string
+  /** Sekunden im Hintergrund, nach denen die App sich sperrt (0 = sofort). */
+  lockAfter: number
 }
 
 export type ShareBought = 'hidden' | 'only' | 'exclude'

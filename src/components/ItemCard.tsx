@@ -1,10 +1,10 @@
 import { useRef, type MouseEvent, type Ref } from 'react'
 import { animate, motion, useMotionValue, useTransform } from 'motion/react'
 import { Check, ExternalLink, StickyNote, Trash2, Undo2 } from 'lucide-react'
-import { agoLabel, eur, hostOf, toHref } from '../lib/format'
+import { agoLabel, hostOf, toHref } from '../lib/format'
 import type { Item } from '../lib/types'
 import { useT } from '../state/ui'
-import { Cover } from './Primitives'
+import { Cover, PriceTag } from './Primitives'
 
 interface ItemCardProps {
   item: Item
@@ -118,7 +118,7 @@ export function ItemCard({ item, index, onOpen, onToggle, onTrash, badge, listLa
             <span className="item__name">{item.name}</span>
           </div>
           <div className="item__meta">
-            {item.price !== undefined && <span className="item__price">{eur(item.price)}</span>}
+            {item.price !== undefined && <PriceTag price={item.price} cur={item.currency} />}
             {item.link && (
               <button className="linkbtn" data-no-open onClick={openLink} aria-label={t('Link öffnen: {host}', { host: hostOf(item.link) })}>
                 <ExternalLink size={12} /> {hostOf(item.link)}

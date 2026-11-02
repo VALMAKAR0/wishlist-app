@@ -1,7 +1,7 @@
 import { useEffect, useId, type CSSProperties, type ReactNode } from 'react'
 import { animate, motion, useMotionValue, useTransform } from 'motion/react'
 import { Check } from 'lucide-react'
-import { initial } from '../lib/format'
+import { initial, priceText } from '../lib/format'
 import { useImageUrl } from '../lib/images'
 
 type HueStyle = CSSProperties & { '--h'?: number }
@@ -194,5 +194,16 @@ export function Logo({ size = 40 }: { size?: number }) {
         transition={{ delay: 0.9, type: 'spring', stiffness: 300, damping: 14 }}
       />
     </svg>
+  )
+}
+
+/** Preis in seiner Währung, bei fremder Währung mit Umrechnung in die Hauptwährung dahinter. */
+export function PriceTag({ price, cur }: { price: number; cur?: string }) {
+  const p = priceText(price, cur)
+  return (
+    <span className="item__price">
+      {p.main}
+      {p.sub && <small className="item__conv"> {p.sub}</small>}
+    </span>
   )
 }

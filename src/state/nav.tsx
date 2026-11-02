@@ -1,15 +1,41 @@
 import { setRootBack } from './back'
+import { useUI } from './ui'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+
+import type { StartTab } from '../lib/types'
 
 export type Tab = 'wishes' | 'ideas' | 'received' | 'stats' | 'more'
 export const TAB_ORDER: Tab[] = ['wishes', 'ideas', 'received', 'stats', 'more']
 
+export type SettingsPageId = 'data' | 'look' | 'money' | 'remind' | 'privacy' | 'app'
+
 export type View =
+  | { type: 'settings'; page: SettingsPageId }
   | { type: 'person'; id: string }
   | { type: 'received'; id: string; listId?: string }
   | { type: 'list'; id: string }
   | { type: 'trash' }
   | { type: 'roadmap' }
+
+const LAST_KEY = 'wl.lastTab'
+function writeLastTab(t: Tab) {
+  try {
+    localStorage.setItem(LAST_KEY, t)
+  } catch {
+    /* nur Komfort */
+  }
+}
+
+/** Reiter beim Öffnen: festgelegt oder der zuletzt benutzte (ohne "Mehr"). */
+function startTabOf(s: StartTab): Tab {
+  if (s !== 'last') return s
+  try {
+    const v = localStorage.getItem(LAST_KEY)
+    return v && (TAB_ORDER as string[]).includes(v) && v !== 'more' ? (v as Tab) : 'wishes'
+  } catch {
+    return 'wishes'
+  }
+}
 
 interface Nav {
   tab: Tab
@@ -27,12 +53,16 @@ const Ctx = createContext<Nav | null>(null)
 // der Android-Zurück-Button genauso funktionieren wie der Pfeil in der App.
 // Ansichten können sich stapeln (Person -> Liste), Zurück geht immer eine Stufe.
 export function NavProvider({ children }: { children: ReactNode }) {
-  const [tab, setTabState] = useState<Tab>('wishes')
+  const { settings } = useUI()
+  const [tab, setTabState] = useState<Tab>(() => startTabOf(settings.startTab))
   const [stack, setStack] = useState<View[]>([])
   const [dir, setDir] = useState<1 | -1>(1)
   const depth = useRef(0)
   const tabRef = useRef(tab)
   tabRef.current = tab
+  useEffect(() => {
+    if (tab !== 'more') writeLastTab(tab)
+  }, [tab])
   // Anzahl der selbst ausgelösten History-Sprünge, deren popstate nichts mehr ändern soll.
   const ignorePops = useRef(0)
   const view = stack[stack.length - 1] ?? null

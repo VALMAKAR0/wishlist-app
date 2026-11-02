@@ -8,7 +8,7 @@ import { Presence } from '../components/Presence'
 import { Avatar, Chip, CountUp, EmptyState, Segmented } from '../components/Primitives'
 import { PersonFormSheet } from '../components/PersonFormSheet'
 import { cap } from '../lib/i18n'
-import { dateLabel, eur, untilLabel } from '../lib/format'
+import { dateLabel, money, priceOf, untilLabel } from '../lib/format'
 import { nextOccasion } from '../lib/occasions'
 import { listStats } from '../lib/stats'
 import { useNav } from '../state/nav'
@@ -32,7 +32,7 @@ export function BudgetBar({ spent, planned, budget, hideText }: { spent: number;
       </div>
       {!hideText && (
         <span className="budget__text">
-          {eur(spent)} <em>{t('von {total}', { total: eur(budget) })}</em>
+          {money(spent)} <em>{t('von {total}', { total: money(budget) })}</em>
           {over && <strong> · {t('über Budget')}</strong>}
         </span>
       )}
@@ -75,8 +75,8 @@ export function IdeasScreen() {
             person: p,
             next: nextOccasion(p),
             ideas: mine.filter((i) => !i.bought),
-            spent: mine.filter((i) => i.bought).reduce((s, i) => s + (i.price ?? 0), 0),
-            planned: mine.filter((i) => !i.bought).reduce((s, i) => s + (i.price ?? 0), 0),
+            spent: mine.filter((i) => i.bought).reduce((s, i) => s + priceOf(i), 0),
+            planned: mine.filter((i) => !i.bought).reduce((s, i) => s + priceOf(i), 0),
             dupes: mine.filter(alreadyOwned).length,
           }
         })

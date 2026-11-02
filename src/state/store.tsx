@@ -159,15 +159,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   return <StoreInner boot={boot}>{children}</StoreInner>
 }
 
-const startState = (boot: Loaded): State => {
+const startState = (boot: Loaded, trashDays: number): State => {
   if (boot.kind !== 'ok') return emptyState()
-  return { ...emptyState(), ...boot.data, items: purgeExpired(boot.data.items), nudgeOpen: true }
+  return { ...emptyState(), ...boot.data, items: purgeExpired(boot.data.items, Date.now(), trashDays), nudgeOpen: true }
 }
 
 function StoreInner({ boot, children }: { boot: Loaded; children: ReactNode }) {
   const ui = useUI()
   const t = useT()
-  const [state, dispatch] = useReducer(reducer, boot, startState)
+  const [state, dispatch] = useReducer(reducer, boot, (b: Loaded) => startState(b, ui.settings.trashDays))
   const memory = boot.kind === 'unavailable'
   // Wurde beim Start im Papierkorb aufgeräumt, wird der neue Stand gleich gespeichert.
   const skipFirst = useRef(!(boot.kind === 'ok' && state.items.length !== boot.data.items.length))

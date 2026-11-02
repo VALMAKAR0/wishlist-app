@@ -6,14 +6,15 @@ import { Presence } from '../components/Presence'
 import { EmptyState, Segmented } from '../components/Primitives'
 import { ItemFormSheet } from '../components/ItemFormSheet'
 import { ShareSheet } from '../components/ShareSheet'
-import { daysUntilIso, isoLabel } from '../lib/format'
+import { daysUntilIso, isoLabel, priceOf } from '../lib/format'
 import { listDate, listOccasion, listTitle } from '../lib/lists'
 import { occasionEmoji } from '../lib/occasions'
+import { sortItems } from '../lib/settings'
 import { listStats } from '../lib/stats'
 import type { Item, Owner } from '../lib/types'
 import { useNav } from '../state/nav'
 import { useStore } from '../state/store'
-import { useT } from '../state/ui'
+import { useT, useUI } from '../state/ui'
 import { ItemList } from './shared'
 
 type Seg = 'open' | 'done'
@@ -32,6 +33,7 @@ interface Props {
 /** Eine Liste (oder alle Listen) mit Kennzahlen, offenen und gekauften Einträgen. Gilt für Wünsche und Ideen. */
 export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) {
   const t = useT()
+  const { settings } = useUI()
   const { items, lists: allLists, persons, alreadyOwned } = useStore()
   const { back } = useNav()
   const forMe = owner === 'me'
@@ -51,7 +53,7 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) 
   const person = forMe ? undefined : persons.find((p) => p.id === owner)
   const mineAll = items.filter((i) => i.owner === owner && !i.deletedAt)
   const scoped = list ? mineAll.filter((i) => i.listId === list.id) : mineAll
-  const open = scoped.filter((i) => !i.bought)
+  const open = sortItems(scoped.filter((i) => !i.bought), settings.sort, priceOf)
   const done = scoped.filter((i) => i.bought).sort((a, b) => (b.boughtAt ?? 0) - (a.boughtAt ?? 0))
   const shown = seg === 'open' ? open : done
   const stats = listStats(scoped)

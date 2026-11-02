@@ -120,7 +120,7 @@ const extOf = (type: string) => (type === 'image/png' ? 'png' : type === 'image/
 const typeOf = (name: string) => (name.endsWith('.png') ? 'image/png' : name.endsWith('.webp') ? 'image/webp' : 'image/jpeg')
 
 /** Baut die ZIP-Datei: daten.json plus alle verwendeten Bilder als eigene Dateien. */
-export async function buildBackup(data: BackupData, appVersion: string, now = Date.now()): Promise<{ bytes: Uint8Array; meta: BackupMeta }> {
+export async function buildBackup(data: BackupData, appVersion: string, now = Date.now(), settings?: object): Promise<{ bytes: Uint8Array; meta: BackupMeta }> {
   const images = await loadImages(imageIdsOf(data))
   const meta: BackupMeta = {
     createdAt: now,
@@ -128,11 +128,11 @@ export async function buildBackup(data: BackupData, appVersion: string, now = Da
     schemaVersion: SCHEMA_VERSION,
     counts: { items: data.items.length, lists: data.lists.length, persons: data.persons.length, received: data.received.length, images: images.size },
   }
-  return { bytes: packZip({ app: MARKER, format: BACKUP_FORMAT, ...meta, data }, images), meta }
+  return { bytes: packZip({ app: MARKER, format: BACKUP_FORMAT, ...meta, data, ...(settings ? { settings } : {}) }, images), meta }
 }
 
 export type ReadResult =
-  | { ok: true; data: StoredData; meta: BackupMeta; images: Map<string, StoredImage>; missingImages: number; migratedFrom?: number }
+  | { ok: true; data: StoredData; meta: BackupMeta; images: Map<string, StoredImage>; missingImages: number; migratedFrom?: number; settings?: object }
   | { ok: false; reason: 'notZip' | 'notBackup' | 'newerFormat' | 'newerData' | 'broken'; version?: number }
 
 /** Liest eine Backup-Datei und prüft sie, ohne etwas zu verändern. */
@@ -170,7 +170,8 @@ export function readBackup(bytes: Uint8Array): ReadResult {
       images: Number(c.images ?? images.size),
     },
   }
-  return { ok: true, data, meta, images, missingImages, migratedFrom: version < SCHEMA_VERSION ? version : undefined }
+  const settings = typeof doc.settings === 'object' && doc.settings !== null && !Array.isArray(doc.settings) ? (doc.settings as object) : undefined
+  return { ok: true, data, meta, images, missingImages, migratedFrom: version < SCHEMA_VERSION ? version : undefined, settings }
 }
 
 /** Schreibt die Bilder des Backups in den Bilderspeicher. Danach kann der Datenstand ersetzt werden. */

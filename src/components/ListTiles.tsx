@@ -1,6 +1,6 @@
 import { motion } from 'motion/react'
 import { CalendarDays, Plus } from 'lucide-react'
-import { daysUntilIso, distanceLabel, eur } from '../lib/format'
+import { daysUntilIso, distanceLabel, money } from '../lib/format'
 import { listDate, listOccasion, listTitle } from '../lib/lists'
 import type { ListStats } from '../lib/stats'
 import type { Wishlist } from '../lib/types'
@@ -66,17 +66,17 @@ export function ListTiles({ rows, onOpen, onNew }: Props) {
               </span>
             </span>
             {date && <TileDate iso={date} />}
-            <span className="ltile__total">{stats.count ? eur(stats.total) : t('Leer')}</span>
+            <span className="ltile__total">{stats.count ? money(stats.total) : t('Leer')}</span>
             <span className="ltile__bar" aria-hidden>
               <span style={{ width: `${done * 100}%` }} />
             </span>
             <span className="ltile__foot">
               <span>{t('{n} offen', { n: stats.open })}</span>
-              <span>{eur(stats.openValue)}</span>
+              <span>{money(stats.openValue)}</span>
             </span>
             <span className="ltile__foot ltile__foot--dim">
               <span>{t('{n} gekauft', { n: stats.bought })}</span>
-              <span>{eur(stats.boughtValue)}</span>
+              <span>{money(stats.boughtValue)}</span>
             </span>
           </motion.button>
         )
