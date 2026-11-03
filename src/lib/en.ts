@@ -835,4 +835,9 @@ export const en: Record<string, string> = {
   'Für Geschenkideen lege zuerst unter „Ideen“ eine Person an.': 'For gift ideas, first add a person under “Ideas”.',
   'Im Browser oder Shop: Teilen → Wunschliste': 'In the browser or shop: Share → Wunschliste',
   'Im geteilten Text steckt kein Link.': 'The shared text contains no link.',
+  'Arten': 'Kinds',
+  'DNS: Adresse nicht auflösbar (Privates DNS, VPN, Werbeblocker oder Hotspot prüfen)': 'DNS: address cannot be resolved (check private DNS, VPN, ad blocker or hotspot)',
+  'Zeitüberschreitung, die Seite antwortet nicht': 'Timeout, the page does not answer',
+  'Sichere Verbindung (SSL) fehlgeschlagen': 'Secure connection (SSL) failed',
+  'Verbindung abgelehnt oder Netz nicht erreichbar': 'Connection refused or network unreachable',
 }

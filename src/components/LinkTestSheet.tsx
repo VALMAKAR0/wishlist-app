@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ClipboardPaste, Copy, ExternalLink, Loader2, Search } from 'lucide-react'
-import { fetchProduct, idealoSearch, knownCurrency, linkFailText, LinkError, type Diagnostics, type Product } from '../lib/linkImport'
+import { fetchProduct, idealoSearch, knownCurrency, linkFailExtra, linkFailText, LinkError, type Diagnostics, type Product } from '../lib/linkImport'
 import { money } from '../lib/format'
 import { useT, useUI } from '../state/ui'
 import { Sheet } from './Sheet'
@@ -37,6 +37,11 @@ export function LinkTestSheet({ onClose }: { onClose: () => void }) {
     }
   }
 
+  const reason = (e: unknown) => {
+    const x = linkFailExtra(e)
+    return (x.status ? ` (HTTP ${x.status})` : x.why ? ` ${t(x.why)}` : '') + (e instanceof LinkError && e.detail ? ` [${e.detail}]` : '')
+  }
+
   const run = async () => {
     if (busy) return
     setBusy(true)
@@ -49,7 +54,7 @@ export function LinkTestSheet({ onClose }: { onClose: () => void }) {
       setDiag(r.diag)
       ui.haptic(15)
     } catch (e) {
-      setErr(t(linkFailText(e)) + (e instanceof LinkError && e.status ? ` (HTTP ${e.status})` : e instanceof LinkError && e.detail ? ` (${e.detail})` : ''))
+      setErr(t(linkFailText(e)) + reason(e))
       if (e instanceof LinkError) setDiag(e.diag)
       ui.haptic(60)
     } finally {

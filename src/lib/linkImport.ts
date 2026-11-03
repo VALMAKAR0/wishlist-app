@@ -1,6 +1,7 @@
 import { isNative } from './backupFiles'
 import { CURRENCIES } from './format'
 import { httpBytes, httpGet } from './http'
+import { netReason } from './netReason'
 
 export interface Product {
   name?: string
@@ -10,6 +11,7 @@ export interface Product {
   currency?: string
   gtin?: string
   gtinOk?: boolean
+  category?: string
   sources: string[]
 }
 
@@ -147,6 +149,13 @@ function offersOf(node: Record<string, unknown>): { price?: number; currency?: s
   return best
 }
 
+function categoryOf(n: Record<string, unknown>): string | undefined {
+  const raw = asArray(n.category as unknown).map((x) => (isObj(x) ? str(x.name) : typeof x === 'string' ? x : undefined)).find((x): x is string => !!x?.trim())
+  if (!raw) return undefined
+  const last = raw.split(/\s*[>/|,]\s*/).filter(Boolean).pop()?.trim()
+  return last && last.length <= 40 && !/^\d+$/.test(last) ? decode(last) : undefined
+}
+
 const GTIN_KEYS = ['gtin13', 'gtin', 'gtin14', 'gtin12', 'gtin8', 'ean', 'isbn']
 
 function fromJsonLd(blocks: unknown[]): Product | null {
@@ -168,6 +177,7 @@ function fromJsonLd(blocks: unknown[]): Product | null {
     currency: o.currency,
     gtin,
     gtinOk: gtin ? gtinValid(gtin) : undefined,
+    category: categoryOf(withOffer) ?? (group ? categoryOf(group) : undefined),
     sources: ['JSON-LD'],
   }
 }
@@ -241,6 +251,7 @@ export function parseProduct(html: string, pageUrl: string): { product: Product;
     currency: ld?.price !== undefined ? ld.currency : meta.product.currency,
     gtin: ld?.gtin ?? meta.product.gtin,
     gtinOk: ld?.gtin ? ld.gtinOk : meta.product.gtinOk,
+    category: ld?.category,
     sources: [...new Set(sources)],
   }
   return { product, diag: { ldBlocks: blocks.length, productNode: !!ld, metaTags: meta.count } }
@@ -318,6 +329,14 @@ export async function fetchImageBytes(src: string): Promise<{ type: string; data
   } catch {
     return null
   }
+}
+
+/** Zusatz hinter der Meldung: Statuscode oder Grund des Netzfehlers. */
+export function linkFailExtra(e: unknown): { status?: number; why?: string } {
+  if (!(e instanceof LinkError)) return {}
+  if (e.status) return { status: e.status }
+  const why = e.kind === 'network' ? netReason(e.detail) : ''
+  return why ? { why } : {}
 }
 
 export function linkFailText(e: unknown): string {

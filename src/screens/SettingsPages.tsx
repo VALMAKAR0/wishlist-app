@@ -8,6 +8,7 @@ import { Presence } from '../components/Presence'
 import { useCalendarFile } from '../components/CalendarFile'
 import { InstallSheet } from '../components/InstallSheet'
 import { LinkTestSheet } from '../components/LinkTestSheet'
+import { netReason } from '../lib/netReason'
 import { promptInstall, useInstall } from '../lib/install'
 import { ReminderSettings } from '../components/ReminderSettings'
 import { Chip, Ring, Segmented, Switch } from '../components/Primitives'
@@ -341,8 +342,10 @@ function MoneyPage() {
       const rates = await fetchRates()
       setSettings({ rates, ratesAt: Date.now() })
       ui.toast({ message: t('Kurse aktualisiert'), emoji: '💱' })
-    } catch {
-      ui.toast({ message: t('Kurse konnten nicht geladen werden. Bist du online?'), emoji: '📡' })
+    } catch (e) {
+      const raw = e instanceof Error ? e.message : ''
+      const why = netReason(raw)
+      ui.toast({ message: t('Kurse konnten nicht geladen werden. Bist du online?') + (why ? ` ${t(why)}` : /^\d{3}$/.test(raw) ? ` (HTTP ${raw})` : ''), emoji: '📡' })
     } finally {
       setBusy(false)
     }

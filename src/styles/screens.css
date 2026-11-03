@@ -1800,3 +1800,6 @@ a.btn--block { display: flex; }
 .choicelist { display: grid; gap: 10px; }
 .field__row--link { flex-wrap: wrap; }
 .field__row--link input { flex: 1 1 100%; }
+.kindchips { display: flex; gap: 6px; overflow-x: auto; padding: 6px 0 2px; scrollbar-width: none; }
+.kindchips::-webkit-scrollbar { display: none; }
+.kindchips .chip { flex: none; }

@@ -4,9 +4,9 @@ import { Camera, ExternalLink, Loader2, Trash2, Wand2, X } from 'lucide-react'
 import { isNative } from '../lib/backupFiles'
 import { CURRENCIES, hasRate, toHref, uid } from '../lib/format'
 import { processImage, saveImage } from '../lib/images'
-import { extractUrl, fetchImageBytes, fetchProduct, knownCurrency, linkFailText } from '../lib/linkImport'
+import { cleanUrl, extractUrl, fetchImageBytes, fetchProduct, knownCurrency, linkFailExtra, linkFailText } from '../lib/linkImport'
 import { listTitle } from '../lib/lists'
-import { candidatesFor, findSimilar, suggestKind } from '../lib/match'
+import { candidatesFor, findSimilar, kindOptions, suggestKind } from '../lib/match'
 import type { Item, Owner } from '../lib/types'
 import { useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
@@ -56,6 +56,9 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
   const live = useRef({ name, kind, kindTouched, price, cur, pending, removed })
   live.current = { name, kind, kindTouched, price, cur, pending, removed }
   const started = useRef(false)
+  const lastTried = useRef(item?.link?.trim() ?? '')
+  const [category, setCategory] = useState<string | undefined>()
+  const known = useMemo(() => items.filter((i) => !i.deletedAt && i.id !== item?.id).map((i) => ({ name: i.name, kind: i.kind })), [items, item?.id])
 
   useEffect(
     () => () => {
@@ -84,6 +87,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
     const url = extractUrl(raw) ?? raw.trim()
     if (!url) return
     setLink(url)
+    lastTried.current = url
     if (!canImport || importing) return
     setImporting(true)
     try {
@@ -94,7 +98,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
       if (product.name) {
         const n = product.name.slice(0, 140)
         setName(n)
-        if (!before.kindTouched) setKind(suggestKind(n) ?? '')
+        setCategory(product.category)
         done.push(t('Name'))
       }
       if (product.price !== undefined && knownCurrency(product.currency ?? before.cur)) {
@@ -132,7 +136,8 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
       })
     } catch (e) {
       ui.haptic(50)
-      ui.toast({ message: t(linkFailText(e)), emoji: '⚠️' })
+      const x = linkFailExtra(e)
+      ui.toast({ message: t(linkFailText(e)) + (x.status ? ` (HTTP ${x.status})` : x.why ? ` ${t(x.why)}` : ''), emoji: '⚠️' })
     } finally {
       setImporting(false)
     }
@@ -157,11 +162,28 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
     }
   }
 
-  const onName = (v: string) => {
-    setName(v)
-    // Die Art wird automatisch erkannt, solange sie nicht von Hand geändert wurde.
-    if (!kindTouched) setKind(suggestKind(v) ?? '')
-  }
+  const onName = (v: string) => setName(v)
+
+  // Die Art wird erst vorgeschlagen, wenn das Tippen kurz ruht, und nur solange sie nicht von Hand geändert wurde.
+  useEffect(() => {
+    if (kindTouched || (item && name === item.name)) return
+    const id = window.setTimeout(() => setKind(name.trim().length >= 3 ? (suggestKind(name, known, category) ?? '') : ''), 600)
+    return () => window.clearTimeout(id)
+  }, [name, known, category, kindTouched, item])
+
+  // Ein Link, der getippt oder per Tastatur-Zwischenablage eingefügt wird, wird nach kurzer Ruhe automatisch gelesen.
+  useEffect(() => {
+    if (!canImport || importing) return
+    const url = extractUrl(link)
+    if (!url || url === lastTried.current) return
+    const clean = cleanUrl(url)
+    if (!clean) return
+    const u = new URL(clean)
+    if (!/\.[a-z]{2,}$/i.test(u.hostname) || (u.pathname.length <= 1 && !u.search)) return
+    const id = window.setTimeout(() => void importLink(url), 900)
+    return () => window.clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [link, canImport, importing])
 
   const matches = useMemo(() => {
     if (name.trim().length < 3 && !kind.trim()) return []
@@ -171,6 +193,8 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
     }
     return findSimilar(name, kind.trim() || undefined, candidatesFor(owner, items, received, listName, item?.id))
   }, [name, kind, owner, items, received, lists, item?.id, t])
+
+  const kindChips = useMemo(() => kindOptions(known, kind), [known, kind])
 
   const ownerName = forMe ? '' : (persons.find((p) => p.id === owner)?.name ?? '')
 
@@ -299,10 +323,29 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
           value={kind}
           onChange={(e) => {
             setKind(e.target.value)
-            setKindTouched(true)
+            setKindTouched(e.target.value.trim() !== '')
           }}
           placeholder={t('z. B. Grafikkarte')}
         />
+        {kindChips.length > 0 && (
+          <div className="kindchips" role="listbox" aria-label={t('Arten')}>
+            {kindChips.map((k) => (
+              <button
+                key={k}
+                type="button"
+                role="option"
+                aria-selected={false}
+                className="chip chip--button"
+                onClick={() => {
+                  setKind(k)
+                  setKindTouched(true)
+                }}
+              >
+                {k}
+              </button>
+            ))}
+          </div>
+        )}
       </label>
 
       {ownerLists.length > 1 && (

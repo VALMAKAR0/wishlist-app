@@ -149,7 +149,7 @@ export const timeLabel = (ts: number) => {
 }
 
 export const normalize = (s: string) =>
-  s.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim()
+  s.toLowerCase().replace(/ß/g, 'ss').normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim()
 
 export const uid = () => Math.random().toString(36).slice(2, 10)
 

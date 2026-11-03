@@ -4,46 +4,106 @@ import type { Item, ReceivedList } from './types'
 // "Art" eines Artikels (z. B. Grafikkarte) und Ähnlichkeitssuche für die Doppelungs-Warnung.
 // Alles läuft lokal. Die Art wird automatisch vorgeschlagen und lässt sich von Hand ändern.
 
-/** Schlüsselwörter (ohne Umlaute, klein) -> Art. Erster Treffer gewinnt. */
+/** Schlüsselwörter (ohne Umlaute, klein) -> Art. Mehrwort-Begriffe stehen vor Einzelwörtern, der erste Treffer gewinnt. */
 const KINDS: [string[], string][] = [
+  [['galaxy watch', 'apple watch', 'pixel watch', 'smartwatch', 'fitnessarmband', 'fitbit', 'garmin'], 'Smartwatch'],
+  [['galaxy tab', 'ipad', 'tablet'], 'Tablet'],
+  [['galaxy buds', 'pixel buds', 'airpods', 'earbuds', 'kopfhor', 'headphone', 'headset', 'in ear', 'over ear', 'ohrhorer'], 'Kopfhörer'],
+  [['powerbank', 'power bank'], 'Powerbank'],
+  [['hulle', 'case', 'cover', 'schutzfolie', 'panzerglas', 'kabel', 'adapter', 'ladegerat', 'netzteil', 'halterung', 'android auto', 'carplay', 'dashcam'], 'Zubehör'],
   [['grafikkarte', 'rtx', 'gtx', 'radeon', 'geforce'], 'Grafikkarte'],
-  [['kopfhor', 'headphone', 'airpods', 'earbuds', 'headset', 'in ear', 'over ear'], 'Kopfhörer'],
+  [['festplatte', 'ssd', 'speicherkarte', 'usb stick'], 'Speicher'],
+  [['router', 'repeater', 'mesh'], 'Netzwerk'],
+  [['drucker'], 'Drucker'],
   [['kindle', 'e reader', 'ereader', 'tolino'], 'E-Reader'],
-  [['kamera', 'camera', 'gopro', 'instax', 'sofortbild'], 'Kamera'],
+  [['kamera', 'camera', 'gopro', 'instax', 'sofortbild', 'objektiv'], 'Kamera'],
   [['laptop', 'notebook', 'macbook'], 'Laptop'],
-  [['smartphone', 'handy', 'iphone', 'pixel', 'galaxy'], 'Smartphone'],
-  [['tablet', 'ipad'], 'Tablet'],
-  [['monitor', 'bildschirm'], 'Monitor'],
+  [['smartphone', 'handy', 'iphone'], 'Smartphone'],
+  [['monitor', 'bildschirm', 'fernseher', 'beamer'], 'Bildschirm'],
+  [['soundbar', 'lautsprecher', 'speaker', 'boombox', 'mikrofon', 'plattenspieler'], 'Audio'],
   [['tastatur', 'keyboard'], 'Tastatur'],
   [['maus', 'mouse'], 'Maus'],
+  [['controller', 'gamepad', 'lenkrad'], 'Controller'],
   [['drohne', 'drone'], 'Drohne'],
-  [['armbanduhr', 'smartwatch', 'uhr', 'watch'], 'Uhr'],
-  [['buch', 'roman', 'trilogie', 'bande'], 'Buch'],
-  [['switch', 'playstation', 'xbox', 'spiel', 'game'], 'Spiel'],
+  [['armbanduhr', 'uhr'], 'Uhr'],
+  [['motorrad', 'roller', 'cbr', 'motorradhelm'], 'Motorrad'],
+  [['staubsauger', 'saugroboter', 'rasierer', 'haartrockner', 'fohn', 'zahnburste', 'epilierer', 'toaster', 'wasserkocher', 'airfryer', 'heissluftfritteuse'], 'Haushalt'],
+  [['hobel', 'sage', 'bohrer', 'schrauber', 'hammer', 'zange', 'feile', 'stemmeisen', 'werkzeug', 'schraubzwinge', 'meissel', 'winkel', 'zollstock'], 'Werkzeug'],
+  [['buch', 'roman', 'trilogie', 'bande', 'comic', 'manga'], 'Buch'],
+  [['playstation', 'xbox', 'nintendo', 'spiel', 'game'], 'Spiel'],
   [['sneaker', 'schuh', 'stiefel', 'laufschuh'], 'Schuhe'],
-  [['jacke', 'mantel', 'pullover', 'hoodie', 'shirt', 'hose', 'schal', 'socken', 'mutze', 'handschuh'], 'Kleidung'],
-  [['koffer', 'trolley', 'rucksack', 'tasche'], 'Tasche'],
+  [['jacke', 'mantel', 'pullover', 'hoodie', 'shirt', 'hose', 'schal', 'socken', 'mutze', 'handschuh', 'kleid', 'rock'], 'Kleidung'],
+  [['koffer', 'trolley', 'rucksack', 'tasche', 'geldborse', 'portemonnaie'], 'Tasche'],
+  [['ring', 'kette', 'armband', 'ohrring', 'schmuck'], 'Schmuck'],
+  [['brille', 'sonnenbrille'], 'Brille'],
   [['kerze', 'duftkerze'], 'Kerzen'],
   [['pflanze', 'monstera', 'orchidee', 'kaktus'], 'Pflanze'],
-  [['parfum', 'handcreme', 'creme', 'kosmetik', 'duft'], 'Pflege'],
+  [['parfum', 'handcreme', 'creme', 'kosmetik', 'duft', 'shampoo', 'seife'], 'Pflege'],
   [['tasse', 'becher', 'pfanne', 'topf', 'messer', 'mixer', 'kaffeemuhle', 'espresso', 'kaffee', 'teekanne'], 'Küche'],
   [['wolle', 'stricknadel', 'nadel'], 'Handarbeit'],
   [['angel', 'angelset'], 'Angeln'],
   [['wein', 'whisky', 'gin', 'bier', 'weinkuhler'], 'Getränke'],
   [['lampe', 'leuchte', 'tageslicht'], 'Lampe'],
+  [['stuhl', 'tisch', 'regal', 'sofa', 'schrank', 'sessel', 'bett'], 'Möbel'],
+  [['hantel', 'yoga', 'fitness', 'trainingsband', 'gymnastik'], 'Fitness'],
   [['aquarell', 'pinsel', 'zeichn', 'malen'], 'Malen'],
-  [['fahrrad', 'bike', 'velo'], 'Fahrrad'],
-  [['lego', 'puzzle', 'brettspiel'], 'Brettspiel'],
+  [['fahrrad', 'bike', 'velo', 'fahrradhelm'], 'Fahrrad'],
+  [['lego', 'puzzle', 'brettspiel', 'spielzeug', 'puppe', 'plusch'], 'Spielzeug'],
   [['thermos', 'trinkflasche', 'flasche'], 'Flasche'],
 ]
 
-export function suggestKind(name: string): string | undefined {
+/** Markennamen, die keine Art verraten ("Galaxy" kann Handy, Uhr oder Tablet sein). Zählen nur, wenn sonst nichts passt. */
+const WEAK: [string[], string][] = [
+  [['galaxy', 'pixel', 'xiaomi', 'redmi'], 'Smartphone'],
+  [['switch'], 'Spiel'],
+]
+
+const hit = (n: string, toks: string[], w: string): boolean =>
+  w.includes(' ') ? n.includes(w) : toks.some((t) => t === w || (w.length >= 4 && t.endsWith(w)) || (w.length >= 5 && t.startsWith(w)))
+
+/** Bekannte Einträge, aus denen die App lernt: gleiche Wörter im Namen, dieselbe Art. */
+export interface KnownKind {
+  name: string
+  kind?: string
+}
+
+const GENERIC = new Set(['galaxy', 'pixel', 'wireless', 'black', 'white', 'schwarz', 'weiss', 'grau', 'blau', 'rot', 'gross', 'klein'])
+
+function learnedKind(n: string, known: KnownKind[]): string | undefined {
+  const mine = new Set(n.split(' ').filter((w) => w.length >= 4 && !STOP.has(w) && !GENERIC.has(w) && !/^\d+$/.test(w)))
+  if (!mine.size) return undefined
+  const score = new Map<string, number>()
+  for (const k of known) {
+    if (!k.kind?.trim()) continue
+    const shared = normalize(k.name).split(' ').filter((w) => mine.has(w)).length
+    if (shared) score.set(k.kind.trim(), (score.get(k.kind.trim()) ?? 0) + shared)
+  }
+  return [...score.entries()].sort((a, b) => b[1] - a[1])[0]?.[0]
+}
+
+/** Art aus dem Namen: erst feste Begriffe, dann was die App aus deinen Einträgen gelernt hat, dann Markennamen, zuletzt die Kategorie der Seite. */
+export function suggestKind(name: string, known: KnownKind[] = [], category?: string): string | undefined {
   const n = normalize(name)
   if (!n) return undefined
-  for (const [words, kind] of KINDS) {
-    if (words.some((w) => n.includes(w))) return kind
-  }
+  const toks = n.split(' ').flatMap((t) => [t, ...t.split(/(?<=[a-z])(?=\d)|(?<=\d)(?=[a-z])/)])
+  for (const [words, kind] of KINDS) if (words.some((w) => hit(n, toks, w))) return kind
+  const learned = learnedKind(n, known)
+  if (learned) return learned
+  for (const [words, kind] of WEAK) if (words.some((w) => hit(n, toks, w))) return kind
+  const cat = category?.trim()
+  if (cat && cat.length <= 40) return cat.charAt(0).toUpperCase() + cat.slice(1)
   return undefined
+}
+
+/** Alle Arten zum Auswählen: eigene (nach Häufigkeit) vor den festen. */
+export function kindOptions(known: KnownKind[], typed: string): string[] {
+  const count = new Map<string, number>()
+  for (const k of known) if (k.kind?.trim()) count.set(k.kind.trim(), (count.get(k.kind.trim()) ?? 0) + 1)
+  const own = [...count.entries()].sort((a, b) => b[1] - a[1]).map(([k]) => k)
+  const all = [...new Set([...own, ...KINDS.map(([, k]) => k)])]
+  const q = normalize(typed)
+  const list = q ? all.filter((k) => normalize(k).includes(q) && normalize(k) !== q) : own
+  return list.slice(0, 8)
 }
 
 const STOP = new Set(['set', 'pro', 'max', 'mini', 'plus', 'fur', 'und', 'mit', 'the', 'xl', 'als', 'box', 'neu', 'von', 'der', 'die', 'das', 'ein', 'eine'])

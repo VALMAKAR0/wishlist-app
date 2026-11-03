@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 03.11.2026 · Status: V0.9.1 (Link-Import ins Formular, Teilen aus dem Browser; Preisverlauf folgt) · Datenformat: v2
+Stand: 03.11.2026 · Status: V0.9.2 (Link-Import ins Formular, Teilen aus dem Browser, lernende Art-Erkennung; Preisverlauf folgt) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -204,6 +204,7 @@ Eigener Tab mit Auswertungen über alles: Gesamtausgaben (für mich und für and
 - **V0.8 (erledigt, ungetestet auf iPhone):** Web-App fürs iPhone: Manifest, Symbole, Offline-Speicher (Service Worker), GitHub-Pages-Workflow, Installationshinweis, "Neu laden", Kalenderdatei .ics (siehe 28)
 - **V0.9.0 (Link-Test, ungetestet auf Gerät):** Link einfügen, App liest Name, Bild, Preis, EAN und zeigt es samt technischen Details an, dazu die Schalter (siehe 29)
 - **V0.9.1 (erledigt, ungetestet auf Gerät):** Link einfügen füllt Name, Preis und Bild im Formular (überschreibt, mit "Rückgängig"), "Link aus dem Browser teilen" auf Android (siehe 29)
+- **V0.9.2 (erledigt, ungetestet auf Gerät):** Fehlergründe bei "Keine Verbindung", Art-Erkennung mit Mehrwort-Begriffen, Lernen aus eigenen Einträgen und Vorschlags-Chips, Link-Feld liest auch bei Tippen oder Tastatur-Einfügen (siehe 29)
 - **V0.10:** Preisverlauf: "Preis jetzt prüfen", Diagramm, Hinweis "Preis gesunken" beim Öffnen oder über "Alle Preise prüfen"
 - **V0.11:** Tägliche Prüfung im Hintergrund mit Benachrichtigung, nur Android (siehe 29, Plan)
 - **V1.0:** Test auf echten Geräten, Release
@@ -478,3 +479,10 @@ Technische Leitplanken für Animationen (nach Fehlersuche in V0.1):
 - Link kopieren und im Formular einfügen: Name, Preis, Bild erscheinen, "Rückgängig" funktioniert
 - Schalter "Link-Import" und "Bilder übernehmen" aus: kein Abruf bzw. kein Bild
 - Gesperrter Shop: verständlicher Hinweis, nichts wird überschrieben
+
+### V0.9.2: Rückmeldung vom Gerät (Tablet, 03.11.)
+
+- **"Keine Verbindung" ohne Grund:** Beim Honda-Link und beim Abruf der Kurse kam nur "Bist du online?". Beides lief gleichzeitig ins Leere, kurz danach ging ein Amazon-Link. Das spricht für das Netz des Geräts (Hotspot/DNS wie schon bei GitHub), nicht für den Link-Leser. Jetzt steht hinter der Meldung der Grund: Statuscode (z. B. HTTP 403) oder bei Netzfehlern DNS, Zeitüberschreitung, SSL oder Verbindung abgelehnt (`src/lib/netReason.ts`). Gilt für Link-Import, "Link testen" und "Kurse holen".
+- **Art-Erkennung (`src/lib/match.ts`):** Sie wartet jetzt 600 ms nach dem letzten Tastendruck. Mehrwort-Begriffe schlagen Markennamen ("Galaxy Watch" = Smartwatch, "Galaxy Tab" = Tablet, "Galaxy" allein bleibt Smartphone). Gesucht wird an Wortenden (Kinderbuch) und bei Begriffen ab 5 Zeichen am Anfang, "Führerschein" trifft also nicht "uhr". Neue Arten (Zubehör, Werkzeug, Motorrad, Haushalt, Audio und mehr). Reihenfolge: feste Begriffe, dann das, was die App aus deinen eigenen Einträgen gelernt hat (gleiche Wörter im Namen, gleiche Art), dann Markennamen, zuletzt die Kategorie der Produktseite (`category` aus JSON-LD).
+- **Freie Arten:** Unter dem Feld "Art" erscheinen Vorschlags-Chips, zuerst deine eigenen Arten nach Häufigkeit, beim Tippen alle passenden. Jede Eingabe bleibt möglich. Von Hand gesetzt bleibt sie bestehen, wird das Feld geleert, läuft die Automatik wieder.
+- **Link-Feld:** Liest nach 0,9 s Ruhe automatisch, auch wenn der Link per Tastatur-Zwischenablage (Gboard) oder getippt ankommt, wo kein Einfügen-Ereignis entsteht. Nur bei vollständigen Produktadressen (Pfad oder Parameter, nicht die bloße Startseite), je Adresse einmal. Der Knopf "Daten holen" liest erneut.
