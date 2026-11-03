@@ -55,6 +55,9 @@ export const SETTING_INDEX: SettingEntry[] = [
   { page: 'app', label: 'Auf Updates prüfen', words: 'update version neu apk' },
   { page: 'app', label: 'Beim Start prüfen', words: 'update automatisch' },
   { page: 'app', label: 'Auf dem Home-Bildschirm installieren', words: 'pwa installieren iphone' },
+  { page: 'app', label: 'Link-Import', words: 'link produkt preis shop idealo bild lesen' },
+  { page: 'app', label: 'Bilder übernehmen', words: 'link bild produktbild' },
+  { page: 'app', label: 'Link testen', words: 'link produkt preis shop idealo test' },
   { page: 'app', label: 'Demo-Daten laden', words: 'beispiel vorschau test' },
 ]
 

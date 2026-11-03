@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 02.11.2026 · Status: V0.8.0 (Web-App fürs iPhone, Kalenderdatei, Update-Hinweis „Neu laden“) · Datenformat: v2
+Stand: 03.11.2026 · Status: V0.9.0 (Link-Test mit Schaltern; Import und Preisverlauf folgen) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -202,7 +202,10 @@ Eigener Tab mit Auswertungen über alles: Gesamtausgaben (für mich und für and
 - **V0.7 (erledigt, ungetestet auf Gerät):** Erinnerungen vor Anlässen und Update-Hinweis auf Android (siehe 25). Das Auto-Backup wurde schon in V0.5 vorgezogen.
 - **V0.7.1 (erledigt, ungetestet auf Gerät):** Einstellungen neu geordnet („Mehr“ mit Kategorien und Suche), App-Sperre, Währungen, Datumsformat, Schriftgröße, Export und mehr (siehe 26).
 - **V0.8 (erledigt, ungetestet auf iPhone):** Web-App fürs iPhone: Manifest, Symbole, Offline-Speicher (Service Worker), GitHub-Pages-Workflow, Installationshinweis, "Neu laden", Kalenderdatei .ics (siehe 28)
-- **V0.9:** Link-Import (Name, Bild, Preis aus einer Adresse) als eigene Version, dazu "Links aus dem Browser teilen" auf Android
+- **V0.9.0 (Link-Test, ungetestet auf Gerät):** Link einfügen, App liest Name, Bild, Preis, EAN und zeigt es samt technischen Details an, dazu die Schalter (siehe 29)
+- **V0.9.x:** Übernahme in Wunsch- und Ideen-Formular (vorausgefüllt, du bestätigst), "Link aus dem Browser teilen" auf Android
+- **V0.10:** Preisverlauf: "Preis jetzt prüfen", Diagramm, Hinweis "Preis gesunken" beim Öffnen oder über "Alle Preise prüfen"
+- **V0.11:** Tägliche Prüfung im Hintergrund mit Benachrichtigung, nur Android (siehe 29, Plan)
 - **V1.0:** Test auf echten Geräten, Release
 
 ## 17. Entwicklung
@@ -425,3 +428,36 @@ Technische Leitplanken für Animationen (nach Fehlersuche in V0.1):
 - Kalenderdatei auf dem iPhone: Teilen-Menü bietet "Kalender" an, Termine und Alarme erscheinen, Alarmzeit stimmt
 - Android: Datei teilen und in Google Kalender öffnen
 - Nach dem Push: GitHub → Settings → Pages → Source "GitHub Actions" einstellen, Adresse im Workflow-Lauf ablesen
+
+## 29. Link-Test und Plan für Preise (V0.9.0)
+
+### Was V0.9.0 kann
+
+- **Ort:** Mehr → App → Abschnitt "Link-Import": Hauptschalter "Link-Import", Unterschalter "Bilder übernehmen" (nur sichtbar, wenn der Hauptschalter an ist), Zeile "Link testen". Beide Schalter sind Teil der Einstellungen und gehen in die Sicherung.
+- **Link testen:** Adresse einfügen (Knopf für die Zwischenablage), "Lesen". Die App ruft genau diese eine Seite ab und zeigt Name, Marke, Preis, EAN (mit Prüfziffer), ob ein Bild da ist und aus welcher Quelle es kam. Unter "Technische Details" stehen Status, Größe, Zahl der JSON-LD-Blöcke und Meta-Tags, mit "Details kopieren" zum Einfügen in den Chat.
+- **Nur Android-App:** Die Anfrage läuft über `CapacitorHttp` (nativ, ohne CORS). Im Browser blockieren Shops den Zugriff, dort ist die Zeile gesperrt.
+- **Bei Idealo suchen:** Öffnet im Browser die Idealo-Suche (nach EAN, sonst nach Name). Die App liest Idealo nicht selbst aus. Den Link der passenden Idealo-Seite kann man zurück in die App kopieren und dort testen.
+- **Aus:** Ist der Hauptschalter aus, ruft die App nie eine fremde Seite ab.
+
+### Technik (`src/lib/linkImport.ts`)
+
+- **Reihenfolge:** JSON-LD (`Product`, `IndividualProduct`, `ProductModel`, `ProductGroup`, `Vehicle`, `Book`, auch in `@graph`; niedrigster Preis aus `offers`/`AggregateOffer`/`priceSpecification`), dann Open Graph, Meta-Angaben, `itemprop`, zuletzt der Seitentitel.
+- **Preisformate:** `1.299,00`, `1,299.00`, `129,90 €`, `EUR 129.90`; Währungsangaben aus `priceCurrency` oder dem Zeichen.
+- **Sicherheit:** nur https, kein `localhost` und keine privaten Adressbereiche, `#`-Teil wird entfernt, Seite wird bei 2 Mio. Zeichen abgeschnitten, Bild-Adressen müssen http(s) sein.
+- **Kennung:** Die Anfrage sendet eine übliche Android-Chrome-Kennung und `Accept-Language: de-DE`. Gesendet wird nichts über dich oder deine Liste.
+- **Fehler:** `blocked` (403/429/503 oder Schutzseite), `notfound` (404/410), `http`, `network`, `noproduct`, `invalid`, `web`, `off`.
+- **Grenzen:** Manche Shops (Amazon, teils Otto/MediaMarkt) liefern Automaten Schutzseiten oder bauen den Preis erst per JavaScript ein, dann findet die App wenig oder nichts. Das ist der Zweck des Tests: erst sehen, was geht, dann Import bauen.
+
+### Plan danach
+
+1. **Import:** Link im Wunsch-/Ideen-Formular, Felder werden vorausgefüllt, du bestätigst. "Link aus dem Browser teilen" auf Android.
+2. **Preisverlauf:** Je Wunsch ein Verlauf (Datum, Preis). "Preis jetzt prüfen" und "Alle Preise prüfen", Diagramm, Hinweis "Preis gesunken". Unterschalter "Preis überwachen".
+3. **Hintergrund (Android):** Tägliche Prüfung mit dem offiziellen Capacitor-Plugin "Background Runner" und lokaler Benachrichtigung. Dazu ein Knopf zu den Akku-Einstellungen und eine Anleitung für Samsung (Einstellungen → Apps → Wunschliste → Akku → "Unbegrenzt", sowie "Nie schlafende Apps"). Auf dem iPhone (PWA) nicht möglich, dort nur Prüfung beim Öffnen. Nicht in der Cloud testbar, nur auf dem Gerät.
+4. **Idealo:** Kein automatisches Auslesen von Idealo (Nutzungsbedingungen, Schutz vor Automaten). Stattdessen Suche im Browser und Link zurückkopieren.
+
+### Am Gerät zu prüfen
+
+- 5 bis 6 echte Links testen: Kopfhörer bei Idealo, Amazon, MediaMarkt, Otto, Herstellerseite, kleiner Shop
+- Bei jedem: Wurde Name, Preis, Bild, EAN gefunden? Sonst "Details kopieren" schicken
+- Schalter aus: "Link testen" ist gesperrt, Bild-Schalter aus: kein Bild im Ergebnis
+- Idealo-Suche öffnet im Browser

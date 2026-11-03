@@ -65,6 +65,8 @@ export const roadmap: RoadmapStep[] = [
   { version: 'V0.6', title: 'Teilen', text: 'Liste als Datei teilen, Import fremder Listen, inklusive unauffälligem „Schon vorhanden“.' },
   { version: 'V0.7', title: 'Android-Funktionen', text: 'Erinnerungen vor Anlässen, Update-Hinweis, neue Einstellungen mit App-Sperre, Währungen und Export.' },
   { version: 'V0.8', title: 'PWA-Feinschliff', text: 'Web-App fürs iPhone mit Offline-Speicher und Installationshinweis, Kalenderdatei, „Neu laden“.' },
-  { version: 'V0.9', title: 'Link-Import', text: 'Name, Bild und Preis aus einem Produktlink lesen, Links aus dem Browser teilen.' },
+  { version: 'V0.9', title: 'Link-Import', text: 'Link-Test mit Schaltern, danach Übernahme in Wunsch und Idee, Links aus dem Browser teilen.' },
+  { version: 'V0.10', title: 'Preisverlauf', text: 'Preis prüfen, Verlauf als Diagramm, Hinweis „Preis gesunken“.' },
+  { version: 'V0.11', title: 'Preiswächter', text: 'Tägliche Prüfung im Hintergrund mit Benachrichtigung (nur Android).' },
   { version: 'V1.0', title: 'Release', text: 'Test auf echten Geräten.' },
 ]

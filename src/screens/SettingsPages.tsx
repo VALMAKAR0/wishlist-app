@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import {
-  AlertTriangle, Archive, Bell, CalendarClock, Check, Clock, DatabaseBackup, FileDown, HardDriveDownload, Lock, Map, Palette, RefreshCw, RotateCcw, Share2, ShieldCheck, Smartphone, Trash2,
+  AlertTriangle, Archive, Bell, CalendarClock, Check, Clock, DatabaseBackup, FileDown, HardDriveDownload, Link2, Lock, Map, Palette, RefreshCw, RotateCcw, Share2, ShieldCheck, Smartphone, Trash2,
 } from 'lucide-react'
 import { Page, Section } from '../components/Page'
 import { Presence } from '../components/Presence'
 import { useCalendarFile } from '../components/CalendarFile'
 import { InstallSheet } from '../components/InstallSheet'
+import { LinkTestSheet } from '../components/LinkTestSheet'
 import { promptInstall, useInstall } from '../lib/install'
 import { ReminderSettings } from '../components/ReminderSettings'
 import { Chip, Ring, Segmented, Switch } from '../components/Primitives'
@@ -530,6 +531,7 @@ function AppPage() {
   const bk = useBackup()
   const inst = useInstall()
   const [howTo, setHowTo] = useState(false)
+  const [linkTest, setLinkTest] = useState(false)
 
   const loadDemo = () => {
     const apply = () => {
@@ -598,12 +600,31 @@ function AppPage() {
         </div>
       </Section>
 
+      <Section title={t('Link-Import')}>
+        <div className="card">
+          <SwitchRow
+            title={t('Link-Import')}
+            text={t('Liest Name, Bild und Preis aus einem Produktlink. Aus: Die App öffnet nie eine fremde Webseite. Nur in der Android-App.')}
+            checked={settings.linkImport}
+            onChange={(linkImport) => setSettings({ linkImport })}
+          />
+          {settings.linkImport && <SwitchRow title={t('Bilder übernehmen')} text={t('Zeigt und übernimmt das Produktbild von der Seite.')} checked={settings.linkImages} onChange={(linkImages) => setSettings({ linkImages })} />}
+          <Row
+            icon={<Link2 size={18} />}
+            title={t('Link testen')}
+            text={!upd.native ? t('Nur in der Android-App') : settings.linkImport ? t('Zeigt, was die App aus einer Produktseite liest') : t('Link-Import ist aus')}
+            onClick={upd.native && settings.linkImport ? () => setLinkTest(true) : undefined}
+          />
+        </div>
+      </Section>
+
       <Section title={t('Vorschau-Werkzeuge')}>
         <div className="card">
           <Row icon={<Palette size={18} />} title={t('Demo-Daten laden')} text={t('Ersetzt alle Daten durch Beispieldaten')} onClick={loadDemo} />
         </div>
       </Section>
       {howTo && <InstallSheet onClose={() => setHowTo(false)} />}
+      <Presence show={linkTest}>{linkTest && <LinkTestSheet onClose={() => setLinkTest(false)} />}</Presence>
     </SubPage>
   )
 }

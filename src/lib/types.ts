@@ -164,6 +164,10 @@ export interface UiSettings {
   lockSalt: string
   /** Sekunden im Hintergrund, nach denen die App sich sperrt (0 = sofort). */
   lockAfter: number
+  /** Link-Import: Produktdaten aus einer Webseite lesen. Aus = die App öffnet nie eine fremde Seite. */
+  linkImport: boolean
+  /** Beim Link-Import auch das Produktbild übernehmen. */
+  linkImages: boolean
 }
 
 export type ShareBought = 'hidden' | 'only' | 'exclude'

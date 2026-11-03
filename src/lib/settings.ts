@@ -40,12 +40,14 @@ export const defaults = (): UiSettings => ({
   lockHash: '',
   lockSalt: '',
   lockAfter: 60,
+  linkImport: true,
+  linkImages: true,
 })
 
 /** Einstellungen, die ins Backup wandern. Gerätegebundenes (Kennung, Update-Stand, PIN, Erinnerungs-Schalter) bleibt draußen. */
 export const SYNC_KEYS = [
   'theme', 'fx', 'lang', 'hue', 'remindDays', 'remindTime', 'updateCheck', 'showPlanned', 'autoBackup', 'shareName',
-  'currency', 'rates', 'ratesAt', 'dateFmt', 'fontScale', 'haptics', 'trashDays', 'autoKeep', 'startTab', 'sort', 'shareDefaults',
+  'currency', 'rates', 'ratesAt', 'dateFmt', 'fontScale', 'haptics', 'trashDays', 'autoKeep', 'startTab', 'sort', 'shareDefaults', 'linkImport', 'linkImages',
 ] as const satisfies readonly (keyof UiSettings)[]
 
 export type SyncSettings = Pick<UiSettings, (typeof SYNC_KEYS)[number]>
@@ -121,6 +123,8 @@ export function normalize(raw: unknown, base: UiSettings = defaults()): UiSettin
     lockHash: /^[0-9a-f]{64}$/.test(str(r.lockHash, '')) ? (r.lockHash as string) : '',
     lockSalt: /^[0-9a-f]{32}$/.test(str(r.lockSalt, '')) ? (r.lockSalt as string) : '',
     lockAfter: num(r.lockAfter, LOCK_CHOICES) ?? base.lockAfter,
+    linkImport: bool(r.linkImport) ?? base.linkImport,
+    linkImages: bool(r.linkImages) ?? base.linkImages,
   }
 }
 
