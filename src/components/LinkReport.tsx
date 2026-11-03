@@ -18,14 +18,14 @@ const LABEL: Record<FieldKey, string> = { name: 'Name', price: 'Preis', image: '
 const ICON: Record<FieldState, typeof Check> = { ok: Check, guess: TriangleAlert, none: Minus, off: EyeOff, kept: Pencil }
 
 /** Zeigt beim Link-Import, was gefunden, nicht gefunden, geraten oder ausgeschaltet war. */
-export function LinkReport({ report, onClose }: { report: Report; onClose: () => void }) {
+export function LinkReport({ report, onClose, onUseName }: { report: Report; onClose: () => void; onUseName?: (name: string) => void }) {
   const t = useT()
   const ui = useUI()
 
   const note = (f: FieldReport): string => {
     if (f.state === 'off') return t('In den Einstellungen aus')
-    if (f.state === 'kept') return t('Schon ausgefüllt, nicht überschrieben')
-    if (f.state === 'guess') return `${f.text ?? ''} · ${t('aus dem Seitentext geraten, bitte prüfen')}`
+    if (f.state === 'kept') return f.alt ? `${t('Dein Name bleibt')}. ${t('Die Seite nennt')}: ${f.alt}` : t('Schon ausgefüllt, nicht überschrieben')
+    if (f.state === 'guess') return `${f.text ?? ''} · ${t(f.key === 'image' ? 'aus dem Seitenaufbau geraten, bitte prüfen' : 'aus dem Seitentext geraten, bitte prüfen')}`
     if (f.state === 'none') return t(f.why ?? 'Nicht gefunden')
     return f.text ?? ''
   }
@@ -83,7 +83,14 @@ export function LinkReport({ report, onClose }: { report: Report; onClose: () =>
                     <Icon size={13} />
                   </span>
                   <span className="linkrep__lab">{t(LABEL[f.key])}</span>
-                  <span className="linkrep__txt">{note(f)}</span>
+                  <span className="linkrep__txt">
+                    {note(f)}
+                    {f.key === 'name' && f.state === 'kept' && f.alt && onUseName && (
+                      <button type="button" className="chip chip--button linkrep__use" onClick={() => onUseName(f.alt ?? '')}>
+                        {t('Übernehmen')}
+                      </button>
+                    )}
+                  </span>
                 </motion.li>
               )
             })}

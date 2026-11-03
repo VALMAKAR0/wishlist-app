@@ -66,6 +66,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
   live.current = { name, kind, kindTouched, price, cur, pending, removed }
   const started = useRef(false)
   const lastTried = useRef(item?.link?.trim() ?? '')
+  const importedName = useRef('')
   const [category, setCategory] = useState<string | undefined>()
   const known = useMemo(() => items.filter((i) => !i.deletedAt && i.id !== item?.id).map((i) => ({ name: i.name, kind: i.kind })), [items, item?.id])
 
@@ -113,13 +114,16 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
 
       if (product.name) {
         const n = product.name.slice(0, 140)
-        if (over || !before.name.trim()) {
+        const typed = before.name.trim() !== '' && before.name !== importedName.current
+        if (typed && (cfg.linkKeepName || !over)) fields.push({ key: 'name', state: 'kept', text: before.name, alt: n })
+        else {
+          importedName.current = n
           setName(n)
           setCategory(product.category)
           flashKeys.push('name')
           applied = true
           fields.push({ key: 'name', state: 'ok', text: n })
-        } else fields.push({ key: 'name', state: 'kept', text: n })
+        }
       } else fields.push({ key: 'name', state: 'none', why: missingWhy('name', product, diag, url) })
 
       if (!cfg.linkPrice) fields.push({ key: 'price', state: 'off' })
@@ -150,7 +154,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
           setPending({ ...img, preview: URL.createObjectURL(new Blob([img.data], { type: img.type })) })
           setRemoved(false)
           applied = true
-          fields.push({ key: 'image', state: 'ok', text: t('übernommen') })
+          fields.push({ key: 'image', state: product.imageGuess ? 'guess' : 'ok', text: t('übernommen') })
         } catch {
           imageFailed = true
           fields.push({ key: 'image', state: 'none', why: 'Das Bild ließ sich nicht laden.' })
@@ -199,6 +203,13 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
     } catch {
       ui.toast({ message: t('Einfügen nicht erlaubt. Halte das Feld gedrückt und wähle „Einfügen“.'), emoji: '📋' })
     }
+  }
+
+  const useImportedName = (n: string) => {
+    importedName.current = n
+    setName(n)
+    doFlash('name')
+    setReport((r) => (r ? { ...r, fields: r.fields.map((f) => (f.key === 'name' ? { key: 'name', state: 'ok', text: n } : f)) } : r))
   }
 
   const onName = (v: string) => setName(v)
@@ -449,7 +460,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
         </div>
       </label>
 
-      <AnimatePresence initial={false}>{report && <LinkReport key="rep" report={report} onClose={() => setReport(null)} />}</AnimatePresence>
+      <AnimatePresence initial={false}>{report && <LinkReport key="rep" report={report} onClose={() => setReport(null)} onUseName={useImportedName} />}</AnimatePresence>
 
       <label className="field" data-flash={flash.includes('price') || undefined}>
         <span>{t('Preis')}</span>

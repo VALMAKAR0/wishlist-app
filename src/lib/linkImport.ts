@@ -14,6 +14,8 @@ export interface Product {
   category?: string
   /** Preis stammt aus dem Fließtext der Seite und ist nur geraten. */
   priceGuess?: boolean
+  /** Bild stammt aus dem Seitenaufbau (nicht aus den Produktdaten) und ist nur geraten. */
+  imageGuess?: boolean
   sources: string[]
 }
 
@@ -25,6 +27,7 @@ export interface Diagnostics {
   ldBlocks: number
   productNode: boolean
   metaTags: number
+  imgTags: number
 }
 
 export type LinkFail = 'off' | 'web' | 'invalid' | 'blocked' | 'notfound' | 'http' | 'network' | 'noproduct'
@@ -264,6 +267,8 @@ export function refineName(raw: string | undefined, title: string | undefined, h
     const brandSeg = parts.find(isBrand)
     return (brandSeg && !normalize(model).includes(normalize(brandSeg)) ? `${brandSeg} ` : '') + model
   }
+  const lead = base.match(/^([^:|–—]{2,30}?)\s*[:|–—]\s+(\S.*)$/)
+  if (lead && (/^[\w-]+\.(de|com|at|ch|eu|net|org|co\.uk)$/i.test(lead[1].trim()) || isBrand(lead[1]) || isBrand(lead[1].replace(/\.\w{2,3}$/, '')))) return lead[2].trim()
   const parts = splitTitle(base)
   if (parts.length > 1 && parts.slice(1).some(isBrand) && !isBrand(parts[0]) && !isGeneric(parts[0])) return parts[0]
   return base
@@ -295,8 +300,75 @@ const absolute = (u: string | undefined, base: string): string | undefined => {
   }
 }
 
+const NOT_PRODUCT_IMAGE = /logo|icon|sprite|avatar|banner|pixel|tracking|spacer|badge|flag|placeholder|loading|blank|\.svg|\.gif|\.ico/i
+
+const attrOf = (tag: string, name: string): string | undefined => {
+  const m = tag.match(new RegExp(`(?:^|[\\s"'])${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, 'i'))
+  const v = m?.[1] ?? m?.[2] ?? m?.[3]
+  return v ? decode(v) : undefined
+}
+
+const declared = (tag: string, name: string): number => {
+  const v = parseInt(attrOf(tag, name) ?? '', 10)
+  return Number.isFinite(v) ? v : 0
+}
+
+/** Sucht im Seitenaufbau nach dem Hauptbild, wenn die Produktdaten keins nennen. Gibt auch die Zahl der gefundenen Bild-Tags zurück. */
+export function imageFallback(html: string): { url?: string; imgTags: number } {
+  const tags = html.match(/<img\b[^>]*>/gi) ?? []
+  const imgTags = tags.length
+  const best: { url?: string; area: number } = { area: 0 }
+  const offer = (url: string | undefined, area: number) => {
+    if (!url || NOT_PRODUCT_IMAGE.test(url) || url.startsWith('data:')) return
+    if (area > best.area) {
+      best.url = url
+      best.area = area
+    }
+  }
+  for (const tag of tags) {
+    const dyn = attrOf(tag, 'data-a-dynamic-image')
+    if (dyn) {
+      try {
+        const o = JSON.parse(dyn) as Record<string, unknown>
+        for (const [u, dim] of Object.entries(o)) {
+          const [w, h] = Array.isArray(dim) ? (dim as number[]) : [0, 0]
+          offer(u, (Number(w) || 1) * (Number(h) || 1) + 1_000_000)
+        }
+      } catch {
+        /* weiter */
+      }
+    }
+    const hires = attrOf(tag, 'data-old-hires') ?? attrOf(tag, 'data-a-hires') ?? attrOf(tag, 'data-zoom-image') ?? attrOf(tag, 'data-large-image')
+    if (hires) offer(hires, 2_000_000)
+  }
+  if (best.url) return { url: best.url, imgTags }
+  const link = html.match(/<link\b[^>]*\brel\s*=\s*["']image_src["'][^>]*>/i)
+  if (link) offer(attrOf(link[0], 'href'), 500_000)
+  for (const tag of tags) {
+    const src = attrOf(tag, 'src') ?? attrOf(tag, 'data-src') ?? attrOf(tag, 'data-lazy-src')
+    const w = declared(tag, 'width')
+    const h = declared(tag, 'height')
+    const hinted = /\b(landingImage|imgBlkFront|main-image|product-image|primary-image)\b/i.test(tag)
+    if ((w >= 250 && h >= 250) || hinted) offer(src, Math.max(w * h, 250 * 250) + (hinted ? 100_000 : 0))
+  }
+  return { url: best.url, imgTags }
+}
+
+/** Kürzt sehr lange Shop-Titel (Amazon & Co.) an einer sinnvollen Stelle. */
+export function shortenName(name: string, max = 70): string {
+  const n = name.replace(/\s+/g, ' ').trim()
+  if (n.length <= max) return n
+  const cut = n.slice(0, max + 1)
+  for (const sep of [' - ', ' – ', ' | ', ', ', ' (', ' mit ', ' für ']) {
+    const i = cut.lastIndexOf(sep)
+    if (i >= 24) return cut.slice(0, i).trim()
+  }
+  const sp = cut.lastIndexOf(' ')
+  return (sp >= 24 ? cut.slice(0, sp) : cut.slice(0, max)).trim()
+}
+
 /** Liest Produktdaten aus dem HTML einer Produktseite. Reihenfolge: JSON-LD, dann Open Graph und Meta-Angaben. */
-export function parseProduct(html: string, pageUrl: string): { product: Product; diag: Pick<Diagnostics, 'ldBlocks' | 'productNode' | 'metaTags'> } {
+export function parseProduct(html: string, pageUrl: string): { product: Product; diag: Pick<Diagnostics, 'ldBlocks' | 'productNode' | 'metaTags' | 'imgTags'> } {
   const text = html.length > MAX_HTML ? html.slice(0, MAX_HTML) : html
   const blocks = ldBlocks(text)
   const ld = fromJsonLd(blocks)
@@ -320,6 +392,7 @@ export function parseProduct(html: string, pageUrl: string): { product: Product;
     category: ld?.category,
     sources: [...new Set(sources)],
   }
+  if (product.name) product.name = shortenName(product.name)
   if (product.price === undefined) {
     const guess = textPrice(text)
     if (guess !== undefined) {
@@ -329,7 +402,15 @@ export function parseProduct(html: string, pageUrl: string): { product: Product;
       product.sources = [...product.sources, 'Seitentext']
     }
   }
-  return { product, diag: { ldBlocks: blocks.length, productNode: !!ld, metaTags: meta.count } }
+  const fb = imageFallback(text)
+  if (!product.image && fb.url) {
+    product.image = absolute(fb.url, pageUrl)
+    if (product.image) {
+      product.imageGuess = true
+      product.sources = [...product.sources, 'Seitenbild']
+    }
+  }
+  return { product, diag: { ldBlocks: blocks.length, productNode: !!ld, metaTags: meta.count, imgTags: fb.imgTags } }
 }
 
 /** Prüft die Eingabe: https-Adresse, kein lokales Netz. */
@@ -364,7 +445,7 @@ export async function fetchProduct(input: string): Promise<LinkResult> {
   }
   const html = await res.text().catch(() => '')
   const base = { status: res.status, bytes: html.length, type: res.header('content-type') ?? '', finalUrl: res.url }
-  const empty = { ...base, ldBlocks: 0, productNode: false, metaTags: 0 }
+  const empty = { ...base, ldBlocks: 0, productNode: false, metaTags: 0, imgTags: 0 }
   if (res.status === 404 || res.status === 410) throw new LinkError('notfound', res.status, '', empty)
   if (res.status === 401 || res.status === 403 || res.status === 429 || res.status === 503) throw new LinkError('blocked', res.status, '', empty)
   if (!res.ok) throw new LinkError('http', res.status, '', empty)
@@ -433,6 +514,8 @@ export interface FieldReport {
   state: FieldState
   text?: string
   why?: string
+  /** Name der Seite, der angeboten wird, wenn der eigene Name bleibt. */
+  alt?: string
 }
 
 const hostOf = (url: string): string => {
@@ -451,7 +534,11 @@ export function missingWhy(key: FieldKey, p: Product, d: Diagnostics | undefined
     if (d?.productNode) return 'Die Produktdaten der Seite enthalten keinen Preis.'
     return 'Die Seite nennt den Preis nicht in lesbarer Form, oft wird er erst per JavaScript geladen.'
   }
-  if (key === 'image') return d?.productNode || p.image === undefined ? 'Die Seite nennt kein Bild.' : 'Das Bild ließ sich nicht laden.'
+  if (key === 'image') {
+    if (p.image !== undefined) return 'Das Bild ließ sich nicht laden.'
+    if (d && d.imgTags === 0) return 'Die Seite zeigt der App keine Bilder, manche Shops liefern Apps eine abgespeckte Seite.'
+    return 'Die App hat auf der Seite kein passendes Produktbild gefunden.'
+  }
   return 'Die Seite nennt keinen Produktnamen.'
 }
 
@@ -461,9 +548,9 @@ export function describeResult(url: string, d: Diagnostics | undefined, p: Produ
     `Adresse: ${url}`,
     d ? `Endadresse: ${d.finalUrl}` : '',
     d ? `HTTP ${d.status}, ${d.bytes} Zeichen, ${d.type || 'ohne Typ'}` : '',
-    d ? `JSON-LD-Blöcke: ${d.ldBlocks}, Produktknoten: ${d.productNode ? 'ja' : 'nein'}, Meta-Tags: ${d.metaTags}` : '',
+    d ? `JSON-LD-Blöcke: ${d.ldBlocks}, Produktknoten: ${d.productNode ? 'ja' : 'nein'}, Meta-Tags: ${d.metaTags}, Bild-Tags: ${d.imgTags}` : '',
     p ? `Quellen: ${p.sources.join(', ') || '-'}` : '',
-    p ? `Name: ${p.name ?? '-'} | Marke: ${p.brand ?? '-'} | Preis: ${p.price ?? '-'}${p.priceGuess ? ' (geraten)' : ''} ${p.currency ?? ''} | EAN: ${p.gtin ?? '-'}${p.gtinOk === false ? ' (Prüfziffer falsch)' : ''} | Bild: ${p.image ? 'ja' : 'nein'} | Kategorie: ${p.category ?? '-'}` : '',
+    p ? `Name: ${p.name ?? '-'} | Marke: ${p.brand ?? '-'} | Preis: ${p.price ?? '-'}${p.priceGuess ? ' (geraten)' : ''} ${p.currency ?? ''} | EAN: ${p.gtin ?? '-'}${p.gtinOk === false ? ' (Prüfziffer falsch)' : ''} | Bild: ${p.image ? (p.imageGuess ? 'ja (geraten)' : 'ja') : 'nein'} | Kategorie: ${p.category ?? '-'}` : '',
     err ? `Fehler: ${err}` : '',
   ]
     .filter(Boolean)

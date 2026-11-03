@@ -96,7 +96,7 @@ export function LinkTestSheet({ onClose }: { onClose: () => void }) {
             <dt>{t('EAN')}</dt>
             <dd>{product.gtin ? `${product.gtin}${product.gtinOk === false ? ` · ${t('Prüfziffer stimmt nicht')}` : ''}` : '–'}</dd>
             <dt>{t('Bild')}</dt>
-            <dd>{product.image ? t('gefunden') : '–'}</dd>
+            <dd>{product.image ? (product.imageGuess ? `${t('gefunden')} · ${t('geraten')}` : t('gefunden')) : '–'}</dd>
             <dt>{t('Quelle')}</dt>
             <dd>{product.sources.join(', ') || '–'}</dd>
           </dl>

@@ -1821,9 +1821,11 @@ a.btn--block { display: flex; }
 .linkrep__lab { color: var(--text-3); font-weight: 600; }
 .linkrep__txt { overflow-wrap: anywhere; }
 .linkrep__row[data-state='none'] .linkrep__txt, .linkrep__row[data-state='off'] .linkrep__txt, .linkrep__row[data-state='kept'] .linkrep__txt { color: var(--text-3); }
+.linkrep__use { margin-left: 8px; vertical-align: baseline; }
 .linkrep__foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; font-size: calc(12px * var(--fs, 1)); color: var(--text-3); }
 input[data-busy] { animation: busyGlow 1.1s ease-in-out infinite; }
 @keyframes busyGlow { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent, #ff6b81) 0%, transparent); } 50% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #ff6b81) 35%, transparent); } }
 .field[data-flash] input { animation: fieldFlash 1.4s ease-out; }
 @keyframes fieldFlash { 0% { background: color-mix(in srgb, var(--accent, #ff6b81) 38%, var(--field)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #ff6b81) 45%, transparent); } 100% { background: var(--field); box-shadow: 0 0 0 0 transparent; } }
 @media (prefers-reduced-motion: reduce) { input[data-busy], .field[data-flash] input, .linkrep__bar { animation: none; } }
+

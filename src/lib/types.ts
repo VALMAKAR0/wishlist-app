@@ -171,6 +171,7 @@ export interface UiSettings {
   linkAuto: boolean
   linkPrice: boolean
   linkOverwrite: boolean
+  linkKeepName: boolean
   kindAuto: boolean
 }
 

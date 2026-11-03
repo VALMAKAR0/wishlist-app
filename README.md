@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 03.11.2026 · Status: V0.9.3 (Link-Import mit Ergebnis-Karte und Schaltern, lernende Art-Erkennung; Preisverlauf folgt) · Datenformat: v2
+Stand: 03.11.2026 · Status: V0.9.4 (Link-Import mit Ergebnis-Karte und Schaltern, Bild-Rückfall, eigener Name bleibt; Preisverlauf folgt) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -205,6 +205,7 @@ Eigener Tab mit Auswertungen über alles: Gesamtausgaben (für mich und für and
 - **V0.9.0 (Link-Test, ungetestet auf Gerät):** Link einfügen, App liest Name, Bild, Preis, EAN und zeigt es samt technischen Details an, dazu die Schalter (siehe 29)
 - **V0.9.1 (erledigt, ungetestet auf Gerät):** Link einfügen füllt Name, Preis und Bild im Formular (überschreibt, mit "Rückgängig"), "Link aus dem Browser teilen" auf Android (siehe 29)
 - **V0.9.2 (erledigt, ungetestet auf Gerät):** Fehlergründe bei "Keine Verbindung", Art-Erkennung mit Mehrwort-Begriffen, Lernen aus eigenen Einträgen und Vorschlags-Chips, Link-Feld liest auch bei Tippen oder Tastatur-Einfügen (siehe 29)
+- **V0.9.4 (erledigt, ungetestet auf Gerät):** Bild aus dem Seitenaufbau, wenn die Produktdaten keins nennen (als geraten markiert), eingetippter Name bleibt (Schalter "Eigenen Namen behalten", Knopf "Übernehmen"), lange Shop-Titel gekürzt, "Amazon.de:" vorn entfernt (siehe 29)
 - **V0.9.3 (erledigt, ungetestet auf Gerät):** Ergebnis-Karte beim Link-Import (gefunden, geraten, nicht gefunden mit Grund), vier neue Schalter, Titel-Reinigung, Preis aus dem Seitentext (als geraten markiert), Art auch beim Bearbeiten, sichtbare Animationen (siehe 29)
 - **V0.10:** Preisverlauf: "Preis jetzt prüfen", Diagramm, Hinweis "Preis gesunken" beim Öffnen oder über "Alle Preise prüfen"
 - **V0.11:** Tägliche Prüfung im Hintergrund mit Benachrichtigung, nur Android (siehe 29, Plan)
@@ -496,3 +497,12 @@ Technische Leitplanken für Animationen (nach Fehlersuche in V0.1):
 - **Ergebnis-Karte (`LinkReport`):** Unter dem Link-Feld zeigt eine Karte beim Lesen Fortschritt (Seite laden, Daten lesen, Bild laden) und danach je Feld Name, Preis, Bild: gefunden (grün), geraten (gelb), nicht gefunden mit Grund (rot), in den Einstellungen aus, schon ausgefüllt. Dazu die Quelle und "Details kopieren" für den Chat. Fehler stehen ebenfalls dort, mit Grund. Die Karte bleibt, bis der Link geändert wird.
 - **Sichtbar dynamisch:** Das Link-Feld pulsiert beim Lesen, übernommene Felder (Name, Art, Preis) blitzen kurz auf, die Karte klappt animiert auf. Bei "Bewegung reduzieren" im System bleibt es still.
 - **Neue Schalter (Mehr → App):** "Automatisch lesen" (aus: nur mit "Daten holen"), "Preis übernehmen", "Ausgefüllte Felder überschreiben" (aus: nur leere Felder füllen), dazu im Abschnitt "Formular" "Art automatisch erkennen". Alle gehen in die Sicherung.
+
+### V0.9.4: Rückmeldung vom Gerät (Tablet, 03.11., Amazon-Link)
+
+- **Bild fehlte bei Amazon:** Amazon liefert Apps eine Seite ohne JSON-LD und ohne og:image, die Bilder stehen nur im Seitenaufbau. Neu `imageFallback` in `src/lib/linkImport.ts`: Wenn die Produktdaten kein Bild nennen, sucht die App im HTML in dieser Reihenfolge `data-a-dynamic-image` (größtes Bild), `data-old-hires`/`data-a-hires`/`data-zoom-image`, `<link rel="image_src">`, dann `<img>` mit angegebener Größe ab 250 × 250 oder bekannten Hauptbild-Kennungen (`landingImage`, `imgBlkFront`, …). Logos, Icons, Sprites, Banner, SVG und GIF werden übersprungen. Ein so gefundenes Bild gilt als **geraten** (`imageGuess`, Quelle "Seitenbild", gelbes Symbol in der Karte). Bilder aus JSON-LD oder Open Graph haben Vorrang. Ich konnte Amazons echtes HTML aus der Cloud nicht abrufen, die Regeln sind aus bekannten Mustern gebaut. Hilft das nicht, zeigt "Details kopieren" jetzt auch die Zahl der Bild-Tags (`Bild-Tags: n`), daran sieht man, ob Amazon der App überhaupt Bilder schickt.
+- **Fehlertext beim Bild:** Je nach Lage "Die Seite zeigt der App keine Bilder, manche Shops liefern Apps eine abgespeckte Seite." (0 Bild-Tags) oder "Die App hat auf der Seite kein passendes Produktbild gefunden."
+- **Eigener Name bleibt:** Ein von Hand eingetippter Name wird beim Import nicht mehr überschrieben. In der Karte steht "Dein Name bleibt. Die Seite nennt: …" mit Knopf **Übernehmen**. Ein früher von der App importierter Name zählt nicht als eingetippt, ein zweiter Link ersetzt ihn also. Neuer Schalter (Mehr → App → Link-Import) **"Eigenen Namen behalten"**, Standard an, geht in die Sicherung (`linkKeepName`). Aus: Name wird wie früher überschrieben (wenn "Ausgefüllte Felder überschreiben" an ist). Preis und Bild folgen weiter dem Schalter "Ausgefüllte Felder überschreiben".
+- **Titel:** Namen über 70 Zeichen werden an Komma, Bindestrich, Klammer oder Wortgrenze gekürzt (`shortenName`). Ein führender Shopname wie "Amazon.de: " fällt weg (auch bei Kurzlinks `amzn.eu`).
+- **Tests:** `link.test.ts` (Bild-Rückfall, Kürzen, Amazon-Titel), `settings.test.ts` (`linkKeepName`), `v091.cjs` (Name bleibt, Übernehmen, Schalter aus, zweiter Import, Amazon-Szenario).
+- **Auf dem Gerät prüfen:** Amazon-Link einfügen (Bild da? gelb markiert?), erst Namen tippen, dann Link einfügen (Name bleibt, "Übernehmen" geht). Bleibt das Bild weg, "Details kopieren" im Chat zeigen.
