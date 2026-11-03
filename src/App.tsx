@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { AppLock } from './components/AppLock'
 import { AutoBackup } from './components/AutoBackup'
 import { IncomingFile } from './components/IncomingFile'
+import { IncomingLink } from './components/IncomingLink'
 import { Reminders } from './components/Reminders'
 import { InstallNotice } from './components/InstallNotice'
 import { PwaNotice } from './components/PwaNotice'
@@ -116,6 +117,7 @@ function Shell() {
       <TabBar />
       <AutoBackup />
       <IncomingFile />
+      <IncomingLink />
       <Reminders />
       <UpdateCheck />
       <PwaNotice />

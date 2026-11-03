@@ -1797,3 +1797,6 @@ button.row-item:active {
 a.btn { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 a.btn--ghost { color: var(--text); }
 a.btn--block { display: flex; }
+.choicelist { display: grid; gap: 10px; }
+.field__row--link { flex-wrap: wrap; }
+.field__row--link input { flex: 1 1 100%; }

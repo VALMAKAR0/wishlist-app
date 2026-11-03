@@ -562,7 +562,7 @@ function AppPage() {
               onClick={inst.installed ? undefined : () => (inst.canPrompt ? void promptInstall() : setHowTo(true))}
             />
           )}
-          <Row icon={<Share2 size={18} />} title={t('Links aus dem Browser teilen')} text={t('Nur Android')} right={<Chip tone="accent">V0.9</Chip>} onClick={() => ui.planned('share-link-in')} />
+          <Row icon={<Share2 size={18} />} title={t('Links aus dem Browser teilen')} text={upd.native ? t('Im Browser oder Shop: Teilen → Wunschliste') : t('Nur in der Android-App')} />
           {upd.enabled ? (
             <>
               {upd.available && (

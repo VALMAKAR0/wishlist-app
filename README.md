@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 03.11.2026 · Status: V0.9.0 (Link-Test mit Schaltern; Import und Preisverlauf folgen) · Datenformat: v2
+Stand: 03.11.2026 · Status: V0.9.1 (Link-Import ins Formular, Teilen aus dem Browser; Preisverlauf folgt) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -203,7 +203,7 @@ Eigener Tab mit Auswertungen über alles: Gesamtausgaben (für mich und für and
 - **V0.7.1 (erledigt, ungetestet auf Gerät):** Einstellungen neu geordnet („Mehr“ mit Kategorien und Suche), App-Sperre, Währungen, Datumsformat, Schriftgröße, Export und mehr (siehe 26).
 - **V0.8 (erledigt, ungetestet auf iPhone):** Web-App fürs iPhone: Manifest, Symbole, Offline-Speicher (Service Worker), GitHub-Pages-Workflow, Installationshinweis, "Neu laden", Kalenderdatei .ics (siehe 28)
 - **V0.9.0 (Link-Test, ungetestet auf Gerät):** Link einfügen, App liest Name, Bild, Preis, EAN und zeigt es samt technischen Details an, dazu die Schalter (siehe 29)
-- **V0.9.x:** Übernahme in Wunsch- und Ideen-Formular (vorausgefüllt, du bestätigst), "Link aus dem Browser teilen" auf Android
+- **V0.9.1 (erledigt, ungetestet auf Gerät):** Link einfügen füllt Name, Preis und Bild im Formular (überschreibt, mit "Rückgängig"), "Link aus dem Browser teilen" auf Android (siehe 29)
 - **V0.10:** Preisverlauf: "Preis jetzt prüfen", Diagramm, Hinweis "Preis gesunken" beim Öffnen oder über "Alle Preise prüfen"
 - **V0.11:** Tägliche Prüfung im Hintergrund mit Benachrichtigung, nur Android (siehe 29, Plan)
 - **V1.0:** Test auf echten Geräten, Release
@@ -461,3 +461,20 @@ Technische Leitplanken für Animationen (nach Fehlersuche in V0.1):
 - Bei jedem: Wurde Name, Preis, Bild, EAN gefunden? Sonst "Details kopieren" schicken
 - Schalter aus: "Link testen" ist gesperrt, Bild-Schalter aus: kein Bild im Ergebnis
 - Idealo-Suche öffnet im Browser
+
+### V0.9.1: Import ins Formular und Teilen aus dem Browser
+
+- **Entscheidungen (03.11.):** Import startet automatisch beim Einfügen, überschreibt Name, Preis und Bild, das Bild wird heruntergeladen und lokal gespeichert, das Teilen aus dem Browser kommt in dieselbe Version.
+- **Formular (`ItemFormSheet`):** Fügt man in das Feld "Link" einen Text mit Adresse ein (Einfügen-Ereignis), wird die erste Adresse herausgezogen, eingetragen und die Seite gelesen (`fetchProduct`). Danach stehen Name, Preis (mit Währung, wenn bekannt) und Bild im Formular, die Art wird wie bei Handeingabe vorgeschlagen, solange man sie nicht selbst geändert hat. Eine Meldung nennt, was übernommen wurde, mit "Rückgängig" (stellt Name, Art, Preis, Währung und Bild von vorher her). Nur wenn vorher schon etwas drinstand.
+- **Von Hand:** Bei getipptem oder schon vorhandenem Link gibt es "Daten holen". Ist das Feld leer, liest "Ausfüllen" die Zwischenablage.
+- **Bild:** `fetchImageBytes` lädt nativ als Base64 (`CapacitorHttp`, `responseType: blob`), höchstens 8 MB, keine SVG, http wird auf https umgestellt. Danach läuft es durch dieselbe Verkleinerung wie ein gewähltes Bild (`processImage`, 800 px, JPEG) und wird erst beim Speichern abgelegt. Klappt das Bild nicht, steht "Bild nicht ladbar", der Rest wird trotzdem übernommen.
+- **Schalter:** "Link-Import" aus: Das Einfügen trägt nur den Link ein, kein Abruf, kein Knopf "Daten holen". "Bilder übernehmen" aus: kein Bildabruf. Im Browser (nicht Android-App) wird nie abgerufen.
+- **Teilen aus dem Browser (nur Android):** `AndroidManifest.xml` hat einen Filter für `SEND` mit `text/plain`. Das Mini-Plugin `ShareInPlugin.java` (in `MainActivity` registriert) merkt sich den geteilten Text und meldet ihn per Ereignis `shareIn`, beim Start holt die App ihn mit `getPending()`. `IncomingLink` zieht die Adresse heraus (kein Link: Hinweis), fragt "Mein Wunsch" oder "Idee für <Person>" und öffnet das Formular mit dem Link, das sofort liest.
+- **Grenzen:** Das Java-Plugin und der Teilen-Eintrag sind in der Cloud nicht kompilierbar und nur im GitHub-Bau prüfbar. Erst der Bau zeigt, ob Java sauber übersetzt. Schlägt der Bau fehl, bitte das Log schicken.
+
+### Am Gerät zu prüfen (V0.9.1)
+
+- Link aus Brave oder einem Shop teilen: "Wunschliste" erscheint in der Teilen-Liste, Auswahl "Mein Wunsch", Formular füllt sich
+- Link kopieren und im Formular einfügen: Name, Preis, Bild erscheinen, "Rückgängig" funktioniert
+- Schalter "Link-Import" und "Bilder übernehmen" aus: kein Abruf bzw. kein Bild
+- Gesperrter Shop: verständlicher Hinweis, nichts wird überschrieben

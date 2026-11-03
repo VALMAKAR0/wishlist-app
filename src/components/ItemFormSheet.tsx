@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Camera, ExternalLink, Trash2, Wand2, X } from 'lucide-react'
+import { Camera, ExternalLink, Loader2, Trash2, Wand2, X } from 'lucide-react'
+import { isNative } from '../lib/backupFiles'
 import { CURRENCIES, hasRate, toHref, uid } from '../lib/format'
 import { processImage, saveImage } from '../lib/images'
+import { extractUrl, fetchImageBytes, fetchProduct, knownCurrency, linkFailText } from '../lib/linkImport'
 import { listTitle } from '../lib/lists'
 import { candidatesFor, findSimilar, suggestKind } from '../lib/match'
 import type { Item, Owner } from '../lib/types'
@@ -20,10 +22,12 @@ interface Props {
   item?: Item | null
   /** Vorausgewählte Liste beim Anlegen. */
   listId?: string
+  /** Link aus dem Teilen-Menü: wird beim Öffnen sofort gelesen. */
+  initialLink?: string
   onClose: () => void
 }
 
-export function ItemFormSheet({ owner, item, listId: initialList, onClose }: Props) {
+export function ItemFormSheet({ owner, item, listId: initialList, initialLink, onClose }: Props) {
   const t = useT()
   const { dispatch, lists, items, received, persons } = useStore()
   const ui = useUI()
@@ -47,6 +51,11 @@ export function ItemFormSheet({ owner, item, listId: initialList, onClose }: Pro
   const [removed, setRemoved] = useState(false)
   const [busy, setBusy] = useState(false)
   const hasImage = !!pending || (!removed && !!item?.imageId)
+  const [importing, setImporting] = useState(false)
+  const canImport = isNative() && ui.settings.linkImport
+  const live = useRef({ name, kind, kindTouched, price, cur, pending, removed })
+  live.current = { name, kind, kindTouched, price, cur, pending, removed }
+  const started = useRef(false)
 
   useEffect(
     () => () => {
@@ -68,6 +77,83 @@ export function ItemFormSheet({ owner, item, listId: initialList, onClose }: Pro
       ui.toast({ message: t('Bild konnte nicht gelesen werden.'), emoji: '⚠️' })
     } finally {
       setBusy(false)
+    }
+  }
+
+  const importLink = async (raw: string) => {
+    const url = extractUrl(raw) ?? raw.trim()
+    if (!url) return
+    setLink(url)
+    if (!canImport || importing) return
+    setImporting(true)
+    try {
+      const { product } = await fetchProduct(url)
+      const before = live.current
+      const hadContent = !!(before.name.trim() || before.price.trim() || before.pending || (!before.removed && item?.imageId))
+      const done: string[] = []
+      if (product.name) {
+        const n = product.name.slice(0, 140)
+        setName(n)
+        if (!before.kindTouched) setKind(suggestKind(n) ?? '')
+        done.push(t('Name'))
+      }
+      if (product.price !== undefined && knownCurrency(product.currency ?? before.cur)) {
+        setPrice(product.price.toFixed(2).replace('.', ','))
+        setCur(product.currency ?? before.cur)
+        done.push(t('Preis'))
+      }
+      let imageFailed = false
+      if (ui.settings.linkImages && product.image) {
+        const raw = await fetchImageBytes(product.image)
+        try {
+          if (!raw) throw new Error('kein Bild')
+          const img = await processImage(new Blob([raw.data], { type: raw.type }))
+          setPending({ ...img, preview: URL.createObjectURL(new Blob([img.data], { type: img.type })) })
+          setRemoved(false)
+          done.push(t('Bild'))
+        } catch {
+          imageFailed = true
+        }
+      }
+      ui.haptic(18)
+      const undo = () => {
+        setName(before.name)
+        setKind(before.kind)
+        setKindTouched(before.kindTouched)
+        setPrice(before.price)
+        setCur(before.cur)
+        setRemoved(before.removed)
+        setPending(before.pending ? { ...before.pending, preview: URL.createObjectURL(new Blob([before.pending.data], { type: before.pending.type })) } : null)
+      }
+      ui.toast({
+        message: done.length ? t('Übernommen: {fields}', { fields: done.join(', ') }) + (imageFailed ? ' · ' + t('Bild nicht ladbar') : '') : t('Nichts Passendes gefunden.'),
+        emoji: done.length ? '🪄' : '🤷',
+        ...(hadContent && done.length ? { actionLabel: t('Rückgängig'), onAction: undo } : {}),
+      })
+    } catch (e) {
+      ui.haptic(50)
+      ui.toast({ message: t(linkFailText(e)), emoji: '⚠️' })
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!initialLink || started.current) return
+    started.current = true
+    void importLink(initialLink)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const fillFromClipboard = async () => {
+    if (!canImport) {
+      ui.toast({ message: isNative() ? t('Link-Import ist in den Einstellungen aus.') : t('Link-Import geht nur in der Android-App.'), emoji: '🪄' })
+      return
+    }
+    try {
+      await importLink(await navigator.clipboard.readText())
+    } catch {
+      ui.toast({ message: t('Einfügen nicht erlaubt. Halte das Feld gedrückt und wähle „Einfügen“.'), emoji: '📋' })
     }
   }
 
@@ -234,14 +320,38 @@ export function ItemFormSheet({ owner, item, listId: initialList, onClose }: Pro
 
       <label className="field">
         <span>{t('Link')}</span>
-        <div className="field__row">
-          <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…" inputMode="url" autoCapitalize="off" />
-          {link.trim() ? (
-            <button type="button" className="chip chip--button" onClick={() => window.open(toHref(link), '_blank', 'noopener,noreferrer')}>
-              <ExternalLink size={14} /> {t('Öffnen')}
-            </button>
+        <div className="field__row field__row--link">
+          <input
+            value={link}
+            onChange={(e) => setLink(e.target.value)}
+            onPaste={(e) => {
+              const text = e.clipboardData.getData('text')
+              if (canImport && extractUrl(text)) {
+                e.preventDefault()
+                void importLink(text)
+              }
+            }}
+            placeholder="https://…"
+            inputMode="url"
+            autoCapitalize="off"
+          />
+          {importing ? (
+            <span className="chip" aria-live="polite">
+              <Loader2 size={14} className="spin" /> {t('Lese Seite …')}
+            </span>
+          ) : link.trim() ? (
+            <>
+              {canImport && (
+                <button type="button" className="chip chip--button" onClick={() => void importLink(link)}>
+                  <Wand2 size={14} /> {t('Daten holen')}
+                </button>
+              )}
+              <button type="button" className="chip chip--button" onClick={() => window.open(toHref(link), '_blank', 'noopener,noreferrer')}>
+                <ExternalLink size={14} /> {t('Öffnen')}
+              </button>
+            </>
           ) : (
-            <button type="button" className="chip chip--button" onClick={() => ui.planned('link-import')}>
+            <button type="button" className="chip chip--button" onClick={() => void fillFromClipboard()}>
               <Wand2 size={14} /> {t('Ausfüllen')}
             </button>
           )}

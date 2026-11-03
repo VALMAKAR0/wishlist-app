@@ -1,20 +1,9 @@
 import { useState } from 'react'
 import { ClipboardPaste, Copy, ExternalLink, Loader2, Search } from 'lucide-react'
-import { fetchProduct, idealoSearch, knownCurrency, LinkError, type Diagnostics, type Product } from '../lib/linkImport'
+import { fetchProduct, idealoSearch, knownCurrency, linkFailText, LinkError, type Diagnostics, type Product } from '../lib/linkImport'
 import { money } from '../lib/format'
 import { useT, useUI } from '../state/ui'
 import { Sheet } from './Sheet'
-
-const failText = (e: unknown): string => {
-  const kind = e instanceof LinkError ? e.kind : 'network'
-  if (kind === 'web') return 'Link-Import geht nur in der Android-App. Im Browser blockieren Shops den Zugriff.'
-  if (kind === 'invalid') return 'Das ist keine gültige https-Adresse.'
-  if (kind === 'blocked') return 'Die Seite lässt die App nicht herein (Schutz vor Automaten). Probier einen anderen Shop oder den Hersteller.'
-  if (kind === 'notfound') return 'Die Seite gibt es nicht (404). Stimmt der Link?'
-  if (kind === 'http') return 'Die Seite antwortet mit einem Fehler.'
-  if (kind === 'noproduct') return 'Auf der Seite sind keine Produktdaten zu finden. Ist es die Seite eines einzelnen Produkts?'
-  return 'Keine Verbindung zur Seite. Bist du online?'
-}
 
 const diagText = (url: string, d: Diagnostics | undefined, p: Product | null, err: string) =>
   [
@@ -60,7 +49,7 @@ export function LinkTestSheet({ onClose }: { onClose: () => void }) {
       setDiag(r.diag)
       ui.haptic(15)
     } catch (e) {
-      setErr(t(failText(e)) + (e instanceof LinkError && e.status ? ` (HTTP ${e.status})` : e instanceof LinkError && e.detail ? ` (${e.detail})` : ''))
+      setErr(t(linkFailText(e)) + (e instanceof LinkError && e.status ? ` (HTTP ${e.status})` : e instanceof LinkError && e.detail ? ` (${e.detail})` : ''))
       if (e instanceof LinkError) setDiag(e.diag)
       ui.haptic(60)
     } finally {

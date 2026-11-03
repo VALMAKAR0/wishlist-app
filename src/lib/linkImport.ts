@@ -1,6 +1,6 @@
 import { isNative } from './backupFiles'
 import { CURRENCIES } from './format'
-import { httpGet } from './http'
+import { httpBytes, httpGet } from './http'
 
 export interface Product {
   name?: string
@@ -294,4 +294,39 @@ export const knownCurrency = (c: string | undefined): c is string => !!c && CURR
 export const idealoSearch = (p: Pick<Product, 'name' | 'gtin' | 'gtinOk'>): string | null => {
   const q = p.gtin && p.gtinOk ? p.gtin : p.name?.slice(0, 120)
   return q ? `https://www.idealo.de/preisvergleich/MainSearchProductCategory.html?q=${encodeURIComponent(q)}` : null
+}
+
+const IMAGE_LIMIT = 8_000_000
+
+/** Erste Webadresse aus einem Text, zum Beispiel aus „Schau mal: https://…“. */
+export function extractUrl(text: string): string | null {
+  const m = text.match(/https?:\/\/[^\s<>"'„“”]+/i)
+  if (!m) return null
+  return m[0].replace(/[).,;!?]+$/, '')
+}
+
+/** Lädt das Produktbild als Rohdaten. Gibt null zurück, wenn es nicht klappt, das Bild ist nie Pflicht. */
+export async function fetchImageBytes(src: string): Promise<{ type: string; data: ArrayBuffer } | null> {
+  if (!isNative()) return null
+  const url = cleanUrl(src.replace(/^http:\/\//i, 'https://'))
+  if (!url) return null
+  try {
+    const r = await httpBytes(url, { 'User-Agent': UA, Accept: 'image/avif,image/webp,image/jpeg,image/png,*/*;q=0.5' })
+    if (!r.ok || !r.data.byteLength || r.data.byteLength > IMAGE_LIMIT) return null
+    if (r.type && !/^image\/(?!svg)|octet-stream/i.test(r.type)) return null
+    return { type: r.type || 'image/jpeg', data: r.data }
+  } catch {
+    return null
+  }
+}
+
+export function linkFailText(e: unknown): string {
+  const kind = e instanceof LinkError ? e.kind : 'network'
+  if (kind === 'web') return 'Link-Import geht nur in der Android-App. Im Browser blockieren Shops den Zugriff.'
+  if (kind === 'invalid') return 'Das ist keine gültige https-Adresse.'
+  if (kind === 'blocked') return 'Die Seite lässt die App nicht herein (Schutz vor Automaten). Probier einen anderen Shop oder den Hersteller.'
+  if (kind === 'notfound') return 'Die Seite gibt es nicht (404). Stimmt der Link?'
+  if (kind === 'http') return 'Die Seite antwortet mit einem Fehler.'
+  if (kind === 'noproduct') return 'Auf der Seite sind keine Produktdaten zu finden. Ist es die Seite eines einzelnen Produkts?'
+  return 'Keine Verbindung zur Seite. Bist du online?'
 }
