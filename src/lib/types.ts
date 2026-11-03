@@ -168,6 +168,10 @@ export interface UiSettings {
   linkImport: boolean
   /** Beim Link-Import auch das Produktbild übernehmen. */
   linkImages: boolean
+  linkAuto: boolean
+  linkPrice: boolean
+  linkOverwrite: boolean
+  kindAuto: boolean
 }
 
 export type ShareBought = 'hidden' | 'only' | 'exclude'

@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 03.11.2026 · Status: V0.9.2 (Link-Import ins Formular, Teilen aus dem Browser, lernende Art-Erkennung; Preisverlauf folgt) · Datenformat: v2
+Stand: 03.11.2026 · Status: V0.9.3 (Link-Import mit Ergebnis-Karte und Schaltern, lernende Art-Erkennung; Preisverlauf folgt) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -205,6 +205,7 @@ Eigener Tab mit Auswertungen über alles: Gesamtausgaben (für mich und für and
 - **V0.9.0 (Link-Test, ungetestet auf Gerät):** Link einfügen, App liest Name, Bild, Preis, EAN und zeigt es samt technischen Details an, dazu die Schalter (siehe 29)
 - **V0.9.1 (erledigt, ungetestet auf Gerät):** Link einfügen füllt Name, Preis und Bild im Formular (überschreibt, mit "Rückgängig"), "Link aus dem Browser teilen" auf Android (siehe 29)
 - **V0.9.2 (erledigt, ungetestet auf Gerät):** Fehlergründe bei "Keine Verbindung", Art-Erkennung mit Mehrwort-Begriffen, Lernen aus eigenen Einträgen und Vorschlags-Chips, Link-Feld liest auch bei Tippen oder Tastatur-Einfügen (siehe 29)
+- **V0.9.3 (erledigt, ungetestet auf Gerät):** Ergebnis-Karte beim Link-Import (gefunden, geraten, nicht gefunden mit Grund), vier neue Schalter, Titel-Reinigung, Preis aus dem Seitentext (als geraten markiert), Art auch beim Bearbeiten, sichtbare Animationen (siehe 29)
 - **V0.10:** Preisverlauf: "Preis jetzt prüfen", Diagramm, Hinweis "Preis gesunken" beim Öffnen oder über "Alle Preise prüfen"
 - **V0.11:** Tägliche Prüfung im Hintergrund mit Benachrichtigung, nur Android (siehe 29, Plan)
 - **V1.0:** Test auf echten Geräten, Release
@@ -486,3 +487,12 @@ Technische Leitplanken für Animationen (nach Fehlersuche in V0.1):
 - **Art-Erkennung (`src/lib/match.ts`):** Sie wartet jetzt 600 ms nach dem letzten Tastendruck. Mehrwort-Begriffe schlagen Markennamen ("Galaxy Watch" = Smartwatch, "Galaxy Tab" = Tablet, "Galaxy" allein bleibt Smartphone). Gesucht wird an Wortenden (Kinderbuch) und bei Begriffen ab 5 Zeichen am Anfang, "Führerschein" trifft also nicht "uhr". Neue Arten (Zubehör, Werkzeug, Motorrad, Haushalt, Audio und mehr). Reihenfolge: feste Begriffe, dann das, was die App aus deinen eigenen Einträgen gelernt hat (gleiche Wörter im Namen, gleiche Art), dann Markennamen, zuletzt die Kategorie der Produktseite (`category` aus JSON-LD).
 - **Freie Arten:** Unter dem Feld "Art" erscheinen Vorschlags-Chips, zuerst deine eigenen Arten nach Häufigkeit, beim Tippen alle passenden. Jede Eingabe bleibt möglich. Von Hand gesetzt bleibt sie bestehen, wird das Feld geleert, läuft die Automatik wieder.
 - **Link-Feld:** Liest nach 0,9 s Ruhe automatisch, auch wenn der Link per Tastatur-Zwischenablage (Gboard) oder getippt ankommt, wo kein Einfügen-Ereignis entsteht. Nur bei vollständigen Produktadressen (Pfad oder Parameter, nicht die bloße Startseite), je Adresse einmal. Der Knopf "Daten holen" liest erneut.
+
+### V0.9.3: Rückmeldung vom Gerät (Tablet, 03.11., zweite Runde)
+
+- **Art wurde beim Bearbeiten nicht ergänzt:** Der Eintrag war schon gespeichert, der Name blieb gleich, und V0.9.2 schlug nur bei geändertem Namen vor. Jetzt wird die Art auch beim Öffnen eines Eintrags ohne Art vorgeschlagen (hat er schon eine, bleibt sie).
+- **Falscher Name bei Honda:** Die Seite meldet als og:title nur "Daten & Preise", der Titel lautet "Daten und Preise | Honda | CBR650R | …". `refineName` erkennt Allerweltswörter (Daten, Preise, Startseite, …) und die Marke aus der Adresse und macht daraus "Honda CBR650R". Auch Titel wie "Produkt : Amazon.de: Elektronik" werden auf den Produktteil gekürzt.
+- **Preis fehlte meistens:** Viele Seiten (Honda, Amazon) liefern ihn weder als JSON-LD noch als Meta-Angabe. Neu: Steht er sichtbar im Text hinter einem Stichwort (ab, Preis, UVP, Preisempfehlung, nur, kostet) mit Euro-Zeichen, wird er übernommen und als **geraten** markiert (`priceGuess`, Quelle "Seitentext"). Ohne Stichwort wird nie geraten. Amazon gibt keinen Preis an Apps heraus, das steht dann so da.
+- **Ergebnis-Karte (`LinkReport`):** Unter dem Link-Feld zeigt eine Karte beim Lesen Fortschritt (Seite laden, Daten lesen, Bild laden) und danach je Feld Name, Preis, Bild: gefunden (grün), geraten (gelb), nicht gefunden mit Grund (rot), in den Einstellungen aus, schon ausgefüllt. Dazu die Quelle und "Details kopieren" für den Chat. Fehler stehen ebenfalls dort, mit Grund. Die Karte bleibt, bis der Link geändert wird.
+- **Sichtbar dynamisch:** Das Link-Feld pulsiert beim Lesen, übernommene Felder (Name, Art, Preis) blitzen kurz auf, die Karte klappt animiert auf. Bei "Bewegung reduzieren" im System bleibt es still.
+- **Neue Schalter (Mehr → App):** "Automatisch lesen" (aus: nur mit "Daten holen"), "Preis übernehmen", "Ausgefüllte Felder überschreiben" (aus: nur leere Felder füllen), dazu im Abschnitt "Formular" "Art automatisch erkennen". Alle gehen in die Sicherung.

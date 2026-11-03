@@ -1,5 +1,5 @@
 import { isNative } from './backupFiles'
-import { CURRENCIES } from './format'
+import { CURRENCIES, normalize } from './format'
 import { httpBytes, httpGet } from './http'
 import { netReason } from './netReason'
 
@@ -12,6 +12,8 @@ export interface Product {
   gtin?: string
   gtinOk?: boolean
   category?: string
+  /** Preis stammt aus dem Fließtext der Seite und ist nur geraten. */
+  priceGuess?: boolean
   sources: string[]
 }
 
@@ -198,7 +200,7 @@ function metaMap(html: string): { map: Map<string, string>; count: number } {
   return { map, count }
 }
 
-function fromMeta(html: string): { product: Product; count: number } {
+function fromMeta(html: string): { product: Product; count: number; title?: string; siteName?: string; ogTitle?: string } {
   const { map, count } = metaMap(html)
   const get = (...keys: string[]) => keys.map((k) => map.get(k)).find((v) => v && v.trim())
   const title = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]
@@ -214,6 +216,9 @@ function fromMeta(html: string): { product: Product; count: number } {
   else if (name) sources.push('Seitentitel')
   return {
     count,
+    title: title ? decode(title) : undefined,
+    siteName: ((v) => (v ? decode(v) : undefined))(get('og:site_name')),
+    ogTitle: ((v) => (v ? decode(v) : undefined))(get('og:title', 'twitter:title')),
     product: {
       name: name ? decode(name) : undefined,
       image: image?.trim(),
@@ -224,6 +229,60 @@ function fromMeta(html: string): { product: Product; count: number } {
       sources,
     },
   }
+}
+
+
+const GENERIC_WORDS = new Set(['daten', 'preise', 'preis', 'technische', 'technisch', 'startseite', 'home', 'produkt', 'produkte', 'ubersicht', 'details', 'detail', 'spezifikation', 'spezifikationen', 'specifications', 'specification', 'price', 'prices', 'und', 'and', 'modelle', 'shop', 'online', 'kaufen', 'angebot', 'angebote', 'info', 'infos', 'data', 'overview', 'bestellen'])
+
+const isGeneric = (seg: string): boolean => {
+  const w = normalize(seg).split(' ').filter(Boolean)
+  return w.length > 0 && w.every((x) => GENERIC_WORDS.has(x))
+}
+
+const brandLabel = (host: string): string => {
+  const parts = host.toLowerCase().split('.').filter((x) => x !== 'www')
+  return normalize(parts.length >= 2 ? parts[parts.length - 2] : parts[0] ?? '')
+}
+
+const splitTitle = (t: string): string[] => t.split(/\s+[|–—·•:]\s+|\s*\|\s*|:\s+|\s+-\s+/).map((x) => x.trim()).filter(Boolean)
+
+/** Macht aus Seitentiteln wie "Daten und Preise | Honda | CBR650R | …" den Produktnamen "Honda CBR650R". */
+export function refineName(raw: string | undefined, title: string | undefined, host: string, siteName?: string): string | undefined {
+  const base = raw ?? title
+  if (!base) return undefined
+  const brand = brandLabel(host)
+  const site = siteName ? normalize(siteName) : ''
+  const isBrand = (seg: string) => {
+    const n = normalize(seg).replace(/ (de|com|at|ch|eu|net|org)$/, '').trim()
+    return !!n && (n === brand || n === site)
+  }
+  if (isGeneric(base) && title) {
+    const parts = splitTitle(title)
+    const cands = parts.filter((p) => !isGeneric(p) && !isBrand(p))
+    if (!cands.length) return base
+    const model = cands.find((p) => /\d/.test(p) && /[a-z]/i.test(p)) ?? cands[0]
+    const brandSeg = parts.find(isBrand)
+    return (brandSeg && !normalize(model).includes(normalize(brandSeg)) ? `${brandSeg} ` : '') + model
+  }
+  const parts = splitTitle(base)
+  if (parts.length > 1 && parts.slice(1).some(isBrand) && !isBrand(parts[0]) && !isGeneric(parts[0])) return parts[0]
+  return base
+}
+
+/** Preis aus dem sichtbaren Text, nur mit Stichwort davor ("ab", "Preis", "UVP", …). Immer nur geraten. */
+export function textPrice(html: string): number | undefined {
+  const body = html
+    .replace(/<(script|style|noscript|svg)[\s\S]*?<\/\1>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;|&#160;/g, ' ')
+    .replace(/\s+/g, ' ')
+  const amount = '((?:\\d{1,3}(?:\\.\\d{3})+|\\d+)(?:,\\d{1,2})?)'
+  const key = '(?:ab|nur|preis|uvp|preisempfehlung|kostet|price|from)'
+  const after = new RegExp(`\\b${key}\\b[^\\d€]{0,25}${amount}\\s*(?:€|eur\\b)`, 'i').exec(body)
+  const before = new RegExp(`\\b${key}\\b[^\\d€]{0,25}(?:€|eur\\b)\\s*${amount}`, 'i').exec(body)
+  const m = [after, before].filter((x): x is RegExpExecArray => !!x).sort((a, b) => a.index - b.index)[0]
+  const v = m ? parsePrice(m[1]) : undefined
+  return v !== undefined && v >= 1 && v < 1_000_000 ? v : undefined
 }
 
 const absolute = (u: string | undefined, base: string): string | undefined => {
@@ -243,8 +302,15 @@ export function parseProduct(html: string, pageUrl: string): { product: Product;
   const ld = fromJsonLd(blocks)
   const meta = fromMeta(text)
   const sources = [...(ld?.sources ?? []), ...(meta.product.sources.length && (!ld || !ld.name || ld.price === undefined || !ld.image) ? meta.product.sources : [])]
+  const host = (() => {
+    try {
+      return new URL(pageUrl).hostname
+    } catch {
+      return ''
+    }
+  })()
   const product: Product = {
-    name: ld?.name ?? meta.product.name,
+    name: ld?.name ?? refineName(meta.ogTitle ?? meta.product.name, meta.title, host, meta.siteName),
     brand: ld?.brand,
     image: absolute(ld?.image ?? meta.product.image, pageUrl),
     price: ld?.price ?? meta.product.price,
@@ -253,6 +319,15 @@ export function parseProduct(html: string, pageUrl: string): { product: Product;
     gtinOk: ld?.gtin ? ld.gtinOk : meta.product.gtinOk,
     category: ld?.category,
     sources: [...new Set(sources)],
+  }
+  if (product.price === undefined) {
+    const guess = textPrice(text)
+    if (guess !== undefined) {
+      product.price = guess
+      product.currency = 'EUR'
+      product.priceGuess = true
+      product.sources = [...product.sources, 'Seitentext']
+    }
   }
   return { product, diag: { ldBlocks: blocks.length, productNode: !!ld, metaTags: meta.count } }
 }
@@ -348,4 +423,49 @@ export function linkFailText(e: unknown): string {
   if (kind === 'http') return 'Die Seite antwortet mit einem Fehler.'
   if (kind === 'noproduct') return 'Auf der Seite sind keine Produktdaten zu finden. Ist es die Seite eines einzelnen Produkts?'
   return 'Keine Verbindung zur Seite. Bist du online?'
+}
+
+export type FieldKey = 'name' | 'price' | 'image'
+export type FieldState = 'ok' | 'guess' | 'none' | 'off' | 'kept'
+
+export interface FieldReport {
+  key: FieldKey
+  state: FieldState
+  text?: string
+  why?: string
+}
+
+const hostOf = (url: string): string => {
+  try {
+    return new URL(url).hostname.toLowerCase()
+  } catch {
+    return ''
+  }
+}
+
+/** Warum ein Feld fehlt, in einem Satz (deutsch, wird mit t() angezeigt). */
+export function missingWhy(key: FieldKey, p: Product, d: Diagnostics | undefined, url: string): string {
+  const host = hostOf(url)
+  if (key === 'price') {
+    if (/(^|\.)(amazon|amzn)\./.test(host)) return 'Amazon gibt Preise nicht an Apps heraus.'
+    if (d?.productNode) return 'Die Produktdaten der Seite enthalten keinen Preis.'
+    return 'Die Seite nennt den Preis nicht in lesbarer Form, oft wird er erst per JavaScript geladen.'
+  }
+  if (key === 'image') return d?.productNode || p.image === undefined ? 'Die Seite nennt kein Bild.' : 'Das Bild ließ sich nicht laden.'
+  return 'Die Seite nennt keinen Produktnamen.'
+}
+
+/** Text zum Kopieren: was die App gelesen hat, für die Fehlersuche im Chat. */
+export function describeResult(url: string, d: Diagnostics | undefined, p: Product | null, err: string): string {
+  return [
+    `Adresse: ${url}`,
+    d ? `Endadresse: ${d.finalUrl}` : '',
+    d ? `HTTP ${d.status}, ${d.bytes} Zeichen, ${d.type || 'ohne Typ'}` : '',
+    d ? `JSON-LD-Blöcke: ${d.ldBlocks}, Produktknoten: ${d.productNode ? 'ja' : 'nein'}, Meta-Tags: ${d.metaTags}` : '',
+    p ? `Quellen: ${p.sources.join(', ') || '-'}` : '',
+    p ? `Name: ${p.name ?? '-'} | Marke: ${p.brand ?? '-'} | Preis: ${p.price ?? '-'}${p.priceGuess ? ' (geraten)' : ''} ${p.currency ?? ''} | EAN: ${p.gtin ?? '-'}${p.gtinOk === false ? ' (Prüfziffer falsch)' : ''} | Bild: ${p.image ? 'ja' : 'nein'} | Kategorie: ${p.category ?? '-'}` : '',
+    err ? `Fehler: ${err}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n')
 }

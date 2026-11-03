@@ -603,6 +603,12 @@ function AppPage() {
         </div>
       </Section>
 
+      <Section title={t('Formular')}>
+        <div className="card">
+          <SwitchRow title={t('Art automatisch erkennen')} text={t('Schlägt beim Tippen des Namens eine Art vor. Aus: Die Art bleibt, was du einträgst oder aus den Vorschlägen wählst.')} checked={settings.kindAuto} onChange={(kindAuto) => setSettings({ kindAuto })} />
+        </div>
+      </Section>
+
       <Section title={t('Link-Import')}>
         <div className="card">
           <SwitchRow
@@ -611,7 +617,14 @@ function AppPage() {
             checked={settings.linkImport}
             onChange={(linkImport) => setSettings({ linkImport })}
           />
-          {settings.linkImport && <SwitchRow title={t('Bilder übernehmen')} text={t('Zeigt und übernimmt das Produktbild von der Seite.')} checked={settings.linkImages} onChange={(linkImages) => setSettings({ linkImages })} />}
+          {settings.linkImport && (
+            <>
+              <SwitchRow title={t('Automatisch lesen')} text={t('Liest einen eingefügten oder getippten Link nach kurzer Ruhe von selbst. Aus: nur mit dem Knopf „Daten holen“.')} checked={settings.linkAuto} onChange={(linkAuto) => setSettings({ linkAuto })} />
+              <SwitchRow title={t('Preis übernehmen')} text={t('Trägt den gefundenen Preis ein. Steht er nur im Text der Seite, ist er geraten und so markiert.')} checked={settings.linkPrice} onChange={(linkPrice) => setSettings({ linkPrice })} />
+              <SwitchRow title={t('Bilder übernehmen')} text={t('Zeigt und übernimmt das Produktbild von der Seite.')} checked={settings.linkImages} onChange={(linkImages) => setSettings({ linkImages })} />
+              <SwitchRow title={t('Ausgefüllte Felder überschreiben')} text={t('Aus: Die App füllt nur leere Felder und lässt Eingetipptes in Ruhe.')} checked={settings.linkOverwrite} onChange={(linkOverwrite) => setSettings({ linkOverwrite })} />
+            </>
+          )}
           <Row
             icon={<Link2 size={18} />}
             title={t('Link testen')}

@@ -42,12 +42,16 @@ export const defaults = (): UiSettings => ({
   lockAfter: 60,
   linkImport: true,
   linkImages: true,
+  linkAuto: true,
+  linkPrice: true,
+  linkOverwrite: true,
+  kindAuto: true,
 })
 
 /** Einstellungen, die ins Backup wandern. Gerätegebundenes (Kennung, Update-Stand, PIN, Erinnerungs-Schalter) bleibt draußen. */
 export const SYNC_KEYS = [
   'theme', 'fx', 'lang', 'hue', 'remindDays', 'remindTime', 'updateCheck', 'showPlanned', 'autoBackup', 'shareName',
-  'currency', 'rates', 'ratesAt', 'dateFmt', 'fontScale', 'haptics', 'trashDays', 'autoKeep', 'startTab', 'sort', 'shareDefaults', 'linkImport', 'linkImages',
+  'currency', 'rates', 'ratesAt', 'dateFmt', 'fontScale', 'haptics', 'trashDays', 'autoKeep', 'startTab', 'sort', 'shareDefaults', 'linkImport', 'linkImages', 'linkAuto', 'linkPrice', 'linkOverwrite', 'kindAuto',
 ] as const satisfies readonly (keyof UiSettings)[]
 
 export type SyncSettings = Pick<UiSettings, (typeof SYNC_KEYS)[number]>
@@ -125,6 +129,10 @@ export function normalize(raw: unknown, base: UiSettings = defaults()): UiSettin
     lockAfter: num(r.lockAfter, LOCK_CHOICES) ?? base.lockAfter,
     linkImport: bool(r.linkImport) ?? base.linkImport,
     linkImages: bool(r.linkImages) ?? base.linkImages,
+    linkAuto: bool(r.linkAuto) ?? base.linkAuto,
+    linkPrice: bool(r.linkPrice) ?? base.linkPrice,
+    linkOverwrite: bool(r.linkOverwrite) ?? base.linkOverwrite,
+    kindAuto: bool(r.kindAuto) ?? base.kindAuto,
   }
 }
 

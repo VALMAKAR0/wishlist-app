@@ -1,22 +1,9 @@
 import { useState } from 'react'
 import { ClipboardPaste, Copy, ExternalLink, Loader2, Search } from 'lucide-react'
-import { fetchProduct, idealoSearch, knownCurrency, linkFailExtra, linkFailText, LinkError, type Diagnostics, type Product } from '../lib/linkImport'
+import { describeResult, fetchProduct, idealoSearch, knownCurrency, linkFailExtra, linkFailText, LinkError, type Diagnostics, type Product } from '../lib/linkImport'
 import { money } from '../lib/format'
 import { useT, useUI } from '../state/ui'
 import { Sheet } from './Sheet'
-
-const diagText = (url: string, d: Diagnostics | undefined, p: Product | null, err: string) =>
-  [
-    `Adresse: ${url}`,
-    d ? `Endadresse: ${d.finalUrl}` : '',
-    d ? `HTTP ${d.status}, ${d.bytes} Zeichen, ${d.type || 'ohne Typ'}` : '',
-    d ? `JSON-LD-Blöcke: ${d.ldBlocks}, Produktknoten: ${d.productNode ? 'ja' : 'nein'}, Meta-Tags: ${d.metaTags}` : '',
-    p ? `Quellen: ${p.sources.join(', ') || '-'}` : '',
-    p ? `Name: ${p.name ?? '-'} | Marke: ${p.brand ?? '-'} | Preis: ${p.price ?? '-'} ${p.currency ?? ''} | EAN: ${p.gtin ?? '-'}${p.gtinOk === false ? ' (Prüfziffer falsch)' : ''} | Bild: ${p.image ? 'ja' : 'nein'}` : '',
-    err ? `Fehler: ${err}` : '',
-  ]
-    .filter(Boolean)
-    .join('\n')
 
 /** Testfenster: Link einfügen, lesen, anzeigen was die App findet. */
 export function LinkTestSheet({ onClose }: { onClose: () => void }) {
@@ -64,7 +51,7 @@ export function LinkTestSheet({ onClose }: { onClose: () => void }) {
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(diagText(url, diag, product, err))
+      await navigator.clipboard.writeText(describeResult(url, diag, product, err))
       ui.toast({ message: t('Details kopiert'), emoji: '📋' })
     } catch {
       ui.toast({ message: t('Kopieren nicht erlaubt.'), emoji: '⚠️' })
@@ -128,7 +115,7 @@ export function LinkTestSheet({ onClose }: { onClose: () => void }) {
       {(diag || err) && (
         <details className="linkdiag">
           <summary>{t('Technische Details')}</summary>
-          <pre>{diagText(url, diag, product, err)}</pre>
+          <pre>{describeResult(url, diag, product, err)}</pre>
           <button className="btn btn--ghost btn--small" onClick={() => void copy()}>
             <Copy size={14} /> {t('Details kopieren')}
           </button>
