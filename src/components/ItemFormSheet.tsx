@@ -4,7 +4,7 @@ import { Camera, ExternalLink, Loader2, Trash2, Wand2, X } from 'lucide-react'
 import { isNative } from '../lib/backupFiles'
 import { CURRENCIES, hasRate, money, toHref, uid } from '../lib/format'
 import { processImage, saveImage } from '../lib/images'
-import { cleanUrl, describeResult, extractUrl, fetchImageBytes, fetchProduct, knownCurrency, linkFailExtra, linkFailText, LinkError, missingWhy, type FieldReport } from '../lib/linkImport'
+import { cleanName, cleanUrl, describeResult, extractUrl, fetchImageBytes, fetchProduct, knownCurrency, linkFailExtra, linkFailText, LinkError, missingWhy, tidyName, type FieldReport } from '../lib/linkImport'
 import { listTitle } from '../lib/lists'
 import { candidatesFor, findSimilar, kindOptions, suggestKind } from '../lib/match'
 import type { Item, Owner } from '../lib/types'
@@ -113,7 +113,8 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
       let applied = false
 
       if (product.name) {
-        const n = product.name.slice(0, 140)
+        const n = tidyName(product.name, cfg.linkShortName).slice(0, 140)
+        const full = cleanName(product.name)
         const typed = before.name.trim() !== '' && before.name !== importedName.current
         if (typed && (cfg.linkKeepName || !over)) fields.push({ key: 'name', state: 'kept', text: before.name, alt: n })
         else {
@@ -122,7 +123,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
           setCategory(product.category)
           flashKeys.push('name')
           applied = true
-          fields.push({ key: 'name', state: 'ok', text: n })
+          fields.push({ key: 'name', state: 'ok', text: n, alt: n !== full ? full : undefined })
         }
       } else fields.push({ key: 'name', state: 'none', why: missingWhy('name', product, diag, url) })
 

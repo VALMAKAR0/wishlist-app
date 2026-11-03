@@ -1821,6 +1821,7 @@ a.btn--block { display: flex; }
 .linkrep__lab { color: var(--text-3); font-weight: 600; }
 .linkrep__txt { overflow-wrap: anywhere; }
 .linkrep__row[data-state='none'] .linkrep__txt, .linkrep__row[data-state='off'] .linkrep__txt, .linkrep__row[data-state='kept'] .linkrep__txt { color: var(--text-3); }
+.linkrep__orig { display: block; margin-top: 4px; font-size: calc(12px * var(--fs, 1)); color: var(--text-3); overflow-wrap: anywhere; }
 .linkrep__use { margin-left: 8px; vertical-align: baseline; }
 .linkrep__foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; font-size: calc(12px * var(--fs, 1)); color: var(--text-3); }
 input[data-busy] { animation: busyGlow 1.1s ease-in-out infinite; }

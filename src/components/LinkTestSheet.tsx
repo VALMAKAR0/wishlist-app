@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ClipboardPaste, Copy, ExternalLink, Loader2, Search } from 'lucide-react'
-import { describeResult, fetchProduct, idealoSearch, knownCurrency, linkFailExtra, linkFailText, LinkError, type Diagnostics, type Product } from '../lib/linkImport'
+import { describeResult, fetchProduct, idealoSearch, knownCurrency, linkFailExtra, linkFailText, LinkError, tidyName, type Diagnostics, type Product } from '../lib/linkImport'
 import { money } from '../lib/format'
 import { useT, useUI } from '../state/ui'
 import { Sheet } from './Sheet'
@@ -88,7 +88,7 @@ export function LinkTestSheet({ onClose }: { onClose: () => void }) {
           {ui.settings.linkImages && product.image && <img className="linkres__img" src={product.image} alt="" referrerPolicy="no-referrer" loading="lazy" />}
           <dl>
             <dt>{t('Name')}</dt>
-            <dd>{product.name ?? '–'}</dd>
+            <dd>{product.name ? tidyName(product.name, ui.settings.linkShortName) : '–'}</dd>
             <dt>{t('Marke')}</dt>
             <dd>{product.brand ?? '–'}</dd>
             <dt>{t('Preis')}</dt>

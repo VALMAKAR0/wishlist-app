@@ -354,18 +354,33 @@ export function imageFallback(html: string): { url?: string; imgTags: number } {
   return { url: best.url, imgTags }
 }
 
-/** Kürzt sehr lange Shop-Titel (Amazon & Co.) an einer sinnvollen Stelle. */
-export function shortenName(name: string, max = 70): string {
-  const n = name.replace(/\s+/g, ' ').trim()
-  if (n.length <= max) return n
-  const cut = n.slice(0, max + 1)
-  for (const sep of [' - ', ' – ', ' | ', ', ', ' (', ' mit ', ' für ']) {
-    const i = cut.lastIndexOf(sep)
-    if (i >= 24) return cut.slice(0, i).trim()
+/** Entfernt Markenzeichen und Leerraum. */
+export const cleanName = (name: string): string => name.replace(/[®™©℗]/g, '').replace(/\s+/g, ' ').trim()
+
+const TAIL_JUNK = /(?:\s+(?:und|and|mit|with|für|for|von|of|the|der|die|das|&|\+|-|–|\/))+$|[\s,;:&+\-–/]+$/i
+
+/** Kürzt lange Shop-Titel stark: bleibt beim Kern bis zum ersten Komma, Strich oder zur ersten Klammer. */
+export function shortenName(name: string, max = 64): string {
+  const n = cleanName(name)
+  if (n.length <= 48) return n
+  const re = /,\s|\s[-–|]\s|\s[([]|;\s|\s\/\s/g
+  let head = n
+  for (let m = re.exec(n); m; m = re.exec(n)) {
+    if (m.index >= 18) {
+      head = n.slice(0, m.index)
+      break
+    }
   }
-  const sp = cut.lastIndexOf(' ')
-  return (sp >= 24 ? cut.slice(0, sp) : cut.slice(0, max)).trim()
+  if (head.length > max) {
+    const cut = head.slice(0, max + 1)
+    const sp = cut.lastIndexOf(' ')
+    head = sp >= 24 ? cut.slice(0, sp) : cut.slice(0, max)
+  }
+  return head.replace(TAIL_JUNK, '').trim() || n.slice(0, max)
 }
+
+/** Name für das Formular: bereinigt, auf Wunsch stark gekürzt. */
+export const tidyName = (name: string, short: boolean): string => (short ? shortenName(name) : cleanName(name))
 
 /** Liest Produktdaten aus dem HTML einer Produktseite. Reihenfolge: JSON-LD, dann Open Graph und Meta-Angaben. */
 export function parseProduct(html: string, pageUrl: string): { product: Product; diag: Pick<Diagnostics, 'ldBlocks' | 'productNode' | 'metaTags' | 'imgTags'> } {
@@ -392,7 +407,6 @@ export function parseProduct(html: string, pageUrl: string): { product: Product;
     category: ld?.category,
     sources: [...new Set(sources)],
   }
-  if (product.name) product.name = shortenName(product.name)
   if (product.price === undefined) {
     const guess = textPrice(text)
     if (guess !== undefined) {

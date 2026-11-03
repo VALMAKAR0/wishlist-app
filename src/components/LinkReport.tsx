@@ -85,6 +85,16 @@ export function LinkReport({ report, onClose, onUseName }: { report: Report; onC
                   <span className="linkrep__lab">{t(LABEL[f.key])}</span>
                   <span className="linkrep__txt">
                     {note(f)}
+                    {f.key === 'name' && f.state === 'ok' && f.alt && (
+                      <small className="linkrep__orig">
+                        {t('Original')}: {f.alt}
+                        {onUseName && (
+                          <button type="button" className="chip chip--button linkrep__use" onClick={() => onUseName(f.alt ?? '')}>
+                            {t('Original übernehmen')}
+                          </button>
+                        )}
+                      </small>
+                    )}
                     {f.key === 'name' && f.state === 'kept' && f.alt && onUseName && (
                       <button type="button" className="chip chip--button linkrep__use" onClick={() => onUseName(f.alt ?? '')}>
                         {t('Übernehmen')}
