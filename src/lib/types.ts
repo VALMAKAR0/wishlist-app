@@ -23,6 +23,17 @@ export interface Wishlist {
 
 export type PriceState = 'user' | 'sure' | 'guess'
 
+/** Gemerkte Stelle einer Seite, von der der Preis gelesen wird (vom Nutzer gewählt). */
+export interface PriceSpot {
+  src: 'ld' | 'meta' | 'text'
+  /** Text vor dem Preis in Kurzform (Zahlen als #), dient zum Wiederfinden. */
+  ctx: string
+  /** Wievielter Treffer mit gleichem Text davor. */
+  nth: number
+  /** Anzeigetext, zum Beispiel „UVP inkl. Überführung“. */
+  label: string
+}
+
 export interface PricePoint {
   t: number
   p: number
@@ -45,6 +56,7 @@ export interface Item {
   priceState?: PriceState
   /** Ausgangspreis für das Etikett an der Karte (Preis beim Hinzufügen oder bei der letzten eigenen Änderung). */
   priceBase?: number
+  priceSpot?: PriceSpot
   /** Bestätigt: Die Stelle auf der Seite, aus der ein geratener Preis kommt, stimmt. Weitere Funde von dort ersetzen den Preis automatisch. */
   priceGuessOk?: boolean
   /** Neuer Preis von der Seite, der noch bestätigt werden muss. */

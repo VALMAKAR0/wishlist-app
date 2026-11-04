@@ -1,6 +1,6 @@
 import { curOf } from './format'
-import { fetchProduct } from './linkImport'
-import type { Item, PricePoint, PriceState } from './types'
+import { fetchProduct, spotOf, type PriceCandidate } from './linkImport'
+import type { Item, PricePoint, PriceSpot, PriceState } from './types'
 
 export interface Found {
   price: number
@@ -16,6 +16,7 @@ export type Outcome =
   | { kind: 'changed'; from: number; to: number }
   | { kind: 'suggest'; from: number; to: number; guess: boolean }
   | { kind: 'ignored' }
+  | { kind: 'lost' }
 
 const LOG_MAX = 120
 const DAY = 20 * 3_600_000
@@ -38,8 +39,9 @@ export function priceDelta(i: Pick<Item, 'price' | 'priceBase' | 'priceTrack'>):
 }
 
 /** Entscheidet, was ein gefundener Preis mit dem Eintrag macht. Rein, ohne Netz. */
-export function applyCheck(item: Item, found: Found | null, now: number): { patch: Partial<Item>; outcome: Outcome } {
+export function applyCheck(item: Item, found: Found | null | 'lost', now: number): { patch: Partial<Item>; outcome: Outcome } {
   const patch: Partial<Item> = { priceCheckedAt: now }
+  if (found === 'lost') return { patch, outcome: { kind: 'lost' } }
   if (!found) return { patch, outcome: { kind: 'none' } }
   if (found.currency !== curOf(item)) return { patch, outcome: { kind: 'currency', currency: found.currency } }
   const k: PriceState = found.guess ? 'guess' : 'sure'
@@ -79,8 +81,8 @@ export const confirmPrice = (item: Item, now: number): Partial<Item> =>
   item.price === undefined ? {} : { priceState: 'sure', priceGuessOk: item.priceState === 'guess' || item.priceGuessOk ? true : undefined, priceLog: pushLog(item.priceLog, { t: now, p: item.price, k: 'sure' }) }
 
 /** Preisfelder beim Speichern im Formular. Gibt nur zurück, was sich ändern muss. */
-export function priceFieldsOnSave(prev: Item | undefined, price: number | undefined, currency: string, from: PriceState | null, now: number): Partial<Item> {
-  if (price === undefined) return { priceState: undefined, priceGuessOk: undefined, priceBase: undefined, priceSuggest: undefined, priceNo: undefined, priceLog: undefined }
+export function priceFieldsOnSave(prev: Item | undefined, price: number | undefined, currency: string, from: PriceState | null, now: number, spot?: PriceSpot): Partial<Item> {
+  if (price === undefined) return { priceState: undefined, priceGuessOk: undefined, priceSpot: undefined, priceBase: undefined, priceSuggest: undefined, priceNo: undefined, priceLog: undefined }
   const unchanged = prev && prev.price !== undefined && same(prev.price, price) && curOf(prev) === currency && !from
   if (unchanged) return {}
   const k: PriceState = from ?? 'user'
@@ -88,6 +90,7 @@ export function priceFieldsOnSave(prev: Item | undefined, price: number | undefi
   return {
     priceState: k,
     priceGuessOk: reset ? undefined : prev?.priceGuessOk,
+    priceSpot: from === 'sure' && spot ? spot : reset ? undefined : prev?.priceSpot,
     priceBase: reset ? price : (prev?.priceBase ?? price),
     priceSuggest: undefined,
     priceNo: undefined,
@@ -95,18 +98,42 @@ export function priceFieldsOnSave(prev: Item | undefined, price: number | undefi
   }
 }
 
-/** Liest den Preis von der Seite des Eintrags. Wirft LinkError wie fetchProduct. */
-export async function readFound(link: string): Promise<Found | null> {
-  const { product } = await fetchProduct(link)
-  if (product.price === undefined) return null
-  return { price: product.price, currency: product.currency ?? 'EUR', guess: !!product.priceGuess }
+/** Was eine Prüfung von der Seite mitbringt: den Preis (oder „Stelle verloren“) und alle Kandidaten. */
+export interface Read {
+  found: Found | null | 'lost'
+  candidates: PriceCandidate[]
+}
+
+/** Liest den Preis von der Seite des Eintrags, wenn vorhanden von der gewählten Stelle. Wirft LinkError wie fetchProduct. */
+export async function readFound(link: string, spot?: PriceSpot): Promise<Read> {
+  const { product, lost } = await fetchProduct(link, spot)
+  const candidates = product.candidates ?? []
+  if (spot && lost) return { found: 'lost', candidates }
+  if (product.price === undefined) return { found: null, candidates }
+  return { found: { price: product.price, currency: product.currency ?? 'EUR', guess: !!product.priceGuess }, candidates }
 }
 
 /** Prüft einen Eintrag online. */
 export async function checkItem(item: Item, now = Date.now()): Promise<{ patch: Partial<Item>; outcome: Outcome }> {
-  return applyCheck(item, await readFound(item.link ?? ''), now)
+  return applyCheck(item, (await readFound(item.link ?? '', item.priceSpot)).found, now)
 }
 
+/** Preisfelder, wenn der Nutzer einen Kandidaten als richtige Stelle wählt: Der Preis gilt als sicher, die Stelle wird gemerkt. */
+export function chooseCandidate(prev: Item | undefined, c: PriceCandidate, now: number): Partial<Item> {
+  const cur = c.currency
+  const sameAsBefore = !!prev && prev.price !== undefined && same(prev.price, c.price) && curOf(prev) === cur
+  return {
+    price: c.price,
+    currency: cur === 'EUR' ? undefined : cur,
+    priceState: 'sure',
+    priceGuessOk: undefined,
+    priceSpot: spotOf(c),
+    priceSuggest: undefined,
+    priceNo: undefined,
+    priceBase: sameAsBefore ? (prev?.priceBase ?? c.price) : c.price,
+    priceLog: pushLog(prev && curOf(prev) === cur ? prev.priceLog : undefined, { t: now, p: c.price, k: 'sure' }),
+  }
+}
 export interface Summary {
   total: number
   down: number
@@ -115,6 +142,7 @@ export interface Summary {
   suggest: number
   same: number
   none: number
+  lost: number
   failed: number
 }
 
@@ -123,7 +151,7 @@ export const checkable = (i: Item): boolean => !i.deletedAt && !i.bought && !!i.
 /** Prüft alle beobachteten Einträge nacheinander (mit kleiner Pause, um Shops zu schonen). */
 export async function checkAll(items: Item[], apply: (id: string, patch: Partial<Item>) => void, onProgress?: (done: number, total: number) => void, gap = 600): Promise<Summary> {
   const todo = items.filter(checkable)
-  const sum: Summary = { total: todo.length, down: 0, up: 0, set: 0, suggest: 0, same: 0, none: 0, failed: 0 }
+  const sum: Summary = { total: todo.length, down: 0, up: 0, set: 0, suggest: 0, same: 0, none: 0, lost: 0, failed: 0 }
   let done = 0
   for (const it of todo) {
     try {
@@ -133,6 +161,7 @@ export async function checkAll(items: Item[], apply: (id: string, patch: Partial
       if (o.kind === 'changed') (o.to < o.from ? (sum.down += 1) : (sum.up += 1))
       else if (o.kind === 'set') sum.set += 1
       else if (o.kind === 'suggest') sum.suggest += 1
+      else if (o.kind === 'lost') sum.lost += 1
       else if (o.kind === 'same' || o.kind === 'ignored') sum.same += 1
       else sum.none += 1
     } catch {

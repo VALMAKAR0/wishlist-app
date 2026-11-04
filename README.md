@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 03.11.2026 · Status: V0.10.1 (Preisverlauf mit Prüfung, Diagramm und Etikett; Link-Import mit Ergebnis-Karte; Hintergrundprüfung folgt) · Datenformat: v2
+Stand: 04.11.2026 · Status: V0.10.2 (Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; Link-Import mit Ergebnis-Karte; Hintergrundprüfung folgt) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -521,3 +521,4 @@ Entscheidungen von Markus (04.11.): Neue Preise ersetzen den Preis automatisch, 
 - **Tests:** `t1/price.test.ts`, `t1/settings.test.ts` (`priceWatch`), `t2/v010.cjs` (Vorschlag, Annehmen, automatisch ersetzen, Diagramm, Handänderung, Ablehnen, Abschalten, geratener Preis wird sicher, Alle Preise prüfen, Hauptschalter).
 - **Auf dem Gerät prüfen:** Eintrag mit echtem Shop-Link anlegen, Preis eintragen, "Preis jetzt prüfen". Bei gleichem Preis "unverändert". Bei Honda: Preis erscheint als geraten, "Der Preis stimmt" macht ihn sicher. "Alle Preise prüfen" mit mehreren Einträgen.
 - **V0.10.1: Weitere Preise suchen:** Im Formular (beim Anlegen und Bearbeiten, ab 3 Zeichen im Namen) stehen unter dem Preis drei Links: Idealo, Google Shopping und Geizhals. Sie öffnen die Suche mit dem Namen im Browser (`priceSearches` in `linkImport.ts`). Die App liest diese Seiten nie und lädt nichts davon, es sind einfache Links. Der gefundene Preis wird von Hand eingetragen oder kommt über den Link des Shops.
+- **V0.10.2: Preis-Auswahl:** Findet die App auf der Seite mehrere Preise, kann man den richtigen selbst wählen. Im Link-Bericht beim Einfügen gibt es dafür „Preis wählen“, in der Preis-Beobachtung „Preis-Stelle wählen“ (später „Andere Stelle wählen“). Die Liste (`PriceChooser.tsx`) zeigt jeden Preis mit dem Text davor und danach: Produktdaten der Seite, Meta-Angaben oder Preise aus dem Seitentext (`candidates` in `linkImport.ts`, `textPrices`). Die gewählte Stelle wird als `priceSpot` am Eintrag gespeichert (Quelle, Text davor ohne Ziffern, n-ter Treffer mit gleichem Text davor, Anzeigename). Jede spätere Prüfung liest nur von dieser Stelle (`findSpot`), der Preis zählt als sicher und ersetzt sich automatisch. Ändert sich der Aufbau der Seite und die Stelle ist nicht mehr da, meldet die App „Stelle nicht gefunden“, ändert nichts und bittet um neue Auswahl; „Alle Preise prüfen“ zählt solche Fälle mit. Ändert man den Preis von Hand, wird die gemerkte Stelle verworfen. Nicht prüfbar außerhalb des Geräts: echtes Amazon-HTML (Preise sind dort oft per Skript nachgeladen und fehlen im Text).

@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Check, CircleHelp, Loader2, RefreshCw, TrendingDown, TrendingUp, X } from 'lucide-react'
+import { Check, CircleHelp, ListChecks, Loader2, RefreshCw, TrendingDown, TrendingUp, X } from 'lucide-react'
 import { isNative } from '../lib/backupFiles'
 import { agoLabel, curOf, money } from '../lib/format'
-import { linkFailExtra, linkFailText } from '../lib/linkImport'
-import { acceptSuggestion, applyCheck, confirmPrice, priceDelta, readFound, rejectSuggestion, type Outcome } from '../lib/priceCheck'
+import { linkFailExtra, linkFailText, type PriceCandidate } from '../lib/linkImport'
+import { acceptSuggestion, applyCheck, chooseCandidate, confirmPrice, priceDelta, readFound, rejectSuggestion, type Outcome } from '../lib/priceCheck'
 import type { Item } from '../lib/types'
 import { useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
 import { PriceChart } from './PriceChart'
+import { PriceChooser } from './PriceChooser'
+import { Presence } from './Presence'
 import { Switch } from './Primitives'
 
 type Msg = { text: string; tone: 'ok' | 'warn' }
@@ -20,6 +22,7 @@ export function PriceWatch({ item, link, onPrice }: { item: Item; link: string; 
   const { dispatch } = useStore()
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<Msg | null>(null)
+  const [cands, setCands] = useState<PriceCandidate[] | null>(null)
   const on = item.priceTrack !== false
   const cur = curOf(item)
   const patch = (p: Partial<Item>) => dispatch({ type: 'updateItem', id: item.id, patch: p })
@@ -44,6 +47,8 @@ export function PriceWatch({ item, link, onPrice }: { item: Item; link: string; 
         return { text: o.to < o.from ? t('Preis gesunken auf {p}', { p: money(o.to, cur) }) : t('Preis gestiegen auf {p}', { p: money(o.to, cur) }), tone: 'ok' }
       case 'suggest':
         return { text: t('Neuer Preis gefunden, bitte bestätigen.'), tone: 'warn' }
+      case 'lost':
+        return { text: t('Die gewählte Stelle ist auf der Seite nicht mehr zu finden. Wähle den Preis neu.'), tone: 'warn' }
     }
   }
 
@@ -52,8 +57,8 @@ export function PriceWatch({ item, link, onPrice }: { item: Item; link: string; 
     setBusy(true)
     setMsg(null)
     try {
-      const found = await readFound(link.trim())
-      const r = applyCheck(item, found, Date.now())
+      const read = await readFound(link.trim(), item.priceSpot)
+      const r = applyCheck(item, read.found, Date.now())
       patch(r.patch)
       if (r.outcome.kind === 'set') onPrice(r.outcome.price, cur)
       if (r.outcome.kind === 'changed') onPrice(r.outcome.to, cur)
@@ -68,6 +73,31 @@ export function PriceWatch({ item, link, onPrice }: { item: Item; link: string; 
     }
   }
 
+  const choose = async () => {
+    if (busy || !hasLink) return
+    setBusy(true)
+    setMsg(null)
+    try {
+      const read = await readFound(link.trim())
+      if (!read.candidates.length) setMsg({ text: t('Auf der Seite wurden keine Preise gefunden.'), tone: 'warn' })
+      else setCands(read.candidates)
+    } catch (e) {
+      const x = linkFailExtra(e)
+      setMsg({ text: t(linkFailText(e)) + (x.status ? ` (HTTP ${x.status})` : x.why ? ` ${t(x.why)}` : ''), tone: 'warn' })
+      ui.haptic(40)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const pick = (c: PriceCandidate) => {
+    patch(chooseCandidate(item, c, Date.now()))
+    onPrice(c.price, c.currency)
+    setCands(null)
+    setMsg({ text: t('Stelle gemerkt. Der Preis wird künftig von dort gelesen.'), tone: 'ok' })
+    ui.haptic(18)
+  }
+
   const accept = () => {
     const s = item.priceSuggest
     if (!s) return
@@ -77,7 +107,9 @@ export function PriceWatch({ item, link, onPrice }: { item: Item; link: string; 
   }
 
   const stateText =
-    item.priceState === 'guess'
+    item.priceSpot
+      ? t('Sicher: Du hast die Stelle „{l}“ gewählt, von dort wird der Preis gelesen.', { l: item.priceSpot.label })
+      : item.priceState === 'guess'
       ? t('Aus dem Seitentext geraten. Stimmt er, bestätige ihn: Dann gilt er als sicher und neue Preise von dieser Stelle werden automatisch übernommen.')
       : item.priceState === 'sure'
         ? item.priceGuessOk
@@ -141,6 +173,9 @@ export function PriceWatch({ item, link, onPrice }: { item: Item; link: string; 
             <button type="button" className="btn btn--small btn--ghost" onClick={() => void check()} disabled={busy || !native || !hasLink} data-testid="price-check">
               {busy ? <Loader2 size={14} className="spin" /> : <RefreshCw size={14} />} {t('Preis jetzt prüfen')}
             </button>
+            <button type="button" className="btn btn--small btn--ghost" onClick={() => void choose()} disabled={busy || !native || !hasLink} data-testid="price-choose">
+              <ListChecks size={14} /> {item.priceSpot ? t('Andere Stelle wählen') : t('Preis-Stelle wählen')}
+            </button>
             <span className="pw__when">
               {!native ? t('Nur in der Android-App') : !hasLink ? t('Ohne Link nicht möglich') : item.priceCheckedAt ? `${t('Zuletzt geprüft')}: ${agoLabel(item.priceCheckedAt, t)}` : t('Noch nie geprüft')}
             </span>
@@ -152,6 +187,7 @@ export function PriceWatch({ item, link, onPrice }: { item: Item; link: string; 
           )}
         </>
       )}
+      <Presence show={!!cands}>{cands && <PriceChooser candidates={cands} current={item.price} onPick={pick} onClose={() => setCands(null)} />}</Presence>
     </section>
   )
 }

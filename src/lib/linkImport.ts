@@ -2,6 +2,18 @@ import { isNative } from './backupFiles'
 import { CURRENCIES, normalize } from './format'
 import { httpBytes, httpGet } from './http'
 import { netReason } from './netReason'
+import type { PriceSpot } from './types'
+
+export interface PriceCandidate {
+  price: number
+  currency: string
+  src: PriceSpot['src']
+  ctx: string
+  nth: number
+  label: string
+  /** Kurzer Text hinter dem Preis. */
+  after: string
+}
 
 export interface Product {
   name?: string
@@ -14,6 +26,8 @@ export interface Product {
   category?: string
   /** Preis stammt aus dem Fließtext der Seite und ist nur geraten. */
   priceGuess?: boolean
+  /** Alle Preise, die auf der Seite zu sehen sind, zur Auswahl durch den Nutzer. */
+  candidates?: PriceCandidate[]
   /** Bild stammt aus dem Seitenaufbau (nicht aus den Produktdaten) und ist nur geraten. */
   imageGuess?: boolean
   sources: string[]
@@ -46,6 +60,8 @@ export class LinkError extends Error {
 export interface LinkResult {
   product: Product
   diag: Diagnostics
+  /** Eine gemerkte Stelle war auf der Seite nicht mehr zu finden. */
+  lost?: boolean
 }
 
 const MAX_HTML = 2_000_000
@@ -290,6 +306,54 @@ export function textPrice(html: string): number | undefined {
   return v !== undefined && v >= 1 && v < 1_000_000 ? v : undefined
 }
 
+const plainText = (html: string): string =>
+  decode(
+    html
+      .replace(/<(script|style|noscript|svg|template)[\s\S]*?<\/\1>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;|&#160;/g, ' '),
+  )
+
+const ctxKey = (before: string): string =>
+  normalize(before)
+    .replace(/\d+/g, '#')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(-28)
+
+/** Alle Preise im sichtbaren Seitentext (mit € oder EUR), samt Text davor. Reihenfolge wie auf der Seite. */
+export function textPrices(html: string, max = 12): PriceCandidate[] {
+  const body = plainText(html.length > MAX_HTML ? html.slice(0, MAX_HTML) : html)
+  const amount = '(?:\\d{1,3}(?:\\.\\d{3})+|\\d+)(?:,\\d{1,2})?'
+  const re = new RegExp(`(?:(?:€|\\beur\\b)\\s?(${amount})|(${amount})\\s?(?:€|\\beur\\b))`, 'gi')
+  const out: PriceCandidate[] = []
+  const seen = new Map<string, number>()
+  let prevEnd = 0
+  for (let m = re.exec(body); m && out.length < max; m = re.exec(body)) {
+    const price = parsePrice(m[1] ?? m[2])
+    const from = prevEnd
+    prevEnd = m.index + m[0].length
+    if (price === undefined || price < 1 || price >= 1_000_000) continue
+    const before = body.slice(Math.max(from, m.index - 60), m.index).trim()
+    const ctx = ctxKey(before)
+    const dupe = `${price}|${ctx}`
+    if (seen.has(dupe)) continue
+    const nth = [...seen.keys()].filter((k) => k.endsWith(`|${ctx}`)).length
+    seen.set(dupe, nth)
+    out.push({ price, currency: 'EUR', src: 'text', ctx, nth, label: before.replace(/\s+/g, ' ').slice(-48).trim(), after: body.slice(m.index + m[0].length, m.index + m[0].length + 28).trim() })
+  }
+  return out
+}
+
+/** Findet die gemerkte Stelle unter den Preisen der Seite. */
+export function findSpot(cands: PriceCandidate[], spot: PriceSpot): PriceCandidate | undefined {
+  if (spot.src !== 'text') return cands.find((c) => c.src === spot.src)
+  const same = cands.filter((c) => c.src === 'text' && c.ctx === spot.ctx)
+  return same[Math.min(spot.nth, same.length - 1)]
+}
+
+export const spotOf = (c: PriceCandidate): PriceSpot => ({ src: c.src, ctx: c.ctx, nth: c.nth, label: c.src === 'text' ? c.label : c.src === 'ld' ? 'Produktdaten der Seite' : 'Meta-Angaben der Seite' })
+
 const absolute = (u: string | undefined, base: string): string | undefined => {
   if (!u) return undefined
   try {
@@ -383,7 +447,7 @@ export function shortenName(name: string, max = 64): string {
 export const tidyName = (name: string, short: boolean): string => (short ? shortenName(name) : cleanName(name))
 
 /** Liest Produktdaten aus dem HTML einer Produktseite. Reihenfolge: JSON-LD, dann Open Graph und Meta-Angaben. */
-export function parseProduct(html: string, pageUrl: string): { product: Product; diag: Pick<Diagnostics, 'ldBlocks' | 'productNode' | 'metaTags' | 'imgTags'> } {
+export function parseProduct(html: string, pageUrl: string, spot?: PriceSpot): { lost?: boolean; product: Product; diag: Pick<Diagnostics, 'ldBlocks' | 'productNode' | 'metaTags' | 'imgTags'> } {
   const text = html.length > MAX_HTML ? html.slice(0, MAX_HTML) : html
   const blocks = ldBlocks(text)
   const ld = fromJsonLd(blocks)
@@ -407,7 +471,23 @@ export function parseProduct(html: string, pageUrl: string): { product: Product;
     category: ld?.category,
     sources: [...new Set(sources)],
   }
-  if (product.price === undefined) {
+  const cands: PriceCandidate[] = []
+  const ldPrice = ld?.price !== undefined ? ld : undefined
+  if (ldPrice?.price !== undefined) cands.push({ price: ldPrice.price, currency: ldPrice.currency ?? 'EUR', src: 'ld', ctx: '', nth: 0, label: '', after: '' })
+  else if (meta.product.price !== undefined) cands.push({ price: meta.product.price, currency: meta.product.currency ?? 'EUR', src: 'meta', ctx: '', nth: 0, label: '', after: '' })
+  cands.push(...textPrices(text))
+  product.candidates = cands
+  let lost = false
+  if (spot) {
+    const hit = findSpot(cands, spot)
+    if (hit) {
+      product.price = hit.price
+      product.currency = hit.currency
+      product.priceGuess = false
+      product.sources = [...new Set([...product.sources, 'Gewählte Stelle'])]
+    } else lost = true
+  }
+  if (product.price === undefined && !spot) {
     const guess = textPrice(text)
     if (guess !== undefined) {
       product.price = guess
@@ -424,7 +504,7 @@ export function parseProduct(html: string, pageUrl: string): { product: Product;
       product.sources = [...product.sources, 'Seitenbild']
     }
   }
-  return { product, diag: { ldBlocks: blocks.length, productNode: !!ld, metaTags: meta.count, imgTags: fb.imgTags } }
+  return { lost, product, diag: { ldBlocks: blocks.length, productNode: !!ld, metaTags: meta.count, imgTags: fb.imgTags } }
 }
 
 /** Prüft die Eingabe: https-Adresse, kein lokales Netz. */
@@ -447,7 +527,7 @@ export function cleanUrl(input: string): string | null {
 const BLOCK_WORDS = /captcha|access denied|zugriff verweigert|are you a (human|robot)|unusual traffic|bot detection|robot check|verify you are human|pardon our interruption/i
 
 /** Holt eine Produktseite und liest die Daten. Wirft LinkError mit der Ursache. */
-export async function fetchProduct(input: string): Promise<LinkResult> {
+export async function fetchProduct(input: string, spot?: PriceSpot): Promise<LinkResult> {
   if (!isNative()) throw new LinkError('web')
   const url = cleanUrl(input)
   if (!url) throw new LinkError('invalid')
@@ -463,10 +543,10 @@ export async function fetchProduct(input: string): Promise<LinkResult> {
   if (res.status === 404 || res.status === 410) throw new LinkError('notfound', res.status, '', empty)
   if (res.status === 401 || res.status === 403 || res.status === 429 || res.status === 503) throw new LinkError('blocked', res.status, '', empty)
   if (!res.ok) throw new LinkError('http', res.status, '', empty)
-  const { product, diag } = parseProduct(html, res.url || url)
+  const { product, diag, lost } = parseProduct(html, res.url || url, spot)
   const d: Diagnostics = { ...base, ...diag }
   if (!product.name && product.price === undefined) throw new LinkError(BLOCK_WORDS.test(html.slice(0, 200_000)) ? 'blocked' : 'noproduct', res.status, '', d)
-  return { product, diag: d }
+  return { product, diag: d, lost }
 }
 
 export const knownCurrency = (c: string | undefined): c is string => !!c && CURRENCIES.includes(c)
@@ -541,6 +621,8 @@ export interface FieldReport {
   why?: string
   /** Name der Seite, der angeboten wird, wenn der eigene Name bleibt. */
   alt?: string
+  /** Beim Preis: Es gibt mehrere Kandidaten, der Nutzer kann wählen. */
+  pick?: boolean
 }
 
 const hostOf = (url: string): string => {

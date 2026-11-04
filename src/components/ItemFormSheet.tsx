@@ -4,15 +4,17 @@ import { Camera, ExternalLink, Loader2, Trash2, Wand2, X } from 'lucide-react'
 import { isNative } from '../lib/backupFiles'
 import { CURRENCIES, hasRate, money, toHref, uid } from '../lib/format'
 import { processImage, saveImage } from '../lib/images'
-import { cleanName, cleanUrl, describeResult, extractUrl, fetchImageBytes, fetchProduct, knownCurrency, linkFailExtra, linkFailText, LinkError, missingWhy, tidyName, type FieldReport } from '../lib/linkImport'
+import { cleanName, cleanUrl, describeResult, extractUrl, fetchImageBytes, fetchProduct, knownCurrency, linkFailExtra, linkFailText, LinkError, missingWhy, spotOf, tidyName, type FieldReport, type PriceCandidate } from '../lib/linkImport'
 import { listTitle } from '../lib/lists'
 import { candidatesFor, findSimilar, kindOptions, suggestKind } from '../lib/match'
 import { priceFieldsOnSave } from '../lib/priceCheck'
-import type { Item, Owner, PriceState } from '../lib/types'
+import type { Item, Owner, PriceSpot, PriceState } from '../lib/types'
 import { useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
 import { LinkReport, type Report } from './LinkReport'
 import { MatchWarning } from './MatchCard'
+import { PriceChooser } from './PriceChooser'
+import { Presence } from './Presence'
 import { PriceSearch } from './PriceSearch'
 import { PriceWatch } from './PriceWatch'
 import { Cover } from './Primitives'
@@ -71,6 +73,8 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
   const lastTried = useRef(item?.link?.trim() ?? '')
   const importedName = useRef('')
   const priceFrom = useRef<PriceState | null>(null)
+  const spotRef = useRef<PriceSpot | undefined>(undefined)
+  const [chooser, setChooser] = useState(false)
   const stored = item ? (items.find((i) => i.id === item.id) ?? item) : undefined
   const [category, setCategory] = useState<string | undefined>()
   const known = useMemo(() => items.filter((i) => !i.deletedAt && i.id !== item?.id).map((i) => ({ name: i.name, kind: i.kind })), [items, item?.id])
@@ -133,7 +137,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
       } else fields.push({ key: 'name', state: 'none', why: missingWhy('name', product, diag, url) })
 
       if (!cfg.linkPrice) fields.push({ key: 'price', state: 'off' })
-      else if (product.price === undefined) fields.push({ key: 'price', state: 'none', why: missingWhy('price', product, diag, url) })
+      else if (product.price === undefined) fields.push({ key: 'price', state: 'none', why: missingWhy('price', product, diag, url), pick: (product.candidates?.length ?? 0) > 0 })
       else if (!knownCurrency(product.currency ?? before.cur)) fields.push({ key: 'price', state: 'none', why: `Die Währung ${product.currency} wird nicht unterstützt.` })
       else {
         const c = product.currency ?? before.cur
@@ -141,10 +145,11 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
         if (over || !before.price.trim()) {
           setPrice(product.price.toFixed(2).replace('.', ','))
           priceFrom.current = product.priceGuess ? 'guess' : 'sure'
+          spotRef.current = undefined
           setCur(c)
           flashKeys.push('price')
           applied = true
-          fields.push({ key: 'price', state: product.priceGuess ? 'guess' : 'ok', text })
+          fields.push({ key: 'price', state: product.priceGuess ? 'guess' : 'ok', text, pick: !!product.priceGuess && (product.candidates?.length ?? 0) >= 2 })
         } else fields.push({ key: 'price', state: 'kept', text })
       }
 
@@ -168,7 +173,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
         }
       }
 
-      setReport({ url, status: 'done', fields, source: product.sources.join(', '), tech: describeResult(url, diag, product, imageFailed ? 'Bild nicht ladbar' : '') })
+      setReport({ url, status: 'done', fields, candidates: product.candidates, source: product.sources.join(', '), tech: describeResult(url, diag, product, imageFailed ? 'Bild nicht ladbar' : '') })
       if (flashKeys.length) doFlash(...flashKeys)
       ui.haptic(applied ? 18 : 30)
       if (applied && hadContent) {
@@ -178,6 +183,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
           setKindTouched(before.kindTouched)
           setPrice(before.price)
           priceFrom.current = null
+          spotRef.current = undefined
           setCur(before.cur)
           setRemoved(before.removed)
           setPending(before.pending ? { ...before.pending, preview: URL.createObjectURL(new Blob([before.pending.data], { type: before.pending.type })) } : null)
@@ -218,6 +224,17 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
     setName(n)
     doFlash('name')
     setReport((r) => (r ? { ...r, fields: r.fields.map((f) => (f.key === 'name' ? { key: 'name', state: 'ok', text: n } : f)) } : r))
+  }
+
+  const pickPrice = (c: PriceCandidate) => {
+    setPrice(String(c.price).replace('.', ','))
+    setCur(c.currency)
+    priceFrom.current = 'sure'
+    spotRef.current = spotOf(c)
+    setChooser(false)
+    doFlash('price')
+    setReport((r) => (r ? { ...r, fields: r.fields.map((x) => (x.key === 'price' ? { key: 'price', state: 'ok', text: money(c.price, c.currency) } : x)) } : r))
+    ui.haptic(18)
   }
 
   const onName = (v: string) => setName(v)
@@ -292,7 +309,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
       emoji,
       hue,
     }
-    const priceFields = priceFieldsOnSave(stored, data.price, cur, priceFrom.current, Date.now())
+    const priceFields = priceFieldsOnSave(stored, data.price, cur, priceFrom.current, Date.now(), spotRef.current)
     if (item) {
       dispatch({ type: 'updateItem', id: item.id, patch: { ...data, ...priceFields } })
       ui.toast({ message: t('Änderungen übernommen'), emoji: '✨' })
@@ -469,7 +486,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
         </div>
       </label>
 
-      <AnimatePresence initial={false}>{report && <LinkReport key="rep" report={report} onClose={() => setReport(null)} onUseName={useImportedName} />}</AnimatePresence>
+      <AnimatePresence initial={false}>{report && <LinkReport key="rep" report={report} onClose={() => setReport(null)} onUseName={useImportedName} onPickPrice={() => setChooser(true)} />}</AnimatePresence>
 
       <label className="field" data-flash={flash.includes('price') || undefined}>
         <span>{t('Preis')}</span>
@@ -489,6 +506,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
       </label>
 
       <PriceSearch name={name} />
+      <Presence show={chooser}>{chooser && <PriceChooser candidates={report?.candidates ?? []} current={Number(price.replace(',', '.')) || undefined} onPick={pickPrice} onClose={() => setChooser(false)} />}</Presence>
 
       {stored && ui.settings.priceWatch && !!(link.trim() || stored.priceLog?.length) && (
         <PriceWatch
