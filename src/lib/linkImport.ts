@@ -477,6 +477,17 @@ export const idealoSearch = (p: Pick<Product, 'name' | 'gtin' | 'gtinOk'>): stri
   return q ? `https://www.idealo.de/preisvergleich/MainSearchProductCategory.html?q=${encodeURIComponent(q)}` : null
 }
 
+/** Suchseiten für den Preisvergleich im Browser. Die App liest diese Seiten nie, sie öffnet nur die Suche. */
+export function priceSearches(name: string): { id: string; label: string; url: string }[] {
+  const q = encodeURIComponent(name.replace(/\s+/g, ' ').trim().slice(0, 100))
+  if (!q) return []
+  return [
+    { id: 'idealo', label: 'Idealo', url: `https://www.idealo.de/preisvergleich/MainSearchProductCategory.html?q=${q}` },
+    { id: 'google', label: 'Google Shopping', url: `https://www.google.com/search?tbm=shop&q=${q}` },
+    { id: 'geizhals', label: 'Geizhals', url: `https://geizhals.de/?fs=${q}` },
+  ]
+}
+
 const IMAGE_LIMIT = 8_000_000
 
 /** Erste Webadresse aus einem Text, zum Beispiel aus „Schau mal: https://…“. */

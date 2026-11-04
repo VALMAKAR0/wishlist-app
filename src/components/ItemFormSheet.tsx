@@ -13,6 +13,7 @@ import { useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
 import { LinkReport, type Report } from './LinkReport'
 import { MatchWarning } from './MatchCard'
+import { PriceSearch } from './PriceSearch'
 import { PriceWatch } from './PriceWatch'
 import { Cover } from './Primitives'
 import { Sheet } from './Sheet'
@@ -486,6 +487,8 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
           <small className="hint hint--warn">{t('Für {cur} fehlt ein Kurs. Trag ihn unter „Mehr“ → „Währung und Format“ ein, bis dahin zählt der Betrag ohne Umrechnung.', { cur })}</small>
         )}
       </label>
+
+      <PriceSearch name={name} />
 
       {stored && ui.settings.priceWatch && !!(link.trim() || stored.priceLog?.length) && (
         <PriceWatch

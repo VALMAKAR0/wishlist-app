@@ -906,6 +906,8 @@ export const en: Record<string, string> = {
   'Prüfe {a} von {b} …': 'Checking {a} of {b} …',
   'Prüft alle Einträge mit Link, die nicht abgeschaltet oder gekauft sind': 'Checks all entries with a link that are not switched off or bought',
   'Sicher: Du hast die Stelle auf der Seite bestätigt, neue Preise von dort werden automatisch übernommen.': 'Certain: you confirmed the spot on the page, new prices from there are taken over automatically.',
+  'Weitere Preise suchen': 'Search more prices',
+  'Öffnet die Suche im Browser. Die App liest diese Seiten nicht.': 'Opens the search in your browser. The app does not read these pages.',
   'Formular': 'Form',
   'Art automatisch erkennen': 'Detect kind automatically',
   'Schlägt beim Tippen des Namens eine Art vor. Aus: Die Art bleibt, was du einträgst oder aus den Vorschlägen wählst.': 'Suggests a kind while you type the name. Off: the kind stays what you enter or pick from the suggestions.',

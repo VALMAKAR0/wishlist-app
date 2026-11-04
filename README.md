@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 03.11.2026 · Status: V0.10.0 (Preisverlauf mit Prüfung, Diagramm und Etikett; Link-Import mit Ergebnis-Karte; Hintergrundprüfung folgt) · Datenformat: v2
+Stand: 03.11.2026 · Status: V0.10.1 (Preisverlauf mit Prüfung, Diagramm und Etikett; Link-Import mit Ergebnis-Karte; Hintergrundprüfung folgt) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -520,3 +520,4 @@ Entscheidungen von Markus (04.11.): Neue Preise ersetzen den Preis automatisch, 
 - **Noch nicht:** Prüfung im Hintergrund und Benachrichtigung (V0.11). Wird der Link eines Eintrags ersetzt, bleibt der alte Verlauf stehen.
 - **Tests:** `t1/price.test.ts`, `t1/settings.test.ts` (`priceWatch`), `t2/v010.cjs` (Vorschlag, Annehmen, automatisch ersetzen, Diagramm, Handänderung, Ablehnen, Abschalten, geratener Preis wird sicher, Alle Preise prüfen, Hauptschalter).
 - **Auf dem Gerät prüfen:** Eintrag mit echtem Shop-Link anlegen, Preis eintragen, "Preis jetzt prüfen". Bei gleichem Preis "unverändert". Bei Honda: Preis erscheint als geraten, "Der Preis stimmt" macht ihn sicher. "Alle Preise prüfen" mit mehreren Einträgen.
+- **V0.10.1: Weitere Preise suchen:** Im Formular (beim Anlegen und Bearbeiten, ab 3 Zeichen im Namen) stehen unter dem Preis drei Links: Idealo, Google Shopping und Geizhals. Sie öffnen die Suche mit dem Namen im Browser (`priceSearches` in `linkImport.ts`). Die App liest diese Seiten nie und lädt nichts davon, es sind einfache Links. Der gefundene Preis wird von Hand eingetragen oder kommt über den Link des Shops.
