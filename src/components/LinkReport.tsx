@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { Check, Copy, EyeOff, Loader2, Minus, Pencil, TriangleAlert, X } from 'lucide-react'
-import type { FieldKey, FieldReport, FieldState } from '../lib/linkImport'
+import type { FieldKey, FieldReport, FieldState, PriceCandidate } from '../lib/linkImport'
 import { useT, useUI } from '../state/ui'
 
 export interface Report {
@@ -11,6 +11,7 @@ export interface Report {
   source?: string
   error?: string
   tech?: string
+  candidates?: PriceCandidate[]
 }
 
 const LABEL: Record<FieldKey, string> = { name: 'Name', price: 'Preis', image: 'Bild' }
@@ -18,7 +19,7 @@ const LABEL: Record<FieldKey, string> = { name: 'Name', price: 'Preis', image: '
 const ICON: Record<FieldState, typeof Check> = { ok: Check, guess: TriangleAlert, none: Minus, off: EyeOff, kept: Pencil }
 
 /** Zeigt beim Link-Import, was gefunden, nicht gefunden, geraten oder ausgeschaltet war. */
-export function LinkReport({ report, onClose, onUseName }: { report: Report; onClose: () => void; onUseName?: (name: string) => void }) {
+export function LinkReport({ report, onClose, onUseName, onPickPrice }: { report: Report; onClose: () => void; onUseName?: (name: string) => void; onPickPrice?: () => void }) {
   const t = useT()
   const ui = useUI()
 
@@ -85,6 +86,11 @@ export function LinkReport({ report, onClose, onUseName }: { report: Report; onC
                   <span className="linkrep__lab">{t(LABEL[f.key])}</span>
                   <span className="linkrep__txt">
                     {note(f)}
+                    {f.key === 'price' && f.pick && onPickPrice && (
+                      <button type="button" className="chip chip--button linkrep__use" data-testid="pick-price" onClick={onPickPrice}>
+                        {t('Preis wählen')}
+                      </button>
+                    )}
                     {f.key === 'name' && f.state === 'ok' && f.alt && (
                       <small className="linkrep__orig">
                         {t('Original')}: {f.alt}

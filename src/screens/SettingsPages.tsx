@@ -546,7 +546,7 @@ function AppPage() {
     setPriceAll({ done: 0, total })
     const s = await checkAll(items, (id, patch) => dispatch({ type: 'updateItem', id, patch }), (done) => setPriceAll({ done, total }))
     setPriceAll(null)
-    const parts = [s.down && t('{n} gesunken', { n: s.down }), s.up && t('{n} gestiegen', { n: s.up }), s.suggest && t('{n} Vorschläge', { n: s.suggest }), s.set && t('{n} neu eingetragen', { n: s.set }), s.none && t('{n} ohne Preis', { n: s.none }), s.failed && t('{n} nicht erreichbar', { n: s.failed })].filter(Boolean)
+    const parts = [s.down && t('{n} gesunken', { n: s.down }), s.up && t('{n} gestiegen', { n: s.up }), s.suggest && t('{n} Vorschläge', { n: s.suggest }), s.set && t('{n} neu eingetragen', { n: s.set }), s.none && t('{n} ohne Preis', { n: s.none }), s.lost && t('{n} Stelle nicht gefunden', { n: s.lost }), s.failed && t('{n} nicht erreichbar', { n: s.failed })].filter(Boolean)
     ui.toast({ message: `${t('{n} Preise geprüft', { n: s.total })}${parts.length ? ': ' + parts.join(', ') : ': ' + t('nichts Neues')}`, emoji: s.down ? '📉' : '🔎' })
   }
 
