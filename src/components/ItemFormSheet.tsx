@@ -7,11 +7,13 @@ import { processImage, saveImage } from '../lib/images'
 import { cleanName, cleanUrl, describeResult, extractUrl, fetchImageBytes, fetchProduct, knownCurrency, linkFailExtra, linkFailText, LinkError, missingWhy, tidyName, type FieldReport } from '../lib/linkImport'
 import { listTitle } from '../lib/lists'
 import { candidatesFor, findSimilar, kindOptions, suggestKind } from '../lib/match'
-import type { Item, Owner } from '../lib/types'
+import { priceFieldsOnSave } from '../lib/priceCheck'
+import type { Item, Owner, PriceState } from '../lib/types'
 import { useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
 import { LinkReport, type Report } from './LinkReport'
 import { MatchWarning } from './MatchCard'
+import { PriceWatch } from './PriceWatch'
 import { Cover } from './Primitives'
 import { Sheet } from './Sheet'
 
@@ -67,6 +69,8 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
   const started = useRef(false)
   const lastTried = useRef(item?.link?.trim() ?? '')
   const importedName = useRef('')
+  const priceFrom = useRef<PriceState | null>(null)
+  const stored = item ? (items.find((i) => i.id === item.id) ?? item) : undefined
   const [category, setCategory] = useState<string | undefined>()
   const known = useMemo(() => items.filter((i) => !i.deletedAt && i.id !== item?.id).map((i) => ({ name: i.name, kind: i.kind })), [items, item?.id])
 
@@ -135,6 +139,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
         const text = money(product.price, c)
         if (over || !before.price.trim()) {
           setPrice(product.price.toFixed(2).replace('.', ','))
+          priceFrom.current = product.priceGuess ? 'guess' : 'sure'
           setCur(c)
           flashKeys.push('price')
           applied = true
@@ -171,6 +176,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
           setKind(before.kind)
           setKindTouched(before.kindTouched)
           setPrice(before.price)
+          priceFrom.current = null
           setCur(before.cur)
           setRemoved(before.removed)
           setPending(before.pending ? { ...before.pending, preview: URL.createObjectURL(new Blob([before.pending.data], { type: before.pending.type })) } : null)
@@ -285,11 +291,12 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
       emoji,
       hue,
     }
+    const priceFields = priceFieldsOnSave(stored, data.price, cur, priceFrom.current, Date.now())
     if (item) {
-      dispatch({ type: 'updateItem', id: item.id, patch: data })
+      dispatch({ type: 'updateItem', id: item.id, patch: { ...data, ...priceFields } })
       ui.toast({ message: t('Änderungen übernommen'), emoji: '✨' })
     } else {
-      dispatch({ type: 'addItem', item: { id: uid(), owner, bought: false, createdAt: Date.now(), ...data } })
+      dispatch({ type: 'addItem', item: { id: uid(), owner, bought: false, createdAt: Date.now(), ...data, ...priceFields } })
       ui.toast({ message: forMe ? t('Zu deinen Wünschen hinzugefügt') : t('Geschenkidee gespeichert'), emoji })
     }
     ui.haptic(18)
@@ -466,7 +473,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
       <label className="field" data-flash={flash.includes('price') || undefined}>
         <span>{t('Preis')}</span>
         <div className="field__row">
-          <input value={price} onChange={(e) => setPrice(e.target.value.replace(/[^0-9.,]/g, ''))} placeholder="0,00" inputMode="decimal" />
+          <input value={price} onChange={(e) => { priceFrom.current = null; setPrice(e.target.value.replace(/[^0-9.,]/g, '')) }} placeholder="0,00" inputMode="decimal" />
           <select className="cursel" value={cur} onChange={(e) => setCur(e.target.value)} aria-label={t('Währung')}>
             {CURRENCIES.map((c) => (
               <option key={c} value={c}>
@@ -479,6 +486,18 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
           <small className="hint hint--warn">{t('Für {cur} fehlt ein Kurs. Trag ihn unter „Mehr“ → „Währung und Format“ ein, bis dahin zählt der Betrag ohne Umrechnung.', { cur })}</small>
         )}
       </label>
+
+      {stored && ui.settings.priceWatch && !!(link.trim() || stored.priceLog?.length) && (
+        <PriceWatch
+          item={stored}
+          link={link}
+          onPrice={(p, c) => {
+            priceFrom.current = null
+            setPrice(String(p).replace('.', ','))
+            setCur(c)
+          }}
+        />
+      )}
 
       <label className="field">
         <span>

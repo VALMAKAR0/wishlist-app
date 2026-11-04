@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import {
-  AlertTriangle, Archive, Bell, CalendarClock, Check, Clock, DatabaseBackup, FileDown, HardDriveDownload, Link2, Lock, Map, Palette, RefreshCw, RotateCcw, Share2, ShieldCheck, Smartphone, Trash2,
+  AlertTriangle, Archive, Bell, CalendarClock, Check, Clock, DatabaseBackup, FileDown, HardDriveDownload, Link2, Loader2, Lock, Map, Palette, RefreshCw, RotateCcw, Share2, ShieldCheck, Smartphone, Trash2,
 } from 'lucide-react'
 import { Page, Section } from '../components/Page'
 import { Presence } from '../components/Presence'
@@ -22,6 +22,7 @@ import { CURRENCIES, agoLabel, daysAgo, longDate, timeLabel } from '../lib/forma
 import { lockAvailable } from '../lib/lock'
 import { checkPersist, usePersist } from '../lib/persist'
 import { KEEP_CHOICES, LOCK_CHOICES, TRASH_CHOICES } from '../lib/settings'
+import { checkable, checkAll } from '../lib/priceCheck'
 import { fetchRates } from '../lib/rates'
 import type { DateFmt, FontScale, FxSetting, Lang, SortMode, StartTab, ThemeSetting } from '../lib/types'
 import { useBackup } from '../state/backup'
@@ -535,6 +536,19 @@ function AppPage() {
   const inst = useInstall()
   const [howTo, setHowTo] = useState(false)
   const [linkTest, setLinkTest] = useState(false)
+  const [priceAll, setPriceAll] = useState<{ done: number; total: number } | null>(null)
+  const runPriceAll = async () => {
+    const total = items.filter(checkable).length
+    if (!total) {
+      ui.toast({ message: t('Keine Einträge mit Link zum Prüfen.'), emoji: '🔎' })
+      return
+    }
+    setPriceAll({ done: 0, total })
+    const s = await checkAll(items, (id, patch) => dispatch({ type: 'updateItem', id, patch }), (done) => setPriceAll({ done, total }))
+    setPriceAll(null)
+    const parts = [s.down && t('{n} gesunken', { n: s.down }), s.up && t('{n} gestiegen', { n: s.up }), s.suggest && t('{n} Vorschläge', { n: s.suggest }), s.set && t('{n} neu eingetragen', { n: s.set }), s.none && t('{n} ohne Preis', { n: s.none }), s.failed && t('{n} nicht erreichbar', { n: s.failed })].filter(Boolean)
+    ui.toast({ message: `${t('{n} Preise geprüft', { n: s.total })}${parts.length ? ': ' + parts.join(', ') : ': ' + t('nichts Neues')}`, emoji: s.down ? '📉' : '🔎' })
+  }
 
   const loadDemo = () => {
     const apply = () => {
@@ -633,6 +647,25 @@ function AppPage() {
             text={!upd.native ? t('Nur in der Android-App') : settings.linkImport ? t('Zeigt, was die App aus einer Produktseite liest') : t('Link-Import ist aus')}
             onClick={upd.native && settings.linkImport ? () => setLinkTest(true) : undefined}
           />
+        </div>
+      </Section>
+
+      <Section title={t('Preisverlauf')}>
+        <div className="card">
+          <SwitchRow
+            title={t('Preisverlauf')}
+            text={t('Merkt Preise von Einträgen mit Link, zeigt Diagramm und Etikett an der Karte. Aus: nichts davon ist zu sehen, die Daten bleiben erhalten.')}
+            checked={settings.priceWatch}
+            onChange={(priceWatch) => setSettings({ priceWatch })}
+          />
+          {settings.priceWatch && (
+            <Row
+              icon={priceAll ? <Loader2 size={18} className="spin" /> : <RefreshCw size={18} />}
+              title={t('Alle Preise prüfen')}
+              text={priceAll ? t('Prüfe {a} von {b} …', { a: priceAll.done, b: priceAll.total }) : upd.native ? t('Prüft alle Einträge mit Link, die nicht abgeschaltet oder gekauft sind') : t('Nur in der Android-App')}
+              onClick={upd.native && !priceAll ? () => void runPriceAll() : undefined}
+            />
+          )}
         </div>
       </Section>
 

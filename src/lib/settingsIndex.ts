@@ -59,6 +59,8 @@ export const SETTING_INDEX: SettingEntry[] = [
   { page: 'app', label: 'Art automatisch erkennen', words: 'kind art vorschlag erkennung formular' },
   { page: 'app', label: 'Automatisch lesen', words: 'link auto einfügen tippen daten holen' },
   { page: 'app', label: 'Preis übernehmen', words: 'link preis import' },
+  { page: 'app', label: 'Preisverlauf', words: 'preis verlauf diagramm etikett gesunken gestiegen beobachten' },
+  { page: 'app', label: 'Alle Preise prüfen', words: 'preis verlauf prüfen alle link' },
   { page: 'app', label: 'Lange Namen kürzen', words: 'link import name kürzen lang titel amazon' },
   { page: 'app', label: 'Eigenen Namen behalten', words: 'link import name eingetippt behalten überschreiben' },
   { page: 'app', label: 'Ausgefüllte Felder überschreiben', words: 'link import überschreiben leer' },

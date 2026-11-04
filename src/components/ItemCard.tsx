@@ -1,9 +1,10 @@
 import { useRef, type MouseEvent, type Ref } from 'react'
 import { animate, motion, useMotionValue, useTransform } from 'motion/react'
-import { Check, ExternalLink, StickyNote, Trash2, Undo2 } from 'lucide-react'
-import { agoLabel, hostOf, toHref } from '../lib/format'
+import { Check, CircleHelp, ExternalLink, StickyNote, TrendingDown, TrendingUp, Trash2, Undo2 } from 'lucide-react'
+import { agoLabel, curOf, hostOf, money, toHref } from '../lib/format'
+import { priceDelta } from '../lib/priceCheck'
 import type { Item } from '../lib/types'
-import { useT } from '../state/ui'
+import { useT, useUI } from '../state/ui'
 import { Cover, PriceTag } from './Primitives'
 
 interface ItemCardProps {
@@ -24,6 +25,9 @@ const SWIPE = 92
 /** Zeile mit Wisch-Gesten: nach rechts = gekauft, nach links = Papierkorb. */
 export function ItemCard({ item, index, onOpen, onToggle, onTrash, badge, listLabel, ref }: ItemCardProps) {
   const t = useT()
+  const ui = useUI()
+  const delta = ui.settings.priceWatch ? priceDelta(item) : null
+  const asked = ui.settings.priceWatch && item.priceTrack !== false && !!item.priceSuggest
   const x = useMotionValue(0)
   const cardRef = useRef<HTMLDivElement>(null)
   // Antippen = Klick ohne nennenswerte Bewegung. So zählt das Loslassen nach einem Wisch nie als Antippen.
@@ -119,6 +123,16 @@ export function ItemCard({ item, index, onOpen, onToggle, onTrash, badge, listLa
           </div>
           <div className="item__meta">
             {item.price !== undefined && <PriceTag price={item.price} cur={item.currency} />}
+            {delta !== null && (
+              <span className="item__delta" data-dir={delta < 0 ? 'down' : 'up'} data-testid="price-delta" aria-label={delta < 0 ? t('Preis gesunken um {p}', { p: money(-delta, curOf(item)) }) : t('Preis gestiegen um {p}', { p: money(delta, curOf(item)) })}>
+                {delta < 0 ? <TrendingDown size={12} /> : <TrendingUp size={12} />} {money(Math.abs(delta), curOf(item))}
+              </span>
+            )}
+            {asked && (
+              <span className="item__ask" data-testid="price-ask">
+                <CircleHelp size={12} /> {t('Neuer Preis?')}
+              </span>
+            )}
             {item.link && (
               <button className="linkbtn" data-no-open onClick={openLink} aria-label={t('Link öffnen: {host}', { host: hostOf(item.link) })}>
                 <ExternalLink size={12} /> {hostOf(item.link)}

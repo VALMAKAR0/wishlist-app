@@ -21,6 +21,14 @@ export interface Wishlist {
   createdAt: number
 }
 
+export type PriceState = 'user' | 'sure' | 'guess'
+
+export interface PricePoint {
+  t: number
+  p: number
+  k: PriceState
+}
+
 export interface Item {
   id: string
   owner: Owner
@@ -33,6 +41,20 @@ export interface Item {
   /** Währung des Preises (ISO-Code). Fehlt das Feld, gilt Euro. */
   currency?: string
   note?: string
+  /** Herkunft des Preises: von mir eingetragen, von der App sicher gelesen oder geraten (ab Bestätigung sicher). */
+  priceState?: PriceState
+  /** Ausgangspreis für das Etikett an der Karte (Preis beim Hinzufügen oder bei der letzten eigenen Änderung). */
+  priceBase?: number
+  /** Bestätigt: Die Stelle auf der Seite, aus der ein geratener Preis kommt, stimmt. Weitere Funde von dort ersetzen den Preis automatisch. */
+  priceGuessOk?: boolean
+  /** Neuer Preis von der Seite, der noch bestätigt werden muss. */
+  priceSuggest?: { price: number; guess: boolean; at: number }
+  /** Zuletzt abgelehnter Vorschlag, wird nicht noch einmal vorgeschlagen. */
+  priceNo?: number
+  priceLog?: PricePoint[]
+  /** Aus: Der Preis dieses Eintrags wird nie geprüft. */
+  priceTrack?: boolean
+  priceCheckedAt?: number
   /** Verweis auf ein verkleinertes Bild im Bilderspeicher (lib/images.ts). Ohne Bild gilt Emoji und Farbe. */
   imageId?: string
   emoji: string
@@ -173,6 +195,7 @@ export interface UiSettings {
   linkOverwrite: boolean
   linkKeepName: boolean
   linkShortName: boolean
+  priceWatch: boolean
   kindAuto: boolean
 }
 

@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 03.11.2026 · Status: V0.9.4 (Link-Import mit Ergebnis-Karte und Schaltern, Bild-Rückfall, eigener Name bleibt; Preisverlauf folgt) · Datenformat: v2
+Stand: 03.11.2026 · Status: V0.10.0 (Preisverlauf mit Prüfung, Diagramm und Etikett; Link-Import mit Ergebnis-Karte; Hintergrundprüfung folgt) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -207,7 +207,7 @@ Eigener Tab mit Auswertungen über alles: Gesamtausgaben (für mich und für and
 - **V0.9.2 (erledigt, ungetestet auf Gerät):** Fehlergründe bei "Keine Verbindung", Art-Erkennung mit Mehrwort-Begriffen, Lernen aus eigenen Einträgen und Vorschlags-Chips, Link-Feld liest auch bei Tippen oder Tastatur-Einfügen (siehe 29)
 - **V0.9.4 (erledigt, ungetestet auf Gerät):** Bild aus dem Seitenaufbau, wenn die Produktdaten keins nennen (als geraten markiert), eingetippter Name bleibt (Schalter "Eigenen Namen behalten", Knopf "Übernehmen"), lange Shop-Titel stark gekürzt (Schalter, Original übernehmbar), "Amazon.de:" vorn entfernt (siehe 29)
 - **V0.9.3 (erledigt, ungetestet auf Gerät):** Ergebnis-Karte beim Link-Import (gefunden, geraten, nicht gefunden mit Grund), vier neue Schalter, Titel-Reinigung, Preis aus dem Seitentext (als geraten markiert), Art auch beim Bearbeiten, sichtbare Animationen (siehe 29)
-- **V0.10:** Preisverlauf: "Preis jetzt prüfen", Diagramm, Hinweis "Preis gesunken" beim Öffnen oder über "Alle Preise prüfen"
+- **V0.10 (erledigt, ungetestet auf Gerät):** Preisverlauf: "Preis jetzt prüfen", Diagramm, Etikett an der Karte, "Alle Preise prüfen" (siehe 30)
 - **V0.11:** Tägliche Prüfung im Hintergrund mit Benachrichtigung, nur Android (siehe 29, Plan)
 - **V1.0:** Test auf echten Geräten, Release
 
@@ -506,3 +506,17 @@ Technische Leitplanken für Animationen (nach Fehlersuche in V0.1):
 - **Titel stark gekürzt (`shortenName`):** Titel über 48 Zeichen werden auf den Kern gekürzt: bis zum ersten Komma, Strich, Schrägstrich mit Leerzeichen, Semikolon oder zur ersten Klammer (frühestens nach 18 Zeichen, höchstens 64 Zeichen, an Wortgrenze, hängende "und", "mit", "&" fallen weg). Markenzeichen ®™© werden entfernt. Beispiel: "Wireless Carplay & Android Auto Adapter, Mavlou® Metalldesign Mini …" wird "Wireless Carplay & Android Auto Adapter". Das Original steht in der Karte unter dem Namen mit Knopf "Original übernehmen". Neuer Schalter (Mehr → App → Link-Import) **"Lange Namen kürzen"** (`linkShortName`, Standard an, in der Sicherung). Ein führender Shopname wie "Amazon.de: " fällt weg (auch bei Kurzlinks `amzn.eu`).
 - **Tests:** `link.test.ts` (Bild-Rückfall, Kürzen, Amazon-Titel), `settings.test.ts` (`linkKeepName`), `v091.cjs` (Name bleibt, Übernehmen, Schalter aus, zweiter Import, Amazon-Szenario).
 - **Auf dem Gerät prüfen:** Amazon-Link einfügen (Bild da? gelb markiert?), erst Namen tippen, dann Link einfügen (Name bleibt, "Übernehmen" geht). Bleibt das Bild weg, "Details kopieren" im Chat zeigen.
+
+## 30. Preisverlauf (V0.10.0)
+
+Entscheidungen von Markus (04.11.): Neue Preise ersetzen den Preis automatisch, außer er wurde von Hand eingetragen oder ist nur geraten, dann kommt nur ein Vorschlag zum Bestätigen. Pro Eintrag ganz abschaltbar. Geratene Preise kommen mit Markierung in den Verlauf und gelten nach Bestätigung dauerhaft als sicher. Das Etikett an der Karte bleibt immer stehen und zeigt die Änderung seit dem Hinzufügen.
+
+- **Neue Felder am Eintrag** (alle optional, kein neues Datenformat, `schemaVersion` bleibt 2): `priceState` (`user` von Hand, `sure` sicher, `guess` geraten), `priceBase` (Ausgangspreis fürs Etikett), `priceGuessOk` (geratene Stelle bestätigt), `priceSuggest` (offener Vorschlag), `priceNo` (abgelehnter Wert), `priceLog` (Verlauf, höchstens 120 Punkte, ein Punkt je Preis und etwa Tag), `priceTrack` (aus = false), `priceCheckedAt`. Die Felder gehen in die Sicherung. Beim Teilen und im CSV-Export gehen sie nie mit (Teilen nimmt nur eine feste Liste von Feldern).
+- **Logik** (`src/lib/priceCheck.ts`, rein und getestet in `t1/price.test.ts`): `applyCheck` entscheidet je Fund. Kein Preis gefunden: nichts ändern. Andere Währung als der Eintrag: nichts ändern, Hinweis. Eintrag ohne Preis: Preis eintragen (sicher oder geraten). Gleicher Preis: nur Verlaufspunkt. Neuer Preis: **automatisch ersetzen**, wenn der Preis des Eintrags `sure` ist **und** der Fund nicht geraten ist. In allen anderen Fällen (eigener Preis, geratener Preis, geratener Fund) nur **Vorschlag** (`priceSuggest`). Ein abgelehnter Wert kommt nicht wieder vor, ein anderer schon.
+- **Sicherheit:** Einen Vorschlag annehmen oder "Der Preis stimmt" tippen macht den Preis `sure`, die Markierung "geraten" verschwindet dauerhaft. Kam der bestätigte Preis aus einer geratenen Stelle (zum Beispiel Honda, Preis nur im Text), merkt sich das Feld `priceGuessOk`: Die Stelle gilt als richtig, und neue Funde von dort **ersetzen den Preis ab dann automatisch**. Ohne diese Bestätigung bleibt ein geratener Fund immer nur ein Vorschlag, auch bei einem sicheren Preis. Ändert man den Preis von Hand, entfällt die Bestätigung.
+- **Etikett an der Karte** (`ItemCard`): Pfeil und Betrag, grün bei gesunken, rot bei gestiegen, immer gegenüber `priceBase`. Dazu "Neuer Preis?", solange ein Vorschlag offen ist. Ändert man den Preis von Hand, ist das der neue Ausgangspreis (sonst würde eine Tippfehler-Korrektur als Preissprung erscheinen). Ein angenommener Vorschlag oder ein automatisch ersetzter Preis lässt den Ausgangspreis stehen.
+- **Preis-Bereich im Eintrag** (`PriceWatch`, erscheint beim Bearbeiten, wenn ein Link oder ein Verlauf da ist): Schalter "Preis beobachten", Herkunft des Preises, Vorschlag mit "Ja, übernehmen" und "Nein, ignorieren", "Der Preis stimmt", Diagramm (`PriceChart`, gefüllte Punkte sicher, hohle geraten, gestrichelte Linie = Ausgangspreis), "Preis jetzt prüfen" mit Ergebnistext. Die Prüfung liest nur die Seite des Eintrags (wie der Link-Import), nur in der Android-App.
+- **Einstellungen** (Mehr → App → Preisverlauf): Hauptschalter "Preisverlauf" (aus: kein Etikett, kein Preis-Bereich, Daten bleiben), Zeile "Alle Preise prüfen" (nacheinander mit 0,6 s Pause, übersprungen werden gekaufte, gelöschte, abgeschaltete und Einträge ohne Link; am Ende eine Zusammenfassung).
+- **Noch nicht:** Prüfung im Hintergrund und Benachrichtigung (V0.11). Wird der Link eines Eintrags ersetzt, bleibt der alte Verlauf stehen.
+- **Tests:** `t1/price.test.ts`, `t1/settings.test.ts` (`priceWatch`), `t2/v010.cjs` (Vorschlag, Annehmen, automatisch ersetzen, Diagramm, Handänderung, Ablehnen, Abschalten, geratener Preis wird sicher, Alle Preise prüfen, Hauptschalter).
+- **Auf dem Gerät prüfen:** Eintrag mit echtem Shop-Link anlegen, Preis eintragen, "Preis jetzt prüfen". Bei gleichem Preis "unverändert". Bei Honda: Preis erscheint als geraten, "Der Preis stimmt" macht ihn sicher. "Alle Preise prüfen" mit mehreren Einträgen.
