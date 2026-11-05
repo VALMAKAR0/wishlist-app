@@ -15,7 +15,9 @@ import { LinkReport, type Report } from './LinkReport'
 import { MatchWarning } from './MatchCard'
 import { PriceChooser } from './PriceChooser'
 import { Presence } from './Presence'
+import { PriceInput } from './PriceInput'
 import { PriceSearch } from './PriceSearch'
+import { parsePriceInput, priceText } from '../lib/priceInput'
 import { PriceWatch } from './PriceWatch'
 import { Cover } from './Primitives'
 import { Sheet } from './Sheet'
@@ -46,7 +48,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
   const [kindTouched, setKindTouched] = useState(!!item?.kind)
   const [listId, setListId] = useState(item?.listId ?? (ownerLists.some((l) => l.id === initialList) ? (initialList as string) : (ownerLists[0]?.id ?? '')))
   const [link, setLink] = useState(item?.link ?? '')
-  const [price, setPrice] = useState(item?.price !== undefined ? String(item.price).replace('.', ',') : '')
+  const [price, setPrice] = useState(item?.price !== undefined ? priceText(item.price) : '')
   const [cur, setCur] = useState(item ? (item.currency ?? 'EUR') : ui.settings.currency)
   const [note, setNote] = useState(item?.note ?? '')
   const [emoji, setEmoji] = useState(item?.emoji ?? EMOJIS[0])
@@ -143,7 +145,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
         const c = product.currency ?? before.cur
         const text = money(product.price, c)
         if (over || !before.price.trim()) {
-          setPrice(product.price.toFixed(2).replace('.', ','))
+          setPrice(priceText(product.price, true))
           priceFrom.current = product.priceGuess ? 'guess' : 'sure'
           spotRef.current = undefined
           setCur(c)
@@ -227,7 +229,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
   }
 
   const pickPrice = (c: PriceCandidate) => {
-    setPrice(String(c.price).replace('.', ','))
+    setPrice(priceText(c.price))
     setCur(c.currency)
     priceFrom.current = 'sure'
     spotRef.current = spotOf(c)
@@ -296,7 +298,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
         return
       }
     }
-    const parsed = price.trim() ? Number(price.replace(',', '.')) : undefined
+    const parsed = parsePriceInput(price)
     const data = {
       name: name.trim(),
       kind: kind.trim() || undefined,
@@ -491,7 +493,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
       <label className="field" data-flash={flash.includes('price') || undefined}>
         <span>{t('Preis')}</span>
         <div className="field__row">
-          <input value={price} onChange={(e) => { priceFrom.current = null; setPrice(e.target.value.replace(/[^0-9.,]/g, '')) }} placeholder="0,00" inputMode="decimal" />
+          <PriceInput value={price} onChange={(v) => { priceFrom.current = null; setPrice(v) }} placeholder="0,00" />
           <select className="cursel" value={cur} onChange={(e) => setCur(e.target.value)} aria-label={t('Währung')}>
             {CURRENCIES.map((c) => (
               <option key={c} value={c}>
@@ -505,8 +507,8 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
         )}
       </label>
 
-      <PriceSearch name={name} />
-      <Presence show={chooser}>{chooser && <PriceChooser candidates={report?.candidates ?? []} current={Number(price.replace(',', '.')) || undefined} onPick={pickPrice} onClose={() => setChooser(false)} />}</Presence>
+      {ui.settings.priceSearch && <PriceSearch name={name} />}
+      <Presence show={chooser}>{chooser && <PriceChooser candidates={report?.candidates ?? []} current={parsePriceInput(price) || undefined} spot={spotRef.current ?? stored?.priceSpot} cur={cur} onPick={pickPrice} onClose={() => setChooser(false)} />}</Presence>
 
       {stored && ui.settings.priceWatch && !!(link.trim() || stored.priceLog?.length) && (
         <PriceWatch
@@ -514,7 +516,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
           link={link}
           onPrice={(p, c) => {
             priceFrom.current = null
-            setPrice(String(p).replace('.', ','))
+            setPrice(priceText(p))
             setCur(c)
           }}
         />

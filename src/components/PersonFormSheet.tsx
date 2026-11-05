@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { PriceInput } from './PriceInput'
+import { parsePriceInput, priceText } from '../lib/priceInput'
 import { AnimatePresence, motion } from 'motion/react'
 import { Plus, Trash2, X } from 'lucide-react'
 import { defaultList } from '../lib/demoData'
@@ -37,7 +39,7 @@ export function PersonFormSheet({ person, onClose, onDeleted }: Props) {
 
   const [name, setName] = useState(person?.name ?? '')
   const [hue, setHue] = useState(person?.hue ?? HUES[Math.floor(Math.random() * HUES.length)])
-  const [budget, setBudget] = useState(person ? String(person.budget) : '')
+  const [budget, setBudget] = useState(person ? priceText(person.budget) : '')
   const [rows, setRows] = useState<Row[]>(
     person?.occasions.map(toRow) ?? [{ id: uid(), label: 'Geburtstag', date: '', custom: false }],
   )
@@ -61,7 +63,7 @@ export function PersonFormSheet({ person, onClose, onDeleted }: Props) {
       const md = parseMonthDay(r.date)
       return md ? [{ id: r.id, label: r.label.trim() || 'Sonstiges', ...md }] : []
     })
-    const data = { name: name.trim(), hue, budget: Number(budget.replace(',', '.')) || 0, occasions }
+    const data = { name: name.trim(), hue, budget: parsePriceInput(budget) || 0, occasions }
     if (person) {
       dispatch({ type: 'updatePerson', id: person.id, patch: data })
       ui.toast({ message: t('Person aktualisiert'), emoji: '✨' })
@@ -128,7 +130,7 @@ export function PersonFormSheet({ person, onClose, onDeleted }: Props) {
       <label className="field">
         <span>{t('Budget pro Anlass')}</span>
         <div className="field__row field__row--suffix">
-          <input value={budget} onChange={(e) => setBudget(e.target.value.replace(/[^0-9.,]/g, ''))} placeholder="0" inputMode="decimal" />
+          <PriceInput value={budget} onChange={setBudget} placeholder="0" />
           <b>€</b>
         </div>
       </label>

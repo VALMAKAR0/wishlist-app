@@ -322,7 +322,7 @@ const ctxKey = (before: string): string =>
     .slice(-28)
 
 /** Alle Preise im sichtbaren Seitentext (mit € oder EUR), samt Text davor. Reihenfolge wie auf der Seite. */
-export function textPrices(html: string, max = 12): PriceCandidate[] {
+export function textPrices(html: string, max = 80): PriceCandidate[] {
   const body = plainText(html.length > MAX_HTML ? html.slice(0, MAX_HTML) : html)
   const amount = '(?:\\d{1,3}(?:\\.\\d{3})+|\\d+)(?:,\\d{1,2})?'
   const re = new RegExp(`(?:(?:€|\\beur\\b)\\s?(${amount})|(${amount})\\s?(?:€|\\beur\\b))`, 'gi')

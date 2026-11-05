@@ -80,6 +80,10 @@ export const rejectSuggestion = (item: Item): Partial<Item> => ({ priceSuggest: 
 export const confirmPrice = (item: Item, now: number): Partial<Item> =>
   item.price === undefined ? {} : { priceState: 'sure', priceGuessOk: item.priceState === 'guess' || item.priceGuessOk ? true : undefined, priceLog: pushLog(item.priceLog, { t: now, p: item.price, k: 'sure' }) }
 
+/** Nimmt „Der Preis stimmt“ oder eine gewählte Stelle zurück: die Stelle zählt wieder als unsicher. */
+export const unconfirmPrice = (item: Item, now: number): Partial<Item> =>
+  item.price === undefined ? {} : { priceState: item.priceGuessOk ? 'guess' : 'user', priceGuessOk: undefined, priceSpot: undefined, priceSuggest: undefined, priceLog: pushLog(item.priceLog, { t: now, p: item.price, k: item.priceGuessOk ? 'guess' : 'user' }) }
+
 /** Preisfelder beim Speichern im Formular. Gibt nur zurück, was sich ändern muss. */
 export function priceFieldsOnSave(prev: Item | undefined, price: number | undefined, currency: string, from: PriceState | null, now: number, spot?: PriceSpot): Partial<Item> {
   if (price === undefined) return { priceState: undefined, priceGuessOk: undefined, priceSpot: undefined, priceBase: undefined, priceSuggest: undefined, priceNo: undefined, priceLog: undefined }

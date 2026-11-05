@@ -208,6 +208,7 @@ export interface UiSettings {
   linkKeepName: boolean
   linkShortName: boolean
   priceWatch: boolean
+  priceSearch: boolean
   kindAuto: boolean
 }
 

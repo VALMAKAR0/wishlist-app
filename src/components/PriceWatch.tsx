@@ -4,7 +4,7 @@ import { Check, CircleHelp, ListChecks, Loader2, RefreshCw, TrendingDown, Trendi
 import { isNative } from '../lib/backupFiles'
 import { agoLabel, curOf, money } from '../lib/format'
 import { linkFailExtra, linkFailText, type PriceCandidate } from '../lib/linkImport'
-import { acceptSuggestion, applyCheck, chooseCandidate, confirmPrice, priceDelta, readFound, rejectSuggestion, type Outcome } from '../lib/priceCheck'
+import { acceptSuggestion, applyCheck, chooseCandidate, confirmPrice, priceDelta, readFound, rejectSuggestion, unconfirmPrice, type Outcome } from '../lib/priceCheck'
 import type { Item } from '../lib/types'
 import { useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
@@ -132,6 +132,11 @@ export function PriceWatch({ item, link, onPrice }: { item: Item; link: string; 
       {on && (
         <>
           {item.price !== undefined && stateText && <p className="pw__state" data-state={item.priceState}>{stateText}</p>}
+          {item.price !== undefined && (item.priceGuessOk || item.priceSpot) && (
+            <button type="button" className="btn btn--small btn--ghost" data-testid="price-unconfirm" onClick={() => { patch(unconfirmPrice(item, Date.now())); setMsg({ text: t('Zurückgenommen. Der Preis gilt wieder als unsicher, wähle die richtige Stelle neu.'), tone: 'ok' }) }}>
+              <X size={14} /> {t('Bestätigung zurücknehmen')}
+            </button>
+          )}
           {item.price !== undefined && item.priceState === 'guess' && (
             <button type="button" className="btn btn--small btn--ghost" onClick={() => patch(confirmPrice(item, Date.now()))}>
               <Check size={14} /> {t('Der Preis stimmt')}
@@ -187,7 +192,7 @@ export function PriceWatch({ item, link, onPrice }: { item: Item; link: string; 
           )}
         </>
       )}
-      <Presence show={!!cands}>{cands && <PriceChooser candidates={cands} current={item.price} onPick={pick} onClose={() => setCands(null)} />}</Presence>
+      <Presence show={!!cands}>{cands && <PriceChooser candidates={cands} current={item.price} spot={item.priceSpot} cur={cur} onPick={pick} onClose={() => setCands(null)} />}</Presence>
     </section>
   )
 }

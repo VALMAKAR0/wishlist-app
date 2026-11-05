@@ -2,7 +2,7 @@
   "name": "wishlist-app",
   "private": true,
   "license": "UNLICENSED",
-  "version": "0.10.2",
+  "version": "0.10.3",
   "type": "module",
   "scripts": {
     "dev": "vite",

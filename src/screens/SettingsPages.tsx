@@ -658,6 +658,7 @@ function AppPage() {
             checked={settings.priceWatch}
             onChange={(priceWatch) => setSettings({ priceWatch })}
           />
+          <SwitchRow title={t('Preise vergleichen')} text={t('Zeigt im Formular unter dem Preis Links zu Idealo, Google Shopping und Geizhals. Die Suche öffnet im Browser.')} checked={settings.priceSearch} onChange={(priceSearch) => setSettings({ priceSearch })} />
           {settings.priceWatch && (
             <Row
               icon={priceAll ? <Loader2 size={18} className="spin" /> : <RefreshCw size={18} />}
