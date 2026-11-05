@@ -6,6 +6,7 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   plugins: {
     LocalNotifications: { smallIcon: 'ic_stat_wunsch', iconColor: '#E8546A' },
+    BackgroundRunner: { label: 'app.wunschliste.preise', src: 'runners/background.js', event: 'check', repeat: true, interval: 60, autoStart: true },
     SystemBars: { insetsHandling: 'native', initialViewportFitValueHint: 'cover' },
   },
 }

@@ -22,7 +22,9 @@ import { CURRENCIES, agoLabel, daysAgo, longDate, timeLabel } from '../lib/forma
 import { lockAvailable } from '../lib/lock'
 import { checkPersist, usePersist } from '../lib/persist'
 import { KEEP_CHOICES, LOCK_CHOICES, TRASH_CHOICES } from '../lib/settings'
+import { applyResults, bgCheckNow, bgCollect, bgStatus, bgSync } from '../lib/bgRunner'
 import { checkable, checkAll } from '../lib/priceCheck'
+import { notifyState } from '../lib/reminders'
 import { fetchRates } from '../lib/rates'
 import type { DateFmt, FontScale, FxSetting, Lang, SortMode, StartTab, ThemeSetting } from '../lib/types'
 import { useBackup } from '../state/backup'
@@ -537,6 +539,34 @@ function AppPage() {
   const [howTo, setHowTo] = useState(false)
   const [linkTest, setLinkTest] = useState(false)
   const [priceAll, setPriceAll] = useState<{ done: number; total: number } | null>(null)
+  const [bgBusy, setBgBusy] = useState(false)
+  const [bgLast, setBgLast] = useState<string | null>(null)
+  const loadBg = async () => {
+    const s = await bgStatus()
+    setBgLast(s?.last ? s.last.split('-').reverse().slice(0, 2).join('.') + '.' : '')
+  }
+  useEffect(() => {
+    if (upd.native && settings.priceBg) void loadBg()
+  }, [upd.native, settings.priceBg])
+  const toggleBg = async (v: boolean) => {
+    if (v && (await notifyState(true)) !== 'granted') {
+      ui.toast({ message: t('Ohne Erlaubnis für Benachrichtigungen kann die App nichts melden. Erlaube sie in den Android-Einstellungen der App.'), emoji: '🔕' })
+      return
+    }
+    setSettings({ priceBg: v })
+  }
+  const testBg = async () => {
+    if (bgBusy) return
+    setBgBusy(true)
+    await bgSync(true, items)
+    const r = await bgCheckNow()
+    const c = r ? await bgCollect() : null
+    const s = c ? applyResults(items, c.results, (id, patch) => dispatch({ type: 'updateItem', id, patch })) : null
+    setBgBusy(false)
+    void loadBg()
+    if (!r) ui.toast({ message: t('Der Hintergrund-Läufer antwortet nicht.'), emoji: '⚠️' })
+    else ui.toast({ message: `${t('{n} Preise geprüft', { n: r.checked })}${s?.down ? ', ' + t('{n} gesunken', { n: s.down }) : ''}${r.failed ? ', ' + t('{n} nicht erreichbar', { n: r.failed }) : ''}`, emoji: r.drops ? '📉' : '🔎' })
+  }
   const runPriceAll = async () => {
     const total = items.filter(checkable).length
     if (!total) {
@@ -659,6 +689,17 @@ function AppPage() {
             onChange={(priceWatch) => setSettings({ priceWatch })}
           />
           <SwitchRow title={t('Preise vergleichen')} text={t('Zeigt im Formular unter dem Preis Links zu Idealo, Google Shopping und Geizhals. Die Suche öffnet im Browser.')} checked={settings.priceSearch} onChange={(priceSearch) => setSettings({ priceSearch })} />
+          {upd.native && settings.priceWatch && (
+            <SwitchRow title={t('Tägliche Prüfung im Hintergrund')} text={t('Prüft die Preise jeden Morgen gegen 8 Uhr und meldet nur eine Preissenkung. Auf manchen Handys (z. B. Samsung) darf die App dafür nicht im Akku eingeschränkt sein.')} checked={settings.priceBg} onChange={(v) => void toggleBg(v)} />
+          )}
+          {upd.native && settings.priceWatch && settings.priceBg && (
+            <Row
+              icon={bgBusy ? <Loader2 size={18} className="spin" /> : <Bell size={18} />}
+              title={t('Hintergrund-Prüfung testen')}
+              text={bgBusy ? t('Prüfe …') : bgLast ? t('Zuletzt im Hintergrund geprüft: {d}', { d: bgLast }) : t('Noch nie im Hintergrund geprüft. Tippen prüft jetzt sofort.')}
+              onClick={bgBusy ? undefined : () => void testBg()}
+            />
+          )}
           {settings.priceWatch && (
             <Row
               icon={priceAll ? <Loader2 size={18} className="spin" /> : <RefreshCw size={18} />}

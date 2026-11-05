@@ -49,13 +49,14 @@ export const defaults = (): UiSettings => ({
   linkShortName: true,
   priceWatch: true,
   priceSearch: false,
+  priceBg: false,
   kindAuto: true,
 })
 
 /** Einstellungen, die ins Backup wandern. Gerätegebundenes (Kennung, Update-Stand, PIN, Erinnerungs-Schalter) bleibt draußen. */
 export const SYNC_KEYS = [
   'theme', 'fx', 'lang', 'hue', 'remindDays', 'remindTime', 'updateCheck', 'showPlanned', 'autoBackup', 'shareName',
-  'currency', 'rates', 'ratesAt', 'dateFmt', 'fontScale', 'haptics', 'trashDays', 'autoKeep', 'startTab', 'sort', 'shareDefaults', 'linkImport', 'linkImages', 'linkAuto', 'linkPrice', 'linkOverwrite', 'linkKeepName', 'linkShortName', 'priceWatch', 'priceSearch', 'kindAuto',
+  'currency', 'rates', 'ratesAt', 'dateFmt', 'fontScale', 'haptics', 'trashDays', 'autoKeep', 'startTab', 'sort', 'shareDefaults', 'linkImport', 'linkImages', 'linkAuto', 'linkPrice', 'linkOverwrite', 'linkKeepName', 'linkShortName', 'priceWatch', 'priceSearch', 'priceBg', 'kindAuto',
 ] as const satisfies readonly (keyof UiSettings)[]
 
 export type SyncSettings = Pick<UiSettings, (typeof SYNC_KEYS)[number]>
@@ -140,6 +141,7 @@ export function normalize(raw: unknown, base: UiSettings = defaults()): UiSettin
     linkShortName: bool(r.linkShortName) ?? base.linkShortName,
     priceWatch: bool(r.priceWatch) ?? base.priceWatch,
     priceSearch: bool(r.priceSearch) ?? base.priceSearch,
+    priceBg: bool(r.priceBg) ?? base.priceBg,
     kindAuto: bool(r.kindAuto) ?? base.kindAuto,
   }
 }

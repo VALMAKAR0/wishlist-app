@@ -1,5 +1,5 @@
 import { curOf } from './format'
-import { fetchProduct, spotOf, type PriceCandidate } from './linkImport'
+import { fetchProduct, spotOf, type PriceCandidate, type Product } from './linkImport'
 import type { Item, PricePoint, PriceSpot, PriceState } from './types'
 
 export interface Found {
@@ -109,12 +109,15 @@ export interface Read {
 }
 
 /** Liest den Preis von der Seite des Eintrags, wenn vorhanden von der gewählten Stelle. Wirft LinkError wie fetchProduct. */
+export const foundOf = (product: Pick<Product, 'price' | 'currency' | 'priceGuess'>, lost: boolean | undefined, spot?: PriceSpot): Found | 'lost' | null => {
+  if (spot && lost) return 'lost'
+  if (product.price === undefined) return null
+  return { price: product.price, currency: product.currency ?? 'EUR', guess: !!product.priceGuess }
+}
+
 export async function readFound(link: string, spot?: PriceSpot): Promise<Read> {
   const { product, lost } = await fetchProduct(link, spot)
-  const candidates = product.candidates ?? []
-  if (spot && lost) return { found: 'lost', candidates }
-  if (product.price === undefined) return { found: null, candidates }
-  return { found: { price: product.price, currency: product.currency ?? 'EUR', guess: !!product.priceGuess }, candidates }
+  return { found: foundOf(product, lost, spot), candidates: product.candidates ?? [] }
 }
 
 /** Prüft einen Eintrag online. */
