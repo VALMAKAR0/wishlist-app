@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Check, CircleHelp, ListChecks, Loader2, RefreshCw, TrendingDown, TrendingUp, X } from 'lucide-react'
+import { Check, CircleHelp, Info, ListChecks, Loader2, RefreshCw, TrendingDown, TrendingUp, X } from 'lucide-react'
 import { isNative } from '../lib/backupFiles'
-import { agoLabel, curOf, money } from '../lib/format'
+import { agoLabel, curOf, longDate, money } from '../lib/format'
 import { linkFailExtra, linkFailText, type PriceCandidate } from '../lib/linkImport'
 import { acceptSuggestion, applyCheck, chooseCandidate, confirmPrice, priceDelta, readFound, rejectSuggestion, unconfirmPrice, type Outcome } from '../lib/priceCheck'
 import type { Item } from '../lib/types'
@@ -23,6 +23,7 @@ export function PriceWatch({ item, link, onPrice }: { item: Item; link: string; 
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<Msg | null>(null)
   const [cands, setCands] = useState<PriceCandidate[] | null>(null)
+  const [more, setMore] = useState(false)
   const on = item.priceTrack !== false
   const cur = curOf(item)
   const patch = (p: Partial<Item>) => dispatch({ type: 'updateItem', id: item.id, patch: p })
@@ -106,32 +107,55 @@ export function PriceWatch({ item, link, onPrice }: { item: Item; link: string; 
     setMsg({ text: t('Preis übernommen, er gilt jetzt als sicher.'), tone: 'ok' })
   }
 
-  const stateText =
-    item.priceSpot
-      ? t('Sicher: Du hast die Stelle „{l}“ gewählt, von dort wird der Preis gelesen.', { l: item.priceSpot.label })
-      : item.priceState === 'guess'
+  const stateShort = item.priceSpot
+    ? t('Sicher · Stelle „{l}“', { l: item.priceSpot.label })
+    : item.priceState === 'guess'
+      ? t('Geraten · bitte bestätigen')
+      : item.priceState === 'sure'
+        ? item.priceGuessOk
+          ? t('Sicher · Stelle bestätigt')
+          : t('Sicher · von der Seite gelesen')
+        : item.priceState === 'user'
+          ? t('Von dir eingetragen')
+          : ''
+  const stateLong = item.priceSpot
+    ? t('Du hast die Stelle „{l}“ gewählt, von dort wird der Preis gelesen.', { l: item.priceSpot.label })
+    : item.priceState === 'guess'
       ? t('Aus dem Seitentext geraten. Stimmt er, bestätige ihn: Dann gilt er als sicher und neue Preise von dieser Stelle werden automatisch übernommen.')
       : item.priceState === 'sure'
         ? item.priceGuessOk
-          ? t('Sicher: Du hast die Stelle auf der Seite bestätigt, neue Preise von dort werden automatisch übernommen.')
-          : t('Sicher: von der Seite gelesen oder von dir bestätigt.')
+          ? t('Du hast die Stelle auf der Seite bestätigt, neue Preise von dort werden automatisch übernommen.')
+          : t('Von der Seite gelesen oder von dir bestätigt. Neue Preise von dieser Stelle werden automatisch übernommen.')
         : item.priceState === 'user'
           ? t('Von dir eingetragen. Neue Preise der Seite kommen nur als Vorschlag.')
           : ''
+  const flat = log.length >= 2 && log.every((p) => Math.abs(p.p - log[0].p) < 0.005)
 
   return (
     <section className="pw" data-testid="price-watch" data-on={on}>
       <div className="pw__head">
         <div>
           <strong>{t('Preis beobachten')}</strong>
-          <p>{on ? t('Die App kann den Preis auf der Seite prüfen und den Verlauf merken.') : t('Aus: Dieser Eintrag wird nie geprüft, es gibt kein Etikett.')}</p>
+          {!on && <p>{t('Aus: Dieser Eintrag wird nie geprüft, es gibt kein Etikett.')}</p>}
         </div>
         <Switch checked={on} onChange={(v) => patch({ priceTrack: v ? undefined : false, priceSuggest: v ? item.priceSuggest : undefined })} label={t('Preis beobachten')} />
       </div>
 
       {on && (
         <>
-          {item.price !== undefined && stateText && <p className="pw__state" data-state={item.priceState}>{stateText}</p>}
+          {item.price !== undefined && stateShort && (
+            <div className="pw__statebar">
+              <p className="pw__state" data-state={item.priceState}>{stateShort}</p>
+              <button type="button" className="pw__info" data-on={more} aria-label={t('Mehr dazu')} aria-expanded={more} onClick={() => setMore((m) => !m)}>
+                <Info size={15} />
+              </button>
+            </div>
+          )}
+          {more && (
+            <p className="pw__more">
+              {stateLong} {t('Die App prüft den Preis auf Wunsch und, wenn eingeschaltet, einmal täglich im Hintergrund. Aus jeder Messung entsteht ein Punkt im Verlauf.')}
+            </p>
+          )}
           {item.price !== undefined && (item.priceGuessOk || item.priceSpot) && (
             <button type="button" className="btn btn--small btn--ghost" data-testid="price-unconfirm" onClick={() => { patch(unconfirmPrice(item, Date.now())); setMsg({ text: t('Zurückgenommen. Der Preis gilt wieder als unsicher, wähle die richtige Stelle neu.'), tone: 'ok' }) }}>
               <X size={14} /> {t('Bestätigung zurücknehmen')}
@@ -172,7 +196,14 @@ export function PriceWatch({ item, link, onPrice }: { item: Item; link: string; 
             </p>
           )}
 
-          {log.length >= 2 ? <PriceChart points={log} base={item.priceBase} cur={cur} /> : <p className="pw__hint">{t('Der Verlauf entsteht mit jeder Prüfung.')}</p>}
+          {log.length >= 2 ? (
+            <>
+              <PriceChart points={log} base={item.priceBase} cur={cur} />
+              {flat && <p className="pw__hint">{t('Unverändert seit {d}, {n} Messpunkte.', { d: longDate(log[0].t), n: log.length })}</p>}
+            </>
+          ) : (
+            <p className="pw__hint">{t('Noch kein Verlauf: Das Diagramm erscheint ab dem zweiten Messpunkt, einer pro Tag.')}</p>
+          )}
 
           <div className="pw__foot">
             <button type="button" className="btn btn--small btn--ghost" onClick={() => void check()} disabled={busy || !native || !hasLink} data-testid="price-check">

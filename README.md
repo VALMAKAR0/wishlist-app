@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 07.11.2026 · Status: V0.11.1 (Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
+Stand: 07.11.2026 · Status: V0.11.2 (Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -538,3 +538,9 @@ Entscheidungen von Markus (04.11.): Neue Preise ersetzen den Preis automatisch, 
 - **Preis genauer (`src/lib/linkImport.ts`):** JSON-LD übergeht ausverkaufte, gebrauchte und Listen-/Streichpreis-Angebote (nur wenn nichts anderes da ist, zählen sie). Neue Quelle `dom` (`domPrices`): Amazon-Kaufbox (`priceToPay`), `itemprop="price"` und bekannte Felder im Seitencode (`priceAmount`, `salePrice`, `finalPrice` …). Beim Text-Raten bewertet `priceScore` jeden Preis nach dem Text davor und dahinter: "Preis", "jetzt", "inkl. MwSt." sprechen dafür, "Versand", "Rate", "pro Monat", "statt", "Grundpreis", "Gutschein" dagegen. Gewinnt kein Treffer über 0, wird nichts geraten (wie vorher ohne Stichwort). UVP bleibt gültig (Honda). Ein geratener Preis bleibt als "geraten" markiert, die Auswahlliste zeigt alle Preise.
 - **GoWish:** Die Seite liefert im HTML nur Name und Bild (Titel und Open-Graph), der Preis wird erst per JavaScript nachgeladen. Die App sagt das jetzt ausdrücklich und rät zum Link des Shops. Ein Zugriff auf die interne GoWish-Schnittstelle ist bewusst nicht eingebaut (nicht dokumentiert, kann sich jederzeit ändern).
 - **Tests:** `v0111.test.ts` (Art, Link-Wörter, Warnlogik, Preis-Quellen und -Bewertung), `v0111.cjs` (Browser: Art leeren, Neu erkennen, Warnung nur nach Name).
+
+## 33. Währung und Preisverlauf (V0.11.2)
+- **Währungsauswahl:** Das alte Dropdown ist durch `CurrencyPicker` ersetzt: Ein Knopf mit Symbol und Kürzel, darunter klappt ein Raster mit allen zwölf Währungen (Symbol, Kürzel, Name, Haken an der gewählten) auf. Escape oder erneutes Tippen schließt nur die Auswahl, nicht das Fenster.
+- **Umrechnen beim Wechsel:** Steht im Preisfeld ein Betrag, wird er in die neue Währung umgerechnet (Zwei Nachkommastellen, Yen ganzzahlig) und per Toast "Umgerechnet: A → B" mit "Rückgängig" gemeldet. Fehlen für eine der beiden Währungen die Kurse oder sind sie älter als einen Tag, holt die App sie kurz bei der EZB-Schnittstelle (`fetchRates`, dieselbe wie unter "Währung und Format") und speichert sie. Klappt das nicht, wird nur die Währung gewechselt und der bekannte Hinweis "Für … fehlt ein Kurs" erscheint. Ein gemerkter Preis-Zustand wird dabei zu "von dir eingetragen", denn der Betrag stammt nicht mehr von der Seite.
+- **Preisverlauf kompakter:** Der Kasten zeigt eine Statuszeile ("Sicher · von der Seite gelesen", "Geraten · bitte bestätigen", "Von dir eingetragen") statt langer Absätze, die Erklärung steckt hinter dem Info-Knopf. Das Diagramm entsteht ab dem zweiten Messpunkt (höchstens einer pro etwa 20 Stunden, aus Prüfung oder Hintergrundlauf); davor steht ein kurzer Hinweis. Blieb der Preis in allen Messpunkten gleich, steht "Unverändert seit …, N Messpunkte" unter dem Diagramm.
+- **Tests:** `v0112.cjs` (Browser: Raster, Umrechnung, Rückgängig, ohne Kurs, Escape).

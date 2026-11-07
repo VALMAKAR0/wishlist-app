@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Camera, ExternalLink, Loader2, Trash2, Wand2, X } from 'lucide-react'
 import { isNative } from '../lib/backupFiles'
-import { CURRENCIES, hasRate, money, toHref, uid } from '../lib/format'
+import { hasRate, money, toHref, uid } from '../lib/format'
+import { fetchRates } from '../lib/rates'
 import { processImage, saveImage } from '../lib/images'
 import { cleanName, cleanUrl, describeResult, extractUrl, fetchImageBytes, fetchProduct, knownCurrency, linkFailExtra, linkFailText, LinkError, missingWhy, spotOf, tidyName, type FieldReport, type PriceCandidate } from '../lib/linkImport'
 import { listTitle } from '../lib/lists'
@@ -20,6 +21,7 @@ import { PriceSearch } from './PriceSearch'
 import { parsePriceInput, priceText } from '../lib/priceInput'
 import { PriceWatch } from './PriceWatch'
 import { Cover } from './Primitives'
+import { CurrencyButton, CurrencyPanel } from './CurrencyPicker'
 import { Sheet } from './Sheet'
 
 const EMOJIS = ['🎁', '🎧', '📷', '👟', '📚', '🎮', '🧣', '☕', '🪴', '⌚', '🧳', '🕯️', '🍷', '🎨', '🧸', '💄', '🎸', '🧴', '🍫', '🛋️']
@@ -50,6 +52,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
   const [link, setLink] = useState(item?.link ?? '')
   const [price, setPrice] = useState(item?.price !== undefined ? priceText(item.price) : '')
   const [cur, setCur] = useState(item ? (item.currency ?? 'EUR') : ui.settings.currency)
+  const [curOpen, setCurOpen] = useState(false)
   const [note, setNote] = useState(item?.note ?? '')
   const [emoji, setEmoji] = useState(item?.emoji ?? EMOJIS[0])
   const [hue, setHue] = useState(item?.hue ?? HUES[Math.floor(Math.random() * HUES.length)])
@@ -240,6 +243,47 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
   }
 
   const onName = (v: string) => setName(v)
+
+  // Währung wechseln: der Preis im Feld wird umgerechnet. Fehlen Kurse oder sind sie über einen Tag alt, werden sie kurz geladen.
+  const changeCur = async (next: string) => {
+    setCurOpen(false)
+    if (next === cur) return
+    const prevCur = cur
+    const prevPrice = price
+    const n = parsePriceInput(price)
+    setCur(next)
+    if (n === undefined) return
+    let rates = ui.settings.rates
+    const missing = (c: string) => c !== 'EUR' && !((rates[c] ?? 0) > 0)
+    let waited = false
+    if (missing(prevCur) || missing(next) || Date.now() - ui.settings.ratesAt > 86_400_000) {
+      waited = true
+      try {
+        rates = await fetchRates()
+        ui.setSettings({ rates, ratesAt: Date.now() })
+      } catch {
+        /* weiter mit den vorhandenen Kursen */
+      }
+    }
+    if (missing(prevCur) || missing(next)) return
+    if (waited && (live.current.cur !== next || live.current.price !== prevPrice)) return
+    const rate = (c: string) => (c === 'EUR' ? 1 : (rates[c] as number))
+    const raw = (n / rate(prevCur)) * rate(next)
+    const v = next === 'JPY' ? Math.round(raw) : Math.round(raw * 100) / 100
+    priceFrom.current = null
+    setPrice(priceText(v, next !== 'JPY'))
+    doFlash('price')
+    ui.haptic(12)
+    ui.toast({
+      message: t('Umgerechnet: {a} → {b}', { a: money(n, prevCur), b: money(v, next) }),
+      emoji: '💱',
+      actionLabel: t('Rückgängig'),
+      onAction: () => {
+        setCur(prevCur)
+        setPrice(prevPrice)
+      },
+    })
+  }
 
   // Die Art wird erst vorgeschlagen, wenn das Tippen kurz ruht, und nur solange sie nicht von Hand geändert wurde.
   useEffect(() => {
@@ -499,14 +543,9 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
         <span>{t('Preis')}</span>
         <div className="field__row">
           <PriceInput value={price} onChange={(v) => { priceFrom.current = null; setPrice(v) }} placeholder="0,00" />
-          <select className="cursel" value={cur} onChange={(e) => setCur(e.target.value)} aria-label={t('Währung')}>
-            {CURRENCIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+          <CurrencyButton value={cur} open={curOpen} onToggle={() => setCurOpen((o) => !o)} />
         </div>
+        <CurrencyPanel open={curOpen} value={cur} onPick={changeCur} onClose={() => setCurOpen(false)} />
         {price.trim() && cur !== ui.settings.currency && (!hasRate(cur) || !hasRate(ui.settings.currency)) && (
           <small className="hint hint--warn">{t('Für {cur} fehlt ein Kurs. Trag ihn unter „Mehr“ → „Währung und Format“ ein, bis dahin zählt der Betrag ohne Umrechnung.', { cur })}</small>
         )}

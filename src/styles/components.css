@@ -1486,3 +1486,126 @@
   letter-spacing: 0;
   text-transform: none;
 }
+
+.curbtn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 12px 0 14px;
+  border-radius: var(--r-m);
+  border: 1px solid var(--hairline);
+  background: var(--field);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+}
+
+.curbtn:hover,
+.curbtn[data-open='true'] {
+  border-color: color-mix(in srgb, var(--accent, #ff6b81) 55%, transparent);
+  background: var(--card-hover);
+}
+
+.curbtn:active {
+  transform: scale(0.97);
+}
+
+.curbtn__sym {
+  min-width: 1.4em;
+  text-align: center;
+  font-weight: 800;
+  color: var(--accent-text, var(--accent, #ff6b81));
+}
+
+.curbtn svg {
+  color: var(--text-3);
+  transition: transform 0.25s var(--ease-out);
+}
+
+.curbtn[data-open='true'] svg {
+  transform: rotate(180deg);
+}
+
+.curpanel {
+  overflow: hidden;
+}
+
+.curpanel__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+  gap: 8px;
+  padding: 10px;
+  margin-top: 8px;
+  border-radius: var(--r-l);
+  background: var(--card);
+  border: 1px solid var(--hairline);
+}
+
+.curopt {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--r-m);
+  border: 1px solid transparent;
+  background: var(--field);
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+}
+
+.curopt:hover {
+  background: var(--card-hover);
+}
+
+.curopt:active {
+  transform: scale(0.96);
+}
+
+.curopt[data-on='true'] {
+  border-color: color-mix(in srgb, var(--accent, #ff6b81) 60%, transparent);
+  background: color-mix(in srgb, var(--accent, #ff6b81) 14%, var(--field));
+}
+
+.curopt__sym {
+  flex: 0 0 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent, #ff6b81) 16%, transparent);
+  color: var(--accent-text, var(--accent, #ff6b81));
+  font-weight: 800;
+  font-size: calc(13px * var(--fs, 1));
+}
+
+.curopt__txt {
+  display: grid;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.curopt__txt b {
+  font-size: calc(14px * var(--fs, 1));
+}
+
+.curopt__txt small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: calc(11.5px * var(--fs, 1));
+  color: var(--text-3);
+}
+
+.curopt__check {
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  color: var(--accent-text, var(--accent, #ff6b81));
+}
