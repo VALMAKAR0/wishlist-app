@@ -159,14 +159,21 @@ function offersOf(node: Record<string, unknown>): { price?: number; currency?: s
     for (const x of asArray(o as unknown)) if (isObj(x)) (list.push(x), walk(x.offers, d + 1))
   }
   walk(node.offers)
-  let best: { price?: number; currency?: string } = {}
+  // Angebote, die nicht zum aktuellen Kaufpreis gehören (Listen-/Streichpreis, ausverkauft, gebraucht), nur als Notlösung.
+  const WRONG = /OutOfStock|SoldOut|Discontinued|Strikethrough|ListPrice|SRP|MSRP|UsedCondition|RefurbishedCondition|DamagedCondition/i
+  const found: { price: number; currency?: string; ok: boolean }[] = []
   for (const o of list) {
     const specs = asArray(o.priceSpecification as unknown).filter(isObj)
-    const price = parsePrice(o.price) ?? parsePrice(o.lowPrice) ?? specs.map((s) => parsePrice(s.price)).find((p) => p !== undefined)
+    const live = specs.filter((s) => !WRONG.test(`${str(s.priceType) ?? ''}`))
+    const price = parsePrice(o.price) ?? parsePrice(o.lowPrice) ?? live.map((s) => parsePrice(s.price)).find((p) => p !== undefined)
     if (price === undefined) continue
     const currency = str(o.priceCurrency) ?? specs.map((s) => str(s.priceCurrency)).find(Boolean)
-    if (best.price === undefined || price < best.price) best = { price, currency: currency?.toUpperCase() }
+    const ok = !WRONG.test(`${str(o.availability) ?? ''} ${str(o.itemCondition) ?? ''} ${str(o.priceType) ?? ''}`)
+    found.push({ price, currency: currency?.toUpperCase(), ok })
   }
+  const pool = found.some((f) => f.ok) ? found.filter((f) => f.ok) : found
+  let best: { price?: number; currency?: string } = {}
+  for (const f of pool) if (best.price === undefined || f.price < best.price) best = { price: f.price, currency: f.currency }
   return best
 }
 
@@ -347,12 +354,74 @@ export function textPrices(html: string, max = 80): PriceCandidate[] {
 
 /** Findet die gemerkte Stelle unter den Preisen der Seite. */
 export function findSpot(cands: PriceCandidate[], spot: PriceSpot): PriceCandidate | undefined {
+  if (spot.src === 'dom') return cands.find((c) => c.src === 'dom' && c.ctx === spot.ctx)
   if (spot.src !== 'text') return cands.find((c) => c.src === spot.src)
   const same = cands.filter((c) => c.src === 'text' && c.ctx === spot.ctx)
   return same[Math.min(spot.nth, same.length - 1)]
 }
 
-export const spotOf = (c: PriceCandidate): PriceSpot => ({ src: c.src, ctx: c.ctx, nth: c.nth, label: c.src === 'text' ? c.label : c.src === 'ld' ? 'Produktdaten der Seite' : 'Meta-Angaben der Seite' })
+export const spotOf = (c: PriceCandidate): PriceSpot => ({ src: c.src, ctx: c.ctx, nth: c.nth, label: c.src === 'text' || c.src === 'dom' ? c.label : c.src === 'ld' ? 'Produktdaten der Seite' : 'Meta-Angaben der Seite' })
+
+/** Währung aus einem Preistext. */
+const curOf = (s: string, fallback = 'EUR'): string => (/\$|USD/.test(s) ? 'USD' : /£|GBP/.test(s) ? 'GBP' : /CHF/i.test(s) ? 'CHF' : /€|EUR/i.test(s) ? 'EUR' : fallback)
+
+const DOM_KEYS = ['priceAmount', 'currentPrice', 'salePrice', 'finalPrice', 'sellingPrice', 'offerPrice', 'priceValue'] as const
+
+/** Preise, die die Seite im Code ausdrücklich als Kaufpreis kennzeichnet (Amazon-Kaufbox, itemprop, bekannte JSON-Felder). */
+export function domPrices(html: string): PriceCandidate[] {
+  const out: PriceCandidate[] = []
+  const seen = new Set<string>()
+  const pageCur = ((m) => (m ? m[1] : undefined))(/"(?:priceCurrency|currencyCode|currency)"\s*:\s*"([A-Z]{3})"/.exec(html))
+  const add = (price: number | undefined, ctx: string, label: string, currency: string) => {
+    if (price === undefined || price < 1 || price >= 1_000_000) return
+    const k = `${ctx}|${price}`
+    if (seen.has(k)) return
+    seen.add(k)
+    out.push({ price, currency, src: 'dom', ctx, nth: 0, label, after: '' })
+  }
+  const pay = /class\s*=\s*"[^"]*\bpriceToPay\b[^"]*"[\s\S]{0,700}?class\s*=\s*"[^"]*\ba-offscreen\b[^"]*"[^>]*>\s*([^<]{1,30})</i.exec(html)
+  if (pay) add(parsePrice(decode(pay[1])), 'priceToPay', 'Hauptpreis der Seite (Kaufbox)', curOf(decode(pay[1])))
+  const ip = /<[^>]+itemprop\s*=\s*["']price["'][^>]*>/i.exec(html)
+  if (ip) {
+    const c = /content\s*=\s*["']([^"']+)["']/i.exec(ip[0])
+    add(parsePrice(c?.[1]), 'itemprop', 'Preis-Angabe der Seite (itemprop)', pageCur ?? 'EUR')
+  }
+  for (const key of DOM_KEYS) {
+    const m = new RegExp(`"${key}"\\s*:\\s*"?(\\d{1,6}(?:[.,]\\d{1,2})?)"?`).exec(html)
+    if (m) add(parsePrice(m[1]), key, 'Preis-Angabe im Seitencode', pageCur ?? 'EUR')
+  }
+  return out
+}
+
+const PRICE_NEG = /\b(versand\w*|lieferung\w*|lieferkosten|porto|rate|raten|monat\w*|mtl|statt|vorher|fruher|bisher|streichpreis|sparen|ersparnis|rabatt\w*|gutschein\w*|gebraucht\w*|zubehor|garantie\w*|schutz\w*|mindestbestell\w*|bestellwert|finanzier\w*|anzahlung|grundpreis|gratis|kostenlos\w*|zuzahlung|pfand|pro kg|je kg|pro l|pro 100|pro stuck)\b/
+const PRICE_POS_STRONG = /\b(preis|price|sie zahlen|zahlen sie)\b/
+const PRICE_POS = /\b(jetzt|aktuell\w*|angebot|nur|uvp|kaufen)\b/
+
+/** Bewertet einen Preis im Text nach dem, was davor und dahinter steht. Über 0 = wahrscheinlich der Kaufpreis. */
+export function priceScore(c: Pick<PriceCandidate, 'label' | 'after'>, index: number): number {
+  const before = normalize(c.label)
+  const after = normalize(c.after)
+  let s = 0
+  if (PRICE_POS_STRONG.test(before)) s += 2
+  if (PRICE_POS.test(before)) s += 1.5
+  if (/\b(ab|from)\b/.test(before)) s += 0.5
+  if (/\b(inkl|mwst|ust|vat|zzgl)\b/.test(after)) s += 1
+  if (PRICE_NEG.test(before)) s -= 4
+  if (/^(\/|pro |je |monat|mtl)/.test(after)) s -= 3
+  return s > 0 ? s - index * 0.01 : s
+}
+
+/** Bester Preis aus dem Seitentext: der mit der höchsten Wertung, bei Gleichstand der erste. Ohne Hinweis im Text kein Treffer. */
+export function bestTextGuess(cands: PriceCandidate[]): PriceCandidate | undefined {
+  let best: PriceCandidate | undefined
+  let top = 0
+  cands.forEach((c, i) => {
+    if (c.src !== 'text') return
+    const sc = priceScore(c, i)
+    if (sc > top) (best = c, top = sc)
+  })
+  return best
+}
 
 const absolute = (u: string | undefined, base: string): string | undefined => {
   if (!u) return undefined
@@ -475,6 +544,7 @@ export function parseProduct(html: string, pageUrl: string, spot?: PriceSpot): {
   const ldPrice = ld?.price !== undefined ? ld : undefined
   if (ldPrice?.price !== undefined) cands.push({ price: ldPrice.price, currency: ldPrice.currency ?? 'EUR', src: 'ld', ctx: '', nth: 0, label: '', after: '' })
   else if (meta.product.price !== undefined) cands.push({ price: meta.product.price, currency: meta.product.currency ?? 'EUR', src: 'meta', ctx: '', nth: 0, label: '', after: '' })
+  cands.push(...domPrices(text))
   cands.push(...textPrices(text))
   product.candidates = cands
   let lost = false
@@ -488,12 +558,14 @@ export function parseProduct(html: string, pageUrl: string, spot?: PriceSpot): {
     } else lost = true
   }
   if (product.price === undefined && !spot) {
-    const guess = textPrice(text)
-    if (guess !== undefined) {
-      product.price = guess
-      product.currency = 'EUR'
+    const dom = cands.find((c) => c.src === 'dom')
+    const txt = dom ? undefined : bestTextGuess(cands)
+    const pick = dom ?? txt
+    if (pick) {
+      product.price = pick.price
+      product.currency = pick.currency
       product.priceGuess = true
-      product.sources = [...product.sources, 'Seitentext']
+      product.sources = [...product.sources, dom ? 'Seitencode' : 'Seitentext']
     }
   }
   const fb = imageFallback(text)
@@ -638,6 +710,7 @@ export function missingWhy(key: FieldKey, p: Product, d: Diagnostics | undefined
   const host = hostOf(url)
   if (key === 'price') {
     if (/(^|\.)(amazon|amzn)\./.test(host)) return 'Amazon gibt Preise nicht an Apps heraus.'
+    if (/(^|\.)gowish\./.test(host)) return 'GoWish lädt Preise erst nach dem Öffnen per JavaScript, die App sieht sie nicht. Nimm den Link des Shops, in dem das Produkt liegt.'
     if (d?.productNode) return 'Die Produktdaten der Seite enthalten keinen Preis.'
     return 'Die Seite nennt den Preis nicht in lesbarer Form, oft wird er erst per JavaScript geladen.'
   }

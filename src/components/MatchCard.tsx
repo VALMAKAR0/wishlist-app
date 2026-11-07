@@ -28,7 +28,6 @@ export function MatchWarning({ matches, ownerName }: { matches: Match[]; ownerNa
   const reason = (m: Match) => {
     const kind = m.candidate.kind ? t(m.candidate.kind) : ''
     if (m.reason === 'name') return t('Ähnlicher Name')
-    if (m.reason === 'kind') return t('Gleiche Art: {kind}', { kind })
     return t('Ähnlicher Name, gleiche Art: {kind}', { kind })
   }
 

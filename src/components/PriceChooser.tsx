@@ -19,7 +19,7 @@ export function PriceChooser({ candidates, current, spot, cur, onPick, onClose }
     const id = window.setTimeout(() => nowRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 380)
     return () => window.clearTimeout(id)
   }, [])
-  const where = (c: PriceCandidate) => (c.src === 'ld' ? t('Produktdaten der Seite') : c.src === 'meta' ? t('Meta-Angaben der Seite') : c.label ? `… ${c.label}` : t('Im Text der Seite'))
+  const where = (c: PriceCandidate) => (c.src === 'ld' ? t('Produktdaten der Seite') : c.src === 'meta' ? t('Meta-Angaben der Seite') : c.src === 'dom' ? t(c.label) : c.label ? `… ${c.label}` : t('Im Text der Seite'))
   let marked = false
   return (
     <Sheet title={t('Welcher Preis ist richtig?')} subtitle={t('Tippe den Preis an, der zu deinem Artikel gehört. Die App liest danach immer genau von dieser Stelle.')} onClose={onClose}>

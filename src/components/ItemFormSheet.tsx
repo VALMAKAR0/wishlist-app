@@ -245,13 +245,13 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
   useEffect(() => {
     if (kindTouched || !ui.settings.kindAuto) return
     const id = window.setTimeout(() => {
-      const next = name.trim().length >= 3 ? (suggestKind(name, known, category) ?? '') : ''
+      const next = name.trim().length >= 3 ? (suggestKind(name, known, category, link) ?? '') : ''
       if (next && next !== live.current.kind) doFlash('kind')
       setKind(next)
     }, 600)
     return () => window.clearTimeout(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [name, known, category, kindTouched, ui.settings.kindAuto])
+  }, [name, known, category, link, kindTouched, ui.settings.kindAuto])
 
   // Ein Link, der getippt oder per Tastatur-Zwischenablage eingefügt wird, wird nach kurzer Ruhe automatisch gelesen.
   useEffect(() => {
@@ -268,7 +268,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
   }, [link, canImport, importing, ui.settings.linkAuto])
 
   const matches = useMemo(() => {
-    if (name.trim().length < 3 && !kind.trim()) return []
+    if (name.trim().length < 3) return []
     const listName = (id: string) => {
       const l = lists.find((x) => x.id === id)
       return l ? listTitle(l, t) : ''
@@ -400,13 +400,18 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
 
       <label className="field" data-flash={flash.includes('kind') || undefined}>
         <span>
-          {t('Art')} <em>· {t('erkannt, änderbar')}</em>
+          {t('Art')} {!kindTouched && kind.trim() !== '' && <em>· {t('erkannt, änderbar')}</em>}
+          {kindTouched && ui.settings.kindAuto && (
+            <button type="button" className="linkbtn" onClick={() => setKindTouched(false)}>
+              {t('Neu erkennen')}
+            </button>
+          )}
         </span>
         <input
           value={kind}
           onChange={(e) => {
             setKind(e.target.value)
-            setKindTouched(e.target.value.trim() !== '')
+            setKindTouched(true)
           }}
           placeholder={t('z. B. Grafikkarte')}
         />

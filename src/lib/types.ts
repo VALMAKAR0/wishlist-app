@@ -25,7 +25,7 @@ export type PriceState = 'user' | 'sure' | 'guess'
 
 /** Gemerkte Stelle einer Seite, von der der Preis gelesen wird (vom Nutzer gewählt). */
 export interface PriceSpot {
-  src: 'ld' | 'meta' | 'text'
+  src: 'ld' | 'meta' | 'dom' | 'text'
   /** Text vor dem Preis in Kurzform (Zahlen als #), dient zum Wiederfinden. */
   ctx: string
   /** Wievielter Treffer mit gleichem Text davor. */

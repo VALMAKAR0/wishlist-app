@@ -1480,3 +1480,9 @@
   padding: 14px 16px 2px;
   font-size: calc(15px * var(--fs, 1));
 }
+
+.field > span .linkbtn {
+  margin-left: 6px;
+  letter-spacing: 0;
+  text-transform: none;
+}

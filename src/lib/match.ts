@@ -6,13 +6,16 @@ import type { Item, ReceivedList } from './types'
 
 /** Schlüsselwörter (ohne Umlaute, klein) -> Art. Mehrwort-Begriffe stehen vor Einzelwörtern, der erste Treffer gewinnt. */
 const KINDS: [string[], string][] = [
-  [['galaxy watch', 'apple watch', 'pixel watch', 'smartwatch', 'fitnessarmband', 'fitbit', 'garmin'], 'Smartwatch'],
+  [['gutschein', 'geschenkkarte', 'gift card', 'giftcard', 'guthaben'], 'Gutschein'],
+  [['galaxy watch', 'apple watch', 'pixel watch', 'smartwatch', 'fitnessarmband', 'fitness tracker', 'fitbit', 'garmin'], 'Smartwatch'],
   [['galaxy tab', 'ipad', 'tablet'], 'Tablet'],
   [['galaxy buds', 'pixel buds', 'airpods', 'earbuds', 'kopfhor', 'headphone', 'headset', 'in ear', 'over ear', 'ohrhorer'], 'Kopfhörer'],
   [['powerbank', 'power bank'], 'Powerbank'],
-  [['hulle', 'case', 'cover', 'schutzfolie', 'panzerglas', 'kabel', 'adapter', 'ladegerat', 'netzteil', 'halterung', 'android auto', 'carplay', 'dashcam'], 'Zubehör'],
+  [['hulle', 'case', 'cover', 'schutzfolie', 'panzerglas', 'kabel', 'adapter', 'ladegerat', 'netzteil', 'halterung', 'android auto', 'carplay', 'dashcam', 'charger', 'cable', 'stander', 'dock', 'hub', 'stylus'], 'Zubehör'],
+  [['echo dot', 'echo show', 'echo pop', 'echo spot', 'echo studio', 'homepod', 'nest mini', 'nest audio', 'alexa', 'smart speaker'], 'Smart Speaker'],
   [['grafikkarte', 'rtx', 'gtx', 'radeon', 'geforce'], 'Grafikkarte'],
-  [['festplatte', 'ssd', 'speicherkarte', 'usb stick'], 'Speicher'],
+  [['prozessor', 'cpu', 'ryzen', 'mainboard', 'arbeitsspeicher', 'ram', 'cpu kuhler', 'pc gehause', 'netzteil pc'], 'PC-Hardware'],
+  [['festplatte', 'ssd', 'nvme', 'speicherkarte', 'sd karte', 'microsd', 'usb stick'], 'Speicher'],
   [['router', 'repeater', 'mesh'], 'Netzwerk'],
   [['drucker'], 'Drucker'],
   [['kindle', 'e reader', 'ereader', 'tolino'], 'E-Reader'],
@@ -20,25 +23,35 @@ const KINDS: [string[], string][] = [
   [['laptop', 'notebook', 'macbook'], 'Laptop'],
   [['smartphone', 'handy', 'iphone'], 'Smartphone'],
   [['monitor', 'bildschirm', 'fernseher', 'beamer'], 'Bildschirm'],
-  [['soundbar', 'lautsprecher', 'speaker', 'boombox', 'mikrofon', 'plattenspieler'], 'Audio'],
+  [['soundbar', 'lautsprecher', 'speaker', 'boombox', 'mikrofon', 'plattenspieler', 'hifi', 'verstarker', 'subwoofer', 'radio'], 'Audio'],
   [['tastatur', 'keyboard'], 'Tastatur'],
   [['maus', 'mouse'], 'Maus'],
   [['controller', 'gamepad', 'lenkrad'], 'Controller'],
   [['drohne', 'drone'], 'Drohne'],
   [['armbanduhr', 'uhr'], 'Uhr'],
   [['motorrad', 'roller', 'cbr', 'motorradhelm'], 'Motorrad'],
-  [['staubsauger', 'saugroboter', 'rasierer', 'haartrockner', 'fohn', 'zahnburste', 'epilierer', 'toaster', 'wasserkocher', 'airfryer', 'heissluftfritteuse'], 'Haushalt'],
-  [['hobel', 'sage', 'bohrer', 'schrauber', 'hammer', 'zange', 'feile', 'stemmeisen', 'werkzeug', 'schraubzwinge', 'meissel', 'winkel', 'zollstock'], 'Werkzeug'],
+  [['steckdose', 'smart home', 'zigbee', 'thermostat', 'hue', 'bewegungsmelder', 'rauchmelder', 'klingel', 'airtag'], 'Smart Home'],
+  [['fire tv', 'chromecast', 'apple tv', 'streaming stick', 'roku'], 'Streaming'],
+  [['staubsauger', 'trimmer', 'barttrimmer', 'saugroboter', 'rasierer', 'haartrockner', 'fohn', 'zahnburste', 'epilierer', 'toaster', 'wasserkocher', 'airfryer', 'heissluftfritteuse'], 'Haushalt'],
+  [['hobel', 'sage', 'bohrer', 'schrauber', 'hammer', 'zange', 'feile', 'stemmeisen', 'werkzeug', 'schraubzwinge', 'meissel', 'winkel', 'zollstock', 'schraubenzieher', 'schraubendreher', 'bohrmaschine', 'schleifer', 'frase', 'werkbank', 'messschieber', 'wasserwaage', 'multitool'], 'Werkzeug'],
+  [['schallplatte', 'vinyl', 'blu ray', 'dvd', 'film', 'horbuch', 'cd'], 'Medien'],
+  [['gitarre', 'klavier', 'piano', 'ukulele', 'schlagzeug', 'geige', 'flote', 'mundharmonika'], 'Instrument'],
   [['buch', 'roman', 'trilogie', 'bande', 'comic', 'manga'], 'Buch'],
   [['playstation', 'xbox', 'nintendo', 'spiel', 'game'], 'Spiel'],
-  [['sneaker', 'schuh', 'stiefel', 'laufschuh'], 'Schuhe'],
-  [['jacke', 'mantel', 'pullover', 'hoodie', 'shirt', 'hose', 'schal', 'socken', 'mutze', 'handschuh', 'kleid', 'rock'], 'Kleidung'],
+  [['sneaker', 'schuh', 'schuhe', 'stiefel', 'laufschuh'], 'Schuhe'],
+  [['jacke', 'mantel', 'pullover', 'hoodie', 'shirt', 'hose', 'schal', 'socken', 'mutze', 'handschuh', 'kleid', 'rock', 'gurtel', 'krawatte', 'badehose', 'unterwasche', 'weste', 'kappe', 'strumpf', 'pyjama', 'schlafanzug', 'bluse', 'jeans', 'leggings', 'sweatshirt', 'tshirt'], 'Kleidung'],
+  [['zelt', 'schlafsack', 'isomatte', 'camping', 'wander', 'hangematte', 'fernglas', 'kompass', 'taschenmesser'], 'Outdoor'],
+  [['fussball', 'basketball', 'handball', 'volleyball', 'tennis', 'badminton', 'skateboard', 'inliner', 'schlittschuh', 'ski', 'snowboard', 'kletter', 'boxhandschuh'], 'Sport'],
   [['koffer', 'trolley', 'rucksack', 'tasche', 'geldborse', 'portemonnaie'], 'Tasche'],
   [['ring', 'kette', 'armband', 'ohrring', 'schmuck'], 'Schmuck'],
   [['brille', 'sonnenbrille'], 'Brille'],
   [['kerze', 'duftkerze'], 'Kerzen'],
   [['pflanze', 'monstera', 'orchidee', 'kaktus'], 'Pflanze'],
-  [['parfum', 'handcreme', 'creme', 'kosmetik', 'duft', 'shampoo', 'seife'], 'Pflege'],
+  [['katzen', 'hunde', 'kratzbaum', 'napf', 'leckerli', 'katzenfutter', 'hundefutter'], 'Haustier'],
+  [['autositz', 'reifen', 'felgen', 'scheibenwischer', 'kfz', 'autopflege', 'fussmatte'], 'Auto'],
+  [['bilderrahmen', 'poster', 'vase', 'kissen', 'deko', 'wandbild', 'spiegel', 'teppich'], 'Deko'],
+  [['schokolade', 'praline', 'gummibar', 'snack', 'bonbon', 'keks', 'gewurz', 'honig', 'geschenkkorb'], 'Essen'],
+  [['parfum', 'deodorant', 'rasierschaum', 'sonnencreme', 'lippenpflege', 'handcreme', 'creme', 'kosmetik', 'duft', 'shampoo', 'seife'], 'Pflege'],
   [['tasse', 'becher', 'pfanne', 'topf', 'messer', 'mixer', 'kaffeemuhle', 'espresso', 'kaffee', 'teekanne'], 'Küche'],
   [['wolle', 'stricknadel', 'nadel'], 'Handarbeit'],
   [['angel', 'angelset'], 'Angeln'],
@@ -81,14 +94,47 @@ function learnedKind(n: string, known: KnownKind[]): string | undefined {
   return [...score.entries()].sort((a, b) => b[1] - a[1])[0]?.[0]
 }
 
-/** Art aus dem Namen: erst feste Begriffe, dann was die App aus deinen Einträgen gelernt hat, dann Markennamen, zuletzt die Kategorie der Seite. */
-export function suggestKind(name: string, known: KnownKind[] = [], category?: string): string | undefined {
+const tokensOf = (n: string): string[] => n.split(' ').flatMap((t) => [t, ...t.split(/(?<=[a-z])(?=\d)|(?<=\d)(?=[a-z])/)])
+
+function byWords(n: string): string | undefined {
+  if (!n) return undefined
+  const toks = tokensOf(n)
+  for (const [words, kind] of KINDS) if (words.some((w) => hit(n, toks, w))) return kind
+  return undefined
+}
+
+/** Wörter aus dem Pfad eines Links ("echo-dot-5-generation" -> "echo dot 5 generation"), ohne Nummern und Kennungen. */
+export function linkWords(link: string | undefined): string {
+  if (!link) return ''
+  let path = link
+  try {
+    path = new URL(/^[a-z][a-z0-9+.-]*:/i.test(link) ? link : `https://${link}`).pathname
+  } catch {
+    return ''
+  }
+  let raw = path
+  try {
+    raw = decodeURIComponent(path)
+  } catch {
+    /* bleibt */
+  }
+  return normalize(raw.replace(/[-_/.+]+/g, ' '))
+    .split(' ')
+    .filter((w) => w.length >= 3 && !/^\d+$/.test(w) && !(/\d/.test(w) && /[a-z]/.test(w) && w.length >= 8))
+    .join(' ')
+}
+
+/** Art aus dem Namen: erst feste Begriffe, dann die Wörter im Link, dann was die App aus deinen Einträgen gelernt hat, dann Markennamen, zuletzt die Kategorie der Seite. */
+export function suggestKind(name: string, known: KnownKind[] = [], category?: string, link?: string): string | undefined {
   const n = normalize(name)
   if (!n) return undefined
-  const toks = n.split(' ').flatMap((t) => [t, ...t.split(/(?<=[a-z])(?=\d)|(?<=\d)(?=[a-z])/)])
-  for (const [words, kind] of KINDS) if (words.some((w) => hit(n, toks, w))) return kind
+  const direct = byWords(n)
+  if (direct) return direct
+  const fromLink = byWords(linkWords(link))
+  if (fromLink) return fromLink
   const learned = learnedKind(n, known)
   if (learned) return learned
+  const toks = tokensOf(n)
   for (const [words, kind] of WEAK) if (words.some((w) => hit(n, toks, w))) return kind
   const cat = category?.trim()
   if (cat && cat.length <= 40) return cat.charAt(0).toUpperCase() + cat.slice(1)
@@ -108,6 +154,9 @@ export function kindOptions(known: KnownKind[], typed: string): string[] {
 
 const STOP = new Set(['set', 'pro', 'max', 'mini', 'plus', 'fur', 'und', 'mit', 'the', 'xl', 'als', 'box', 'neu', 'von', 'der', 'die', 'das', 'ein', 'eine'])
 
+/** Herstellernamen, die allein nichts über das Produkt sagen. */
+const BRANDS = new Set(['apple', 'samsung', 'sony', 'xiaomi', 'logitech', 'bosch', 'makita', 'amazon', 'google', 'nintendo', 'microsoft', 'philips', 'anker', 'jbl', 'bose', 'lenovo', 'asus', 'acer', 'dell', 'huawei', 'honor', 'garmin', 'canon', 'nikon', 'dyson', 'braun', 'festool', 'dewalt', 'adidas', 'nike', 'puma', 'galaxy', 'pixel'])
+
 function tokens(name: string): string[] {
   return normalize(name)
     .split(' ')
@@ -115,7 +164,7 @@ function tokens(name: string): string[] {
 }
 
 export type Source = 'idea' | 'bought' | 'owned' | 'wish'
-export type Reason = 'name' | 'kind' | 'both'
+export type Reason = 'name' | 'both'
 
 export interface Candidate {
   id: string
@@ -148,21 +197,31 @@ export function similarNames(a: string, b: string): boolean {
   const ta = tokens(a)
   const tb = new Set(tokens(b))
   if (!ta.length || !tb.size) return false
-  const shared = ta.filter((w) => tb.has(w))
+  const shared = ta.filter((w) => tb.has(w) && !BRANDS.has(w))
   if (!shared.length) return false
-  // Ein gemeinsames Wort reicht, sobald es nicht winzig ist (z. B. "kindle", "rtx", "4060").
+  // Ein gemeinsames Wort reicht, sobald es nicht winzig ist (z. B. "kindle", "rtx", "4060"). Marken allein zählen nicht.
   return shared.some((w) => w.length >= 3) && shared.length / Math.min(ta.length, tb.size) >= 0.5
 }
 
+/**
+ * Warnung nur bei gleichem oder ähnlichem Namen. Die Art entscheidet dann nur noch mit:
+ * gleiche Art bestätigt den Treffer, fehlt sie auf einer Seite, warnt der Name trotzdem,
+ * stehen zwei verschiedene Arten da, ist es nur ein Zufallstreffer im Namen (außer bei exakt gleichem Namen).
+ */
 export function findSimilar(name: string, kind: string | undefined, candidates: Candidate[]): Match[] {
   const k = kind ? normalize(kind) : ''
+  const same = normalize(name)
   const out: Match[] = []
+  if (name.trim().length < 3) return out
   for (const c of candidates) {
-    const byName = name.trim().length >= 3 && similarNames(name, c.name)
-    const byKind = !!k && !!c.kind && normalize(c.kind) === k
-    if (byName || byKind) out.push({ candidate: c, reason: byName && byKind ? 'both' : byName ? 'name' : 'kind' })
+    if (!similarNames(name, c.name)) continue
+    const ck = c.kind ? normalize(c.kind) : ''
+    const sameKind = !!k && !!ck && k === ck
+    const differs = !!k && !!ck && k !== ck
+    if (differs && normalize(c.name) !== same) continue
+    out.push({ candidate: c, reason: sameKind ? 'both' : 'name' })
   }
-  const rank = { both: 0, name: 1, kind: 2 } as const
+  const rank = { both: 0, name: 1 } as const
   return out.sort((a, b) => rank[a.reason] - rank[b.reason])
 }
 
