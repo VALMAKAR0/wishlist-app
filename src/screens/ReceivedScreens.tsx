@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { CalendarDays, Check, ChevronRight, Download, ExternalLink, Eye, EyeOff, Link as LinkIcon, Link2Off, Plus, Trash2, Undo2 } from 'lucide-react'
+import { CalendarDays, Check, ChevronRight, Download, ExternalLink, Eye, EyeOff, Link as LinkIcon, Link2Off, Plus, Trash2, TriangleAlert, Undo2, UserPlus } from 'lucide-react'
 import { AddButton, Page, Section } from '../components/Page'
 import { Avatar, Chip, Cover, CountUp, EmptyState, PriceTag } from '../components/Primitives'
 import { findTaken, targetList } from '../lib/received'
+import { buildAdopt, conflictOf, type Part as AdoptPart } from '../lib/adopt'
 import { listTitle } from '../lib/lists'
 import { agoLabel, money, hostOf, longDate, priceOf, toHref } from '../lib/format'
 import { Presence } from '../components/Presence'
@@ -174,6 +175,7 @@ export function ReceivedDetailScreen({ id, listId }: { id: string; listId?: stri
   const [job, setJob] = useState<{ parts: Part[]; prompt: boolean } | null>(null)
   const [ask, setAsk] = useState<{ parts: Part[]; personId: string; missing: string[] } | null>(null)
   const [linkOpen, setLinkOpen] = useState(false)
+  const [mine, setMine] = useState<AdoptPart[] | null>(null)
 
   const gone = !pkg || (!!listId && !pkg.lists.some((l) => l.id === listId))
   useEffect(() => {
@@ -266,6 +268,41 @@ export function ReceivedDetailScreen({ id, listId }: { id: string; listId?: stri
     })
   }
   const untakeAsk = (list: ReceivedCollection[]) => untake(takenIn(list))
+
+  // Für mich übernehmen: erhaltene Listen als eigene Wünsche, bei gleichem Namen oder Anlass mit Rückfrage.
+  const runAdopt = (parts: AdoptPart[]) => {
+    const b = buildAdopt(parts, pkg.from, lists, items, t, Date.now(), uid)
+    if (!b.made.length && !b.newLists.length) {
+      if (b.duplicates) ui.toast({ message: t('Alles davon steht schon in deiner Liste.'), emoji: 'ℹ️' })
+      return
+    }
+    for (const l of b.newLists) dispatch({ type: 'addList', list: l })
+    for (const m of b.made) dispatch({ type: 'addItem', item: m })
+    ui.haptic(18)
+    const base = t.n(b.made.length, 'Wunsch', 'Wünsche') + ' ' + t('für dich übernommen')
+    const extra = [b.where.length ? b.where.join(', ') : '', b.duplicates ? t('{n} schon vorhanden', { n: b.duplicates }) : ''].filter(Boolean)
+    ui.toast({
+      message: extra.length ? `${base} · ${extra.join(' · ')}` : base,
+      emoji: '🎁',
+      actionLabel: t('Rückgängig'),
+      onAction: () => {
+        b.made.forEach((m) => dispatch({ type: 'purgeItem', id: m.id }))
+        b.newLists.forEach((l) => dispatch({ type: 'deleteList', id: l.id }))
+      },
+    })
+  }
+
+  const startMine = (list: ReceivedCollection[]) => {
+    const parts: AdoptPart[] = list
+      .map((col): AdoptPart => {
+        const c = conflictOf(col, lists, t)
+        return { col, items: wishesOf(col), choice: c?.why === 'name' ? 'merge' : 'new', target: c?.list, why: c?.why }
+      })
+      .filter((p) => p.items.length)
+    if (!parts.length) return ui.toast({ message: t('Hier gibt es keine Wünsche zum Übernehmen.'), emoji: 'ℹ️' })
+    if (parts.some((p) => p.why)) return setMine(parts)
+    runAdopt(parts)
+  }
 
   const toggleRow = (it: ReceivedItem, col: ReceivedCollection) => (takenOf(it) ? untake([it]) : begin([{ col, items: [it] }], false))
 
@@ -377,6 +414,18 @@ export function ReceivedDetailScreen({ id, listId }: { id: string; listId?: stri
                     <span>{linked ? `${done}/${wishes.length}` : t('Nicht verknüpft')}</span>
                     <button
                       className="chip chip--button"
+                      data-testid={`tile-mine-${l.id}`}
+                      disabled={wishes.length === 0}
+                      aria-label={t('Für mich übernehmen')}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        startMine([l])
+                      }}
+                    >
+                      <UserPlus size={13} /> {t('Für mich')}
+                    </button>
+                    <button
+                      className="chip chip--button"
                       data-testid={`tile-take-${l.id}`}
                       disabled={wishes.length === 0}
                       onClick={(e) => {
@@ -385,7 +434,7 @@ export function ReceivedDetailScreen({ id, listId }: { id: string; listId?: stri
                         else begin(partsOf([l]), true)
                       }}
                     >
-                      {all ? <Undo2 size={13} /> : <Plus size={13} />} {all ? t('Zurücknehmen') : t('Übernehmen')}
+                      {all ? <Undo2 size={13} /> : <Plus size={13} />} {all ? t('Zurücknehmen') : t('Als Idee')}
                     </button>
                   </span>
                 </motion.div>
@@ -399,15 +448,20 @@ export function ReceivedDetailScreen({ id, listId }: { id: string; listId?: stri
         <span>
           {t.n(rows.length, 'Wunsch', 'Wünsche')} · <b><CountUp value={total} format={ money } /></b> {t('zusammen')}
         </span>
-        <button
-          className="chip chip--button"
-          onClick={() => (todo > 0 ? begin(partsOf(cols), true) : untakeAsk(cols))}
-          disabled={todo === 0 && doneCount === 0}
-          data-testid="take-all"
-        >
-          {todo > 0 ? <Plus size={14} /> : <Undo2 size={14} />}
-          {bulkLabel}
-        </button>
+        <span className="minirow__btns">
+          <button className="chip chip--button" onClick={() => startMine(cols)} disabled={rows.length === 0} data-testid="take-mine">
+            <UserPlus size={14} /> {t('Für mich übernehmen')}
+          </button>
+          <button
+            className="chip chip--button"
+            onClick={() => (todo > 0 ? begin(partsOf(cols), true) : untakeAsk(cols))}
+            disabled={todo === 0 && doneCount === 0}
+            data-testid="take-all"
+          >
+            {todo > 0 ? <Plus size={14} /> : <Undo2 size={14} />}
+            {bulkLabel}
+          </button>
+        </span>
       </div>
 
       <ul className="group">
@@ -453,6 +507,9 @@ export function ReceivedDetailScreen({ id, listId }: { id: string; listId?: stri
             onClose={() => setAsk(null)}
           />
         )}
+      </Presence>
+      <Presence show={!!mine}>
+        {mine && <AdoptSheet from={pkg.from} initial={mine} onRun={runAdopt} onClose={() => setMine(null)} />}
       </Presence>
       <Presence show={linkOpen}>{linkOpen && <LinkSheet pkg={pkg} onClose={() => setLinkOpen(false)} />}</Presence>
     </Page>
@@ -564,6 +621,85 @@ function TakeOverSheet({ count, name, onPick, onClose }: { count: number; name?:
         ))}
       </div>
       <p className="hint">{t('Die Liste wird dabei mit dieser Person verknüpft.')}</p>
+    </Sheet>
+  )
+}
+
+function AdoptSheet({ from, initial, onRun, onClose }: { from: string; initial: AdoptPart[]; onRun: (parts: AdoptPart[]) => void; onClose: () => void }) {
+  const t = useT()
+  const { items } = useStore()
+  const [parts, setParts] = useState(initial)
+  const set = (i: number, choice: AdoptPart['choice']) => setParts((ps) => ps.map((p, k) => (k === i ? { ...p, choice } : p)))
+  const total = parts.filter((p) => p.choice !== 'skip').reduce((n, p) => n + p.items.length, 0)
+  return (
+    <Sheet
+      title={t('Für mich übernehmen')}
+      subtitle={t('Liste von {name}', { name: from })}
+      onClose={onClose}
+      footer={
+        <div className="stack-btns">
+          <button
+            className="btn btn--primary btn--block"
+            data-testid="adopt-run"
+            disabled={parts.every((p) => p.choice === 'skip')}
+            onClick={() => {
+              onRun(parts)
+              onClose()
+            }}
+          >
+            <Check size={17} /> {t('Übernehmen')} · {t.n(total, 'Wunsch', 'Wünsche')}
+          </button>
+          <button className="btn btn--ghost btn--block" onClick={onClose}>
+            {t('Abbrechen')}
+          </button>
+        </div>
+      }
+    >
+      <p className="hint">{t('Die Wünsche werden Teil deiner eigenen Listen. Die erhaltene Liste bleibt unverändert.')}</p>
+      {parts.map((p, i) => {
+        const count = p.target ? items.filter((x) => x.owner === 'me' && x.listId === p.target!.id && !x.deletedAt).length : 0
+        const tname = p.target ? listTitle(p.target, t) : ''
+        return (
+          <div key={p.col.id} className="adopt" data-conflict={!!p.why}>
+            <div className="adopt__head">
+              <span className="adopt__icon" aria-hidden>{p.col.emoji}</span>
+              <strong>{t(p.col.name)}</strong>
+              <small>{t.n(p.items.length, 'Wunsch', 'Wünsche')}</small>
+            </div>
+            {p.why && p.target ? (
+              <>
+                <p className="adopt__warn">
+                  <TriangleAlert size={14} />{' '}
+                  {p.why === 'name'
+                    ? t('Du hast schon eine Liste „{name}“ ({n} Wünsche).', { name: tname, n: count })
+                    : t('Deine Liste „{name}“ hat dasselbe Datum, also vermutlich denselben Anlass ({n} Wünsche).', { name: tname, n: count })}
+                </p>
+                <div className="plist" role="radiogroup" aria-label={t(p.col.name)}>
+                  <button role="radio" aria-checked={p.choice === 'merge'} data-active={p.choice === 'merge'} data-testid={`adopt-merge-${i}`} className="pchoice pchoice--col" onClick={() => set(i, 'merge')}>
+                    <strong>{t('Zu „{name}“ hinzufügen', { name: tname })}</strong>
+                    <small>{t('Was es dort schon gibt, wird übersprungen.')}</small>
+                    {p.choice === 'merge' && <Check size={17} strokeWidth={3} />}
+                  </button>
+                  <button role="radio" aria-checked={p.choice === 'new'} data-active={p.choice === 'new'} data-testid={`adopt-new-${i}`} className="pchoice pchoice--col" onClick={() => set(i, 'new')}>
+                    <strong>{t('Als neue Liste anlegen')}</strong>
+                    <small>{p.why === 'name' ? t('Heißt dann „{name}“.', { name: t('{name} (von {from})', { name: t(p.col.name), from }) }) : t('Heißt dann „{name}“.', { name: t(p.col.name) })}</small>
+                    {p.choice === 'new' && <Check size={17} strokeWidth={3} />}
+                  </button>
+                  <button role="radio" aria-checked={p.choice === 'skip'} data-active={p.choice === 'skip'} data-testid={`adopt-skip-${i}`} className="pchoice pchoice--col" onClick={() => set(i, 'skip')}>
+                    <strong>{t('Überspringen')}</strong>
+                    <small>{t('Diese Liste nicht übernehmen.')}</small>
+                    {p.choice === 'skip' && <Check size={17} strokeWidth={3} />}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <p className="adopt__ok">
+                <Plus size={14} /> {t('Wird als neue Liste angelegt.')}
+              </p>
+            )}
+          </div>
+        )
+      })}
     </Sheet>
   )
 }

@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 07.11.2026 · Status: V0.11.2 (Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
+Stand: 11.11.2026 · Status: V0.11.3 (Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -544,3 +544,11 @@ Entscheidungen von Markus (04.11.): Neue Preise ersetzen den Preis automatisch, 
 - **Umrechnen beim Wechsel:** Steht im Preisfeld ein Betrag, wird er in die neue Währung umgerechnet (Zwei Nachkommastellen, Yen ganzzahlig) und per Toast "Umgerechnet: A → B" mit "Rückgängig" gemeldet. Fehlen für eine der beiden Währungen die Kurse oder sind sie älter als einen Tag, holt die App sie kurz bei der EZB-Schnittstelle (`fetchRates`, dieselbe wie unter "Währung und Format") und speichert sie. Klappt das nicht, wird nur die Währung gewechselt und der bekannte Hinweis "Für … fehlt ein Kurs" erscheint. Ein gemerkter Preis-Zustand wird dabei zu "von dir eingetragen", denn der Betrag stammt nicht mehr von der Seite.
 - **Preisverlauf kompakter:** Der Kasten zeigt eine Statuszeile ("Sicher · von der Seite gelesen", "Geraten · bitte bestätigen", "Von dir eingetragen") statt langer Absätze, die Erklärung steckt hinter dem Info-Knopf. Das Diagramm entsteht ab dem zweiten Messpunkt (höchstens einer pro etwa 20 Stunden, aus Prüfung oder Hintergrundlauf); davor steht ein kurzer Hinweis. Blieb der Preis in allen Messpunkten gleich, steht "Unverändert seit …, N Messpunkte" unter dem Diagramm.
 - **Tests:** `v0112.cjs` (Browser: Raster, Umrechnung, Rückgängig, ohne Kurs, Escape).
+
+## 34. Erhaltene Listen für mich übernehmen (V0.11.3)
+- **Wo:** Im Bereich "Erhalten" gibt es an jeder Listenkachel den Knopf "Für mich" und in der Zeile unter den Kacheln "Für mich übernehmen" (für die geöffnete Liste oder das ganze Paket). Der bisherige Knopf an der Kachel heißt jetzt "Als Idee" und macht wie vorher aus Wünschen Geschenkideen für eine verknüpfte Person.
+- **Was passiert:** Die Wünsche der erhaltenen Liste (ohne "Hat schon") werden als eigene Wünsche in deine Listen kopiert. Die erhaltene Liste bleibt unverändert. Rückgängig im Hinweis entfernt neue Listen und Wünsche wieder.
+- **Abgleich (`src/lib/adopt.ts`, `conflictOf`):** Eine eigene Liste kollidiert, wenn sie den gleichen Namen hat (Groß-/Kleinschreibung egal, die Standardliste heißt "Allgemein") oder, bei anderem Namen, das gleiche Datum (Tag und Monat, also vermutlich der gleiche Anlass wie Weihnachten am 24.12.). Der Name gewinnt vor dem Datum. Eigene Listen kennen keine Anlässe wie die Personen, deshalb zählt hier das Datum.
+- **Entscheidung (`AdoptSheet`):** Pro kollidierender Liste ein Block mit Warnung und drei Optionen: "Zu „…“ hinzufügen" (bei gleichem Namen vorgewählt; was es dort schon gibt, gleicher Link oder gleicher Name, wird übersprungen), "Als neue Liste anlegen" (bei gleichem Namen heißt sie "Name (von Absender)", bei nur gleichem Datum behält sie den Namen und ist vorgewählt) und "Überspringen". Listen ohne Treffer werden ohne Rückfrage neu angelegt, bei einem Paket mit lauter neuen Listen erscheint gar kein Fenster. Sind alle Listen auf "Überspringen", ist der Knopf gesperrt.
+- **Neue Liste:** übernimmt Name, Symbol, Farbe und Datum der erhaltenen Liste.
+- **Tests:** `adopt.test.ts` (Konflikte, Doppelte, Aufbau), `v0113.cjs` (Browser: Warnung, Hinzufügen, Doppelte, neue Liste, Rückgängig, Paket mit Überspringen).
