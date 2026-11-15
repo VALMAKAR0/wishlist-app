@@ -40,6 +40,20 @@ export interface PricePoint {
   k: PriceState
 }
 
+/** Weiterer Shop zum Preisvergleich: eigener Link mit zuletzt gelesenem Preis. */
+export interface Shop {
+  id: string
+  link: string
+  price?: number
+  /** Währung des gelesenen Preises (ISO-Code), Euro wenn leer und ein Preis da ist. */
+  currency?: string
+  guess?: boolean
+  /** Letzte Prüfung. */
+  at?: number
+  /** Letzte Prüfung ohne Preis oder mit Fehler. */
+  err?: boolean
+}
+
 export interface Item {
   id: string
   owner: Owner
@@ -64,6 +78,8 @@ export interface Item {
   /** Zuletzt abgelehnter Vorschlag, wird nicht noch einmal vorgeschlagen. */
   priceNo?: number
   priceLog?: PricePoint[]
+  /** Weitere Shops für den Vergleich (höchstens fünf). */
+  shops?: Shop[]
   /** Aus: Der Preis dieses Eintrags wird nie geprüft. */
   priceTrack?: boolean
   priceCheckedAt?: number

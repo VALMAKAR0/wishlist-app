@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 15.11.2026 · Status: V0.11.5 (Kopfzeile: Listenname verdeckt nicht mehr; Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
+Stand: 16.11.2026 · Status: V0.12.0 (Weitere Shops mit Preisvergleich, Update-Download über den Android-Downloader; Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -209,7 +209,8 @@ Eigener Tab mit Auswertungen über alles: Gesamtausgaben (für mich und für and
 - **V0.9.3 (erledigt, ungetestet auf Gerät):** Ergebnis-Karte beim Link-Import (gefunden, geraten, nicht gefunden mit Grund), vier neue Schalter, Titel-Reinigung, Preis aus dem Seitentext (als geraten markiert), Art auch beim Bearbeiten, sichtbare Animationen (siehe 29)
 - **V0.10 (erledigt, ungetestet auf Gerät):** Preisverlauf: "Preis jetzt prüfen", Diagramm, Etikett an der Karte, "Alle Preise prüfen" (siehe 30)
 - **V0.11 (erledigt, ungetestet auf Gerät):** Tägliche Prüfung im Hintergrund mit Meldung bei Preissenkung, nur Android (siehe 31)
-- **V1.0:** Test auf echten Geräten, Release
+- **V0.11.x / V0.12 (erledigt, ungetestet auf Gerät):** Wünsche verschieben (V0.11.4), Kopfzeile (V0.11.5), weitere Shops und nativer Update-Download (V0.12.0), siehe 35 bis 37
+- **V1.0:** Test auf echten Geräten, Release (Checkliste in 38)
 
 ## 17. Entwicklung
 
@@ -563,3 +564,28 @@ Entscheidungen von Markus (04.11.): Neue Preise ersetzen den Preis automatisch, 
 ## 36. Kopfzeile bei langen Listen (V0.11.5)
 - **Fehler:** Der kleine Titel in der Kopfzeile lag mittig über den Knöpfen und wurde von "Auswählen", "Teilen" und "+ Wunsch" verdeckt.
 - **Behebung:** Der Titel ist jetzt ein Teil der Zeile zwischen Zurück und den Knöpfen und kürzt sich mit "…". Beim Scrollen zeigt der Hauptknopf nur noch das Plus, damit der Titel Platz hat (`data-scrolled` an `.page__bar`).
+
+## 37. Weitere Shops und Update-Download (V0.12.0)
+- **Weitere Shops (`ShopList.tsx`, `lib/shops.ts`):** Im Eintrag unter dem Preis gibt es "Weitere Shops vergleichen". Pro Eintrag bis zu fünf zusätzliche Links (`Item.shops`: id, link, Preis, Währung, geraten, letzte Prüfung, Fehler). Beim Hinzufügen wird der Link aus eingefügtem Text gelöst und in der Android-App sofort gelesen. Doppelte Shops und der Hauptlink werden abgewiesen (Vergleich über Host und Pfad ohne www, Parameter und Schlusszeichen).
+- **Vergleich:** Verglichen wird nur in der Währung des Eintrags. Fremde Währungen und Shops ohne gelesenen Preis werden angezeigt, zählen aber nicht. Ist ein Shop mindestens einen Cent günstiger als der Hauptlink, steht oben "Günstiger bei …" und der Shop bekommt "Als Hauptlink".
+- **Als Hauptlink:** Tauscht Link und Preis des Eintrags, der alte Hauptlink wandert mit seinem Preis in die Shop-Liste, die gewählte Preis-Stelle und der Verlauf beginnen neu (anderer Shop, anderer Verlauf). Hinweis mit "Rückgängig" stellt alles wieder her.
+- **Prüfen:** Knöpfe pro Shop und "Alle Shops prüfen", nur in der Android-App (wie der Hauptlink). Die tägliche Hintergrundprüfung und "Alle Preise prüfen" lesen weiter nur den Hauptlink, Shops werden nicht automatisch nachgeprüft. Beim Teilen von Listen gehen Shops nicht mit, im Backup schon.
+- **Update-Download:** Das Plugin `ApkDownloadPlugin.java` (`ApkDownload.start`) nutzt den Android-`DownloadManager`: Datei in Downloads (`wunschliste-<version>.apk`), Fortschritt und Abschluss in der Benachrichtigung, Antippen startet die Installation. Nur Links von `https://github.com/` mit Endung `.apk`. Klappt es nicht, bietet ein Hinweis "Im Browser öffnen" an. Grund: Im Browser des Handys hing der Download bei 100 %.
+- **Nicht in der Cloud prüfbar:** Der Java-Teil wurde hier nicht kompiliert, Android-Build und Download auf dem Handy sind ungetestet.
+- **Tests:** `shops.test.ts` (Hinzufügen, Vergleich, Wechsel), `v0120.cjs` (Browser: Bereich, doppelt, Vergleich, Wechsel, Rückgängig).
+
+## 38. Checkliste für den Test auf echten Geräten (V1.0)
+Jeden Punkt abhaken oder mit einem Satz melden, was hakt.
+- **Update (Handy):** Mehr → App und Updates → Herunterladen: Benachrichtigung mit Fortschritt, Tippen startet die Installation, Daten bleiben nach dem Update.
+- **Kopfzeile:** In langer Liste scrollen, Listenname bleibt neben den Knöpfen lesbar.
+- **Verschieben:** Auswählen (Knopf und langes Drücken), zwei Wünsche verschieben, Rückgängig, neue Liste anlegen.
+- **Weitere Shops:** Zweiten Shop-Link einfügen, Preis wird gelesen (oder "kein Preis"), "Als Hauptlink" bei günstigerem Shop.
+- **Preise:** "Preis jetzt prüfen" mit Amazon-Link und einem anderen Shop. Stimmt der Preis? Wenn nicht: Link und gelesenen Preis melden.
+- **Hintergrund-Prüfung:** Mehr → App → Hintergrundprüfung einschalten, nach dem nächsten Morgen: Meldung bei Preissenkung?
+- **Erinnerungen:** Anlass mit Erinnerung für morgen anlegen, Benachrichtigung kommt zur Uhrzeit.
+- **Backup:** Sicherung erstellen, liegt unter Dokumente/Wunschliste; Wiederherstellen aus der Datei.
+- **Teilen und Erhalten:** Liste als Datei teilen (WhatsApp), auf anderem Gerät öffnen, "Für mich übernehmen" mit Namenskonflikt.
+- **iPhone (Freundin):** Web-App installieren (Teilen → Zum Home-Bildschirm), Eintrag anlegen, App neu öffnen, Eintrag noch da.
+- **Zurück-Taste (Android):** Schließt zuerst Fenster, dann Ansicht, erst am Start die App.
+- **Statusleiste (Android):** Passt die Farbe der Uhrzeit-Leiste zu hell und dunkel?
+

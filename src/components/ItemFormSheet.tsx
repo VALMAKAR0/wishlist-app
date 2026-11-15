@@ -20,6 +20,7 @@ import { PriceInput } from './PriceInput'
 import { PriceSearch } from './PriceSearch'
 import { parsePriceInput, priceText } from '../lib/priceInput'
 import { PriceWatch } from './PriceWatch'
+import { ShopList } from './ShopList'
 import { Cover } from './Primitives'
 import { CurrencyButton, CurrencyPanel } from './CurrencyPicker'
 import { Sheet } from './Sheet'
@@ -560,6 +561,19 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
           link={link}
           onPrice={(p, c) => {
             priceFrom.current = null
+            setPrice(priceText(p))
+            setCur(c)
+          }}
+        />
+      )}
+
+      {stored && !!link.trim() && (
+        <ShopList
+          item={stored}
+          link={link}
+          onPromoted={(l, p, c) => {
+            priceFrom.current = null
+            setLink(l)
             setPrice(priceText(p))
             setCur(c)
           }}

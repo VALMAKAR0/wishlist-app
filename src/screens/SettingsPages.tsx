@@ -22,6 +22,7 @@ import { CURRENCIES, agoLabel, daysAgo, longDate, timeLabel } from '../lib/forma
 import { lockAvailable } from '../lib/lock'
 import { checkPersist, usePersist } from '../lib/persist'
 import { KEEP_CHOICES, LOCK_CHOICES, TRASH_CHOICES } from '../lib/settings'
+import { downloadApk } from '../lib/apkDownload'
 import { applyResults, bgCheckNow, bgCollect, bgStatus, bgSync } from '../lib/bgRunner'
 import { checkable, checkAll } from '../lib/priceCheck'
 import { notifyState } from '../lib/reminders'
@@ -540,6 +541,14 @@ function AppPage() {
   const [linkTest, setLinkTest] = useState(false)
   const [priceAll, setPriceAll] = useState<{ done: number; total: number } | null>(null)
   const [bgBusy, setBgBusy] = useState(false)
+  const getUpdate = async () => {
+    const browser = () => window.open(upd.url, '_blank', 'noopener,noreferrer')
+    if (await downloadApk(upd.url, upd.latest)) {
+      ui.toast({ message: t('Download läuft, siehe Benachrichtigung. Tippe danach darauf, um zu installieren.'), emoji: '⬇️' })
+      return
+    }
+    ui.toast({ message: t('Der Android-Download ging nicht. Im Browser öffnen?'), emoji: '⚠️', actionLabel: t('Im Browser öffnen'), onAction: browser })
+  }
   const [bgLast, setBgLast] = useState<string | null>(null)
   const loadBg = async () => {
     const s = await bgStatus()
@@ -619,9 +628,9 @@ function AppPage() {
                     <p>{upd.native ? t('Lade die APK herunter und installiere sie über die alte. Deine Daten bleiben erhalten.') : t('Lade neu, um sie zu nutzen. Deine Daten bleiben erhalten.')}</p>
                   </div>
                   {upd.native ? (
-                    <a className="btn btn--primary btn--small" href={upd.url} target="_blank" rel="noopener noreferrer">
+                    <button className="btn btn--primary btn--small" data-testid="apk-download" onClick={() => void getUpdate()}>
                       {t('Herunterladen')}
-                    </a>
+                    </button>
                   ) : (
                     <button className="btn btn--primary btn--small" onClick={upd.apply}>
                       {t('Neu laden')}

@@ -68,5 +68,6 @@ export const roadmap: RoadmapStep[] = [
   { version: 'V0.9', title: 'Link-Import', text: 'Link-Test mit Schaltern, Übernahme in Wunsch und Idee, Links aus dem Browser teilen.' },
   { version: 'V0.10', title: 'Preisverlauf', text: 'Preis prüfen, Verlauf als Diagramm, Etikett „gesunken/gestiegen“ an der Karte, Vorschläge zum Bestätigen.' },
   { version: 'V0.11', title: 'Preiswächter', text: 'Tägliche Prüfung im Hintergrund (morgens gegen 8 Uhr) mit Meldung bei Preissenkung, nur Android, einstellbar.' },
+  { version: 'V0.12', title: 'Mehr Komfort', text: 'Wünsche verschieben, weitere Shops mit Preisvergleich, Update-Download über den Android-Downloader.' },
   { version: 'V1.0', title: 'Release', text: 'Test auf echten Geräten.' },
 ]

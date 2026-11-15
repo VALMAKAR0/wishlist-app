@@ -8,6 +8,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(ShareInPlugin.class);
+        registerPlugin(ApkDownloadPlugin.class);
         super.onCreate(savedInstanceState);
         ShareInPlugin.capture(getIntent());
     }
