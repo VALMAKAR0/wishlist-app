@@ -395,10 +395,9 @@ select {
 }
 
 .page__small-title {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  max-width: 50%;
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -554,4 +553,13 @@ select {
   color: var(--text-2);
   text-transform: none;
   letter-spacing: 0;
+}
+
+/* Beim Scrollen wird der Hauptknopf zum Symbol, damit der Titel Platz hat. */
+.page__bar[data-scrolled='true'] .add-btn__label {
+  display: none;
+}
+
+.page__bar[data-scrolled='true'] .add-btn {
+  padding-inline: 11px;
 }

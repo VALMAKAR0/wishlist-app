@@ -27,7 +27,7 @@ export function Page({ title, eyebrow, subtitle, actions, onBack, children }: Pa
 
   return (
     <div ref={ref} className="page">
-      <div className="page__bar">
+      <div className="page__bar" data-scrolled={scrolled}>
         <div className="page__bar-bg" data-on={scrolled} />
         <div className="page__bar-row">
           {onBack ? (
@@ -74,7 +74,7 @@ export function AddButton({ label, onClick }: { label: string; onClick: () => vo
       transition={{ delay: 0.15, type: 'spring', stiffness: 380, damping: 22 }}
     >
       <Plus size={17} strokeWidth={2.8} />
-      {cap(label)}
+      <span className="add-btn__label">{cap(label)}</span>
     </motion.button>
   )
 }

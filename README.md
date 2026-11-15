@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 13.11.2026 · Status: V0.11.4 (Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
+Stand: 15.11.2026 · Status: V0.11.5 (Kopfzeile: Listenname verdeckt nicht mehr; Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -560,3 +560,6 @@ Entscheidungen von Markus (04.11.): Neue Preise ersetzen den Preis automatisch, 
 - **Grenze:** Verschoben wird nur innerhalb des gleichen Eigentümers (Wünsche nur in eigene Listen, Ideen nur in Listen derselben Person).
 - **Tests:** `v0114.cjs` (Browser: Auswahl, Verschieben, Rückgängig, lang drücken, Alle/Keine, neue Liste, Archiv, Ideen).
 
+## 36. Kopfzeile bei langen Listen (V0.11.5)
+- **Fehler:** Der kleine Titel in der Kopfzeile lag mittig über den Knöpfen und wurde von "Auswählen", "Teilen" und "+ Wunsch" verdeckt.
+- **Behebung:** Der Titel ist jetzt ein Teil der Zeile zwischen Zurück und den Knöpfen und kürzt sich mit "…". Beim Scrollen zeigt der Hauptknopf nur noch das Plus, damit der Titel Platz hat (`data-scrolled` an `.page__bar`).
