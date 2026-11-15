@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Link2, Plus, Share2 } from 'lucide-react'
+import { CheckSquare, FolderInput, Link2, Plus, Share2, X } from 'lucide-react'
 import { ListSheetHost, ListStatsCard } from '../components/Lists'
 import { AddButton, Page } from '../components/Page'
 import { Presence } from '../components/Presence'
 import { EmptyState, Segmented } from '../components/Primitives'
 import { ItemFormSheet } from '../components/ItemFormSheet'
+import { MoveSheet } from '../components/MoveSheet'
 import { ShareSheet } from '../components/ShareSheet'
 import { daysUntilIso, isoLabel, priceOf } from '../lib/format'
 import { listDate, listOccasion, listTitle } from '../lib/lists'
@@ -33,7 +34,8 @@ interface Props {
 /** Eine Liste (oder alle Listen) mit Kennzahlen, offenen und gekauften Einträgen. Gilt für Wünsche und Ideen. */
 export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) {
   const t = useT()
-  const { settings } = useUI()
+  const ui = useUI()
+  const { settings } = ui
   const { items, lists: allLists, persons, alreadyOwned } = useStore()
   const { back } = useNav()
   const forMe = owner === 'me'
@@ -44,10 +46,14 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) 
   const [form, setForm] = useState<{ item: Item | null } | null>(null)
   const [share, setShare] = useState(false)
   const [listSheet, setListSheet] = useState(false)
+  const [sel, setSel] = useState<Set<string> | null>(null)
+  const [moving, setMoving] = useState(false)
 
   useEffect(() => {
     if (missing) back()
   }, [missing, back])
+  // Beim Wechsel des Reiters oder der Liste endet die Auswahl.
+  useEffect(() => setSel(null), [seg, listId])
   if (missing) return null
 
   const person = forMe ? undefined : persons.find((p) => p.id === owner)
@@ -57,6 +63,18 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) 
   const done = scoped.filter((i) => i.bought).sort((a, b) => (b.boughtAt ?? 0) - (a.boughtAt ?? 0))
   const shown = seg === 'open' ? open : done
   const stats = listStats(scoped)
+  const pickedItems = sel ? shown.filter((i) => sel.has(i.id)) : []
+  const flip = (id: string) =>
+    setSel((cur) => {
+      if (!cur) return cur
+      const next = new Set(cur)
+      if (!next.delete(id)) next.add(id)
+      return next
+    })
+  const startSelect = (id?: string) => {
+    ui.haptic(18)
+    setSel(new Set(id ? [id] : []))
+  }
   const date = list ? listDate(list, persons) : undefined
   const occ = list ? listOccasion(list, persons) : undefined
   const days = date ? daysUntilIso(date) : null
@@ -85,12 +103,17 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) 
         onBack={onBack}
         actions={
           <>
-            {forMe && (
+            {scoped.length > 0 && (
+              <button className="icon-btn" data-testid="select-toggle" data-active={!!sel} onClick={() => (sel ? setSel(null) : startSelect())} aria-label={sel ? t('Auswahl beenden') : t('Auswählen')}>
+                {sel ? <X size={17} /> : <CheckSquare size={17} />}
+              </button>
+            )}
+            {forMe && !sel && (
               <button className="icon-btn" onClick={() => setShare(true)} aria-label={t('Wunschlisten teilen')}>
                 <Share2 size={17} />
               </button>
             )}
-            <AddButton label={forMe ? t('Wunsch') : t('Idee')} onClick={() => setForm({ item: null })} />
+            {!sel && <AddButton label={forMe ? t('Wunsch') : t('Idee')} onClick={() => setForm({ item: null })} />}
           </>
         }
       >
@@ -156,7 +179,9 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) 
         {shown.length > 0 ? (
           <ItemList
             items={shown}
-            onOpen={(item) => setForm({ item })}
+            onOpen={(item) => (sel ? flip(item.id) : setForm({ item }))}
+            selected={sel}
+            onLongPress={(item) => startSelect(item.id)}
             badgeFor={forMe ? undefined : (item) => (alreadyOwned(item) ? t('Schon vorhanden') : undefined)}
             listLabelFor={listLabelFor}
           />
@@ -200,6 +225,30 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) 
         )}
       </Page>
 
+      {sel && (
+        <div className="selbar" role="toolbar" aria-label={t('Auswahl')} data-testid="selbar">
+          <span className="selbar__n" data-testid="sel-count">{t.n(sel.size, 'ausgewählt', 'ausgewählt')}</span>
+          <button className="selbar__btn" data-testid="sel-all" onClick={() => setSel(sel.size === shown.length ? new Set() : new Set(shown.map((i) => i.id)))}>
+            {sel.size === shown.length ? t('Keine') : t('Alle')}
+          </button>
+          <button className="selbar__btn selbar__btn--main" data-testid="sel-move" disabled={!sel.size} onClick={() => setMoving(true)}>
+            <FolderInput size={16} /> {t('Verschieben')}
+          </button>
+        </div>
+      )}
+      <Presence show={moving && pickedItems.length > 0}>
+        {moving && pickedItems.length > 0 && (
+          <MoveSheet
+            owner={owner}
+            picked={pickedItems}
+            onClose={() => setMoving(false)}
+            onDone={() => {
+              setMoving(false)
+              setSel(null)
+            }}
+          />
+        )}
+      </Presence>
       <Presence show={!!form}>{form && <ItemFormSheet key={form.item?.id ?? 'new'} owner={owner} item={form.item} listId={list?.id} onClose={() => setForm(null)} />}</Presence>
       <Presence show={share}>{share && <ShareSheet initialList={list?.id} onClose={() => setShare(false)} />}</Presence>
       <ListSheetHost open={listSheet} owner={owner} list={list} onClose={() => setListSheet(false)} />

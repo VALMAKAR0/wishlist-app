@@ -27,6 +27,7 @@ type Action =
   | { type: 'addItem'; item: Item }
   | { type: 'updateItem'; id: string; patch: Partial<Item> }
   | { type: 'toggleBought'; id: string }
+  | { type: 'moveItems'; moves: { id: string; listId: string }[] }
   | { type: 'trashItem'; id: string }
   | { type: 'restoreItem'; id: string }
   | { type: 'purgeItem'; id: string }
@@ -77,6 +78,10 @@ function reducer(s: State, a: Action): State {
       return touch({
         items: s.items.map((i) => (i.id === a.id ? { ...i, bought: !i.bought, boughtAt: i.bought ? undefined : Date.now() } : i)),
       })
+    case 'moveItems': {
+      const to = new Map(a.moves.map((m) => [m.id, m.listId]))
+      return touch({ items: s.items.map((i) => (to.has(i.id) ? { ...i, listId: to.get(i.id) as string } : i)) })
+    }
     case 'trashItem':
       return touch({ items: s.items.map((i) => (i.id === a.id ? { ...i, deletedAt: Date.now() } : i)) })
     case 'restoreItem':

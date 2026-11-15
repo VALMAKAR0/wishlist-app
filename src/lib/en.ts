@@ -762,6 +762,22 @@ export const en: Record<string, string> = {
   Release: 'Release',
   'Test auf echten Geräten.': 'Testing on real devices.',
 
+  // Verschieben
+  Verschieben: 'Move',
+  Auswählen: 'Select',
+  Auswahl: 'Selection',
+  Keine: 'None',
+  Zielliste: 'Target list',
+  ausgewählt: 'selected',
+  '{n} nach „{list}“ verschoben': '{n} moved to "{list}"',
+  'Verschieben nach': 'Move to',
+  'Alle ausgewählten sind schon hier': 'All selected are already here',
+  '{n} schon hier': '{n} already here',
+  'Name der neuen Liste': 'Name of the new list',
+  'Diese Liste gibt es schon, die Einträge kommen dorthin.': 'This list already exists, the entries go there.',
+  'Eintrag ausgewählt': 'entry selected',
+  'Einträge ausgewählt': 'entries selected',
+  'Auswahl beenden': 'End selection',
   // Arten
   'Als Idee': 'As idea',
   'Alles davon steht schon in deiner Liste.': 'All of it is already in your list.',

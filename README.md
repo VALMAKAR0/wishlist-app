@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 11.11.2026 · Status: V0.11.3 (Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
+Stand: 13.11.2026 · Status: V0.11.4 (Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -552,3 +552,11 @@ Entscheidungen von Markus (04.11.): Neue Preise ersetzen den Preis automatisch, 
 - **Entscheidung (`AdoptSheet`):** Pro kollidierender Liste ein Block mit Warnung und drei Optionen: "Zu „…“ hinzufügen" (bei gleichem Namen vorgewählt; was es dort schon gibt, gleicher Link oder gleicher Name, wird übersprungen), "Als neue Liste anlegen" (bei gleichem Namen heißt sie "Name (von Absender)", bei nur gleichem Datum behält sie den Namen und ist vorgewählt) und "Überspringen". Listen ohne Treffer werden ohne Rückfrage neu angelegt, bei einem Paket mit lauter neuen Listen erscheint gar kein Fenster. Sind alle Listen auf "Überspringen", ist der Knopf gesperrt.
 - **Neue Liste:** übernimmt Name, Symbol, Farbe und Datum der erhaltenen Liste.
 - **Tests:** `adopt.test.ts` (Konflikte, Doppelte, Aufbau), `v0113.cjs` (Browser: Warnung, Hinzufügen, Doppelte, neue Liste, Rückgängig, Paket mit Überspringen).
+
+## 35. Wünsche in andere Listen verschieben (V0.11.4)
+- **Auswahl-Modus:** In jeder Liste (Wünsche und Ideen, auch "Alle Listen") gibt es oben den Knopf "Auswählen". Alternativ einen Eintrag lang drücken (ca. 0,5 s). Im Modus markiert Antippen, Wischen und der Haken sind aus, auch der Link-Chip öffnet nichts. Unten ersetzt eine Leiste die Tab-Leiste: Anzahl, "Alle"/"Keine", "Verschieben". Beim Wechsel zwischen Offen und Archiv oder Liste endet die Auswahl.
+- **Fenster "Verschieben nach" (`MoveSheet`):** Alle Listen des gleichen Eigentümers mit Anzahl. Liegen alle ausgewählten Einträge schon in einer Liste, ist sie gesperrt; bei teilweise zeigt sie "n schon hier". Dazu "Neue Liste" mit Namensfeld (Symbol ⭐, zufällige Farbe). Gibt es den Namen schon, kommen die Einträge in die vorhandene Liste, mit Hinweis.
+- **Danach:** Hinweis "n Einträge nach „Liste“ verschoben" mit "Rückgängig", das stellt jede alte Liste wieder her und löscht eine dabei neu angelegte Liste. Gekauftes bleibt gekauft, Preisverlauf, Bild und Notiz wandern mit. Store-Aktion `moveItems`.
+- **Grenze:** Verschoben wird nur innerhalb des gleichen Eigentümers (Wünsche nur in eigene Listen, Ideen nur in Listen derselben Person).
+- **Tests:** `v0114.cjs` (Browser: Auswahl, Verschieben, Rückgängig, lang drücken, Alle/Keine, neue Liste, Archiv, Ideen).
+

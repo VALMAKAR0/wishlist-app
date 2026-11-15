@@ -41,9 +41,11 @@ interface ItemListProps {
   onOpen: (item: Item) => void
   badgeFor?: (item: Item) => string | undefined
   listLabelFor?: (item: Item) => string | undefined
+  selected?: Set<string> | null
+  onLongPress?: (item: Item) => void
 }
 
-export function ItemList({ items, onOpen, badgeFor, listLabelFor }: ItemListProps) {
+export function ItemList({ items, onOpen, badgeFor, listLabelFor, selected, onLongPress }: ItemListProps) {
   const actions = useItemActions()
   return (
     <ul className="group">
@@ -55,6 +57,9 @@ export function ItemList({ items, onOpen, badgeFor, listLabelFor }: ItemListProp
             index={i}
             badge={badgeFor?.(item)}
             listLabel={listLabelFor?.(item)}
+            selectMode={!!selected}
+            selected={selected?.has(item.id)}
+            onLongPress={onLongPress ? () => onLongPress(item) : undefined}
             onOpen={() => onOpen(item)}
             onToggle={(origin) => actions.toggle(item, origin)}
             onTrash={() => actions.trash(item)}

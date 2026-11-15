@@ -1,4 +1,4 @@
-import { useRef, type MouseEvent, type Ref } from 'react'
+import { useEffect, useRef, type MouseEvent, type Ref } from 'react'
 import { animate, motion, useMotionValue, useTransform } from 'motion/react'
 import { Check, CircleHelp, ExternalLink, StickyNote, TrendingDown, TrendingUp, Trash2, Undo2 } from 'lucide-react'
 import { agoLabel, curOf, hostOf, money, toHref } from '../lib/format'
@@ -17,13 +17,17 @@ interface ItemCardProps {
   badge?: string
   /** Name der Liste, wenn mehrere Listen gemischt angezeigt werden. */
   listLabel?: string
+  /** Auswahl-Modus: Antippen markiert, Wischen ist aus. */
+  selectMode?: boolean
+  selected?: boolean
+  onLongPress?: () => void
   ref?: Ref<HTMLLIElement>
 }
 
 const SWIPE = 92
 
 /** Zeile mit Wisch-Gesten: nach rechts = gekauft, nach links = Papierkorb. */
-export function ItemCard({ item, index, onOpen, onToggle, onTrash, badge, listLabel, ref }: ItemCardProps) {
+export function ItemCard({ item, index, onOpen, onToggle, onTrash, badge, listLabel, selectMode, selected, onLongPress, ref }: ItemCardProps) {
   const t = useT()
   const ui = useUI()
   const delta = ui.settings.priceWatch ? priceDelta(item) : null
@@ -32,6 +36,13 @@ export function ItemCard({ item, index, onOpen, onToggle, onTrash, badge, listLa
   const cardRef = useRef<HTMLDivElement>(null)
   // Antippen = Klick ohne nennenswerte Bewegung. So zählt das Loslassen nach einem Wisch nie als Antippen.
   const down = useRef<{ x: number; y: number } | null>(null)
+  const hold = useRef<number | undefined>(undefined)
+  const held = useRef(false)
+  const stopHold = () => {
+    window.clearTimeout(hold.current)
+    hold.current = undefined
+  }
+  useEffect(() => stopHold, [])
   const rightBg = useTransform(x, [0, SWIPE], [0, 1])
   const leftBg = useTransform(x, [-SWIPE, 0], [1, 0])
   const rightScale = useTransform(x, [0, SWIPE], [0.6, 1])
@@ -48,6 +59,7 @@ export function ItemCard({ item, index, onOpen, onToggle, onTrash, badge, listLa
   }
 
   const openLink = (e: MouseEvent<HTMLButtonElement>) => {
+    if (selectMode) return
     e.stopPropagation()
     if (item.link) window.open(toHref(item.link), '_blank', 'noopener,noreferrer')
   }
@@ -80,8 +92,9 @@ export function ItemCard({ item, index, onOpen, onToggle, onTrash, badge, listLa
         ref={cardRef}
         className="item spot"
         data-done={item.bought}
+        data-selected={selectMode ? !!selected : undefined}
         style={{ x }}
-        drag="x"
+        drag={selectMode ? false : 'x'}
         dragDirectionLock
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.4}
@@ -98,13 +111,32 @@ export function ItemCard({ item, index, onOpen, onToggle, onTrash, badge, listLa
             snapBack()
           }
         }}
-        role="button"
+        role={selectMode ? 'checkbox' : 'button'}
+        aria-checked={selectMode ? !!selected : undefined}
         tabIndex={0}
-        aria-label={t('{name} bearbeiten', { name: item.name })}
+        aria-label={selectMode ? item.name : t('{name} bearbeiten', { name: item.name })}
         onPointerDown={(e) => {
           down.current = { x: e.clientX, y: e.clientY }
+          held.current = false
+          stopHold()
+          if (onLongPress && !selectMode && !(e.target as HTMLElement).closest('[data-no-open]')) {
+            hold.current = window.setTimeout(() => {
+              held.current = true
+              onLongPress()
+            }, 480)
+          }
         }}
+        onPointerMove={(e) => {
+          const d = down.current
+          if (hold.current !== undefined && d && (Math.abs(e.clientX - d.x) > 8 || Math.abs(e.clientY - d.y) > 8)) stopHold()
+        }}
+        onPointerUp={stopHold}
+        onPointerCancel={stopHold}
         onClick={(e) => {
+          if (held.current) {
+            held.current = false
+            return
+          }
           const d = down.current
           if (d && (Math.abs(e.clientX - d.x) > 8 || Math.abs(e.clientY - d.y) > 8)) return
           onOpen()
@@ -148,11 +180,17 @@ export function ItemCard({ item, index, onOpen, onToggle, onTrash, badge, listLa
             </motion.span>
           )}
         </div>
+        {selectMode ? (
+          <span className="pick" data-on={!!selected} aria-hidden>
+            <Check size={16} strokeWidth={3.2} />
+          </span>
+        ) : (
         <button className="check" data-on={item.bought} data-no-open aria-label={item.bought ? t('Als offen markieren') : t('Als gekauft markieren')} onClick={toggleFromButton}>
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
             <motion.path d="M5.5 12.5l4.5 4.5L18.5 7.5" initial={false} animate={{ pathLength: item.bought ? 1 : 0, opacity: item.bought ? 1 : 0 }} transition={{ duration: 0.35, ease: 'easeOut' }} />
           </svg>
         </button>
+        )}
       </motion.div>
     </motion.li>
   )
