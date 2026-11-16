@@ -49,12 +49,13 @@ export function ItemList({ items, onOpen, badgeFor, listLabelFor, selected, onLo
   const actions = useItemActions()
   return (
     <ul className="group">
-      <AnimatePresence initial>
+      <AnimatePresence initial mode="popLayout">
         {items.map((item, i) => (
           <ItemCard
             key={item.id}
             item={item}
             index={i}
+            flow={items.length <= 60}
             badge={badgeFor?.(item)}
             listLabel={listLabelFor?.(item)}
             selectMode={!!selected}

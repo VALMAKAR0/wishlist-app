@@ -764,6 +764,14 @@ export const en: Record<string, string> = {
   Release: 'Release',
   'Test auf echten Geräten.': 'Testing on real devices.',
 
+  // V0.14
+  Feinschliff: 'Polish',
+  'Preisdiagramm immer sichtbar und pixelgenau, ruhigere Preis-Ansicht, weiches Umsortieren, breiteres Tablet-Layout.': 'Price chart always visible and pixel-sharp, calmer price view, smooth re-sorting, wider tablet layout.',
+  'Erst ein Messpunkt. Mit jeder Prüfung wächst der Verlauf, ein Punkt pro Tag.': 'Only one data point so far. The history grows with every check, one point per day.',
+  'Noch kein Preis. Trag einen ein oder prüfe den Link, dann beginnt hier der Verlauf.': 'No price yet. Enter one or check the link, then the history starts here.',
+  'Prüfen geht nur in der Android-App': 'Checking only works in the Android app',
+  'Noch kein Preisverlauf': 'No price history yet',
+  seit: 'since',
   // V0.13
   'Ordnung und Preise': 'Order and prices',
   'Sortieren, Filter und Suche in Listen, Wichtigkeit, Wunschpreis mit Meldung, besseres Preisdiagramm, Budget für Ideenlisten, kürzere Namen, bessere Art-Erkennung.': 'Sorting, filters and search in lists, importance, target price with notification, better price chart, budget for idea lists, shorter names, better type detection.',

@@ -70,5 +70,6 @@ export const roadmap: RoadmapStep[] = [
   { version: 'V0.11', title: 'Preiswächter', text: 'Tägliche Prüfung im Hintergrund (morgens gegen 8 Uhr) mit Meldung bei Preissenkung, nur Android, einstellbar.' },
   { version: 'V0.12', title: 'Mehr Komfort', text: 'Wünsche verschieben, weitere Shops mit Preisvergleich, Update-Download über den Android-Downloader.' },
   { version: 'V0.13', title: 'Ordnung und Preise', text: 'Sortieren, Filter und Suche in Listen, Wichtigkeit, Wunschpreis mit Meldung, besseres Preisdiagramm, Budget für Ideenlisten, kürzere Namen, bessere Art-Erkennung.' },
+  { version: 'V0.14', title: 'Feinschliff', text: 'Preisdiagramm immer sichtbar und pixelgenau, ruhigere Preis-Ansicht, weiches Umsortieren, breiteres Tablet-Layout.' },
   { version: 'V1.0', title: 'Release', text: 'Test auf echten Geräten.' },
 ]

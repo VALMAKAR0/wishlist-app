@@ -22,13 +22,15 @@ interface ItemCardProps {
   selectMode?: boolean
   selected?: boolean
   onLongPress?: () => void
+  /** Weiches Umsortieren (nur bei kurzen Listen, kostet Messungen). */
+  flow?: boolean
   ref?: Ref<HTMLLIElement>
 }
 
 const SWIPE = 92
 
 /** Zeile mit Wisch-Gesten: nach rechts = gekauft, nach links = Papierkorb. */
-export function ItemCard({ item, index, onOpen, onToggle, onTrash, badge, listLabel, selectMode, selected, onLongPress, ref }: ItemCardProps) {
+export function ItemCard({ item, index, onOpen, onToggle, onTrash, badge, listLabel, selectMode, selected, onLongPress, flow, ref }: ItemCardProps) {
   const t = useT()
   const ui = useUI()
   const delta = ui.settings.priceWatch ? priceDelta(item) : null
@@ -74,6 +76,7 @@ export function ItemCard({ item, index, onOpen, onToggle, onTrash, badge, listLa
     <motion.li
       ref={ref}
       className="swipe"
+      layout={flow ? 'position' : undefined}
       initial={index < 16 ? { opacity: 0, y: 22, scale: 0.97 } : false}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, scale: 0.92, height: 0, marginBottom: 0, overflow: 'hidden', pointerEvents: 'none', transition: { duration: 0.24 } }}

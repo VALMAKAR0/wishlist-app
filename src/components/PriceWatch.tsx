@@ -44,6 +44,14 @@ export function PriceWatch({ item, link, onPrice }: { item: Item; link: string; 
   const [now] = useState(() => Date.now())
   const view = inRange(log, range, now)
   const st = statsOf(view, now)
+  const chart = (() => {
+    if (view.length >= 2) return { points: view, sketch: false }
+    const p = item.price ?? log[0]?.p
+    if (p === undefined) return null
+    const first = log[0]
+    const t0 = Math.min(first?.t ?? item.createdAt, now - 86_400_000)
+    return { points: [{ t: t0, p: first?.p ?? item.priceBase ?? p, k: first?.k ?? ('user' as const) }, { t: now, p, k: item.priceState ?? ('user' as const) }], sketch: true }
+  })()
   const [target, setTarget] = useState(item.priceTarget !== undefined ? priceText(item.priceTarget) : '')
   useEffect(() => setTarget(item.priceTarget !== undefined ? priceText(item.priceTarget) : ''), [item.priceTarget])
   const saveTarget = (text: string) => {
@@ -229,42 +237,47 @@ export function PriceWatch({ item, link, onPrice }: { item: Item; link: string; 
             </p>
           )}
 
-          {log.length >= 2 ? (
-            <>
-              {rangeUseful(log) && (
-                <div className="pw__range" role="radiogroup" aria-label={t('Zeitraum')}>
-                  {([30, 90, 0] as Range[]).map((r) => (
-                    <button key={r} type="button" role="radio" aria-checked={range === r} className="pw__rbtn" data-on={range === r} data-testid={`range-${r}`} onClick={() => setRange(r)}>
-                      {r === 30 ? t('1 Monat') : r === 90 ? t('3 Monate') : t('Alles')}
-                    </button>
-                  ))}
-                </div>
-              )}
-              <PriceChart key={range} points={view} base={item.priceBase} target={item.priceTarget} cur={cur} />
-              {st && !flat && (
-                <div className="pw__stats" data-testid="price-stats">
-                  <span>
-                    <small>{t('Tiefst')}</small>
-                    <strong data-good>{money(st.low.p, cur)}</strong>
-                    <em>{shortDay(st.low.t)}</em>
-                  </span>
-                  <span>
-                    <small>{t('Höchst')}</small>
-                    <strong>{money(st.high.p, cur)}</strong>
-                    <em>{shortDay(st.high.t)}</em>
-                  </span>
-                  <span>
-                    <small>{t('Schnitt')}</small>
-                    <strong>{money(st.avg, cur)}</strong>
-                    <em>{st.aboveLow <= 0.05 ? t('Jetzt am Tiefstpreis') : t('{p} % über Tiefst', { p: st.aboveLow.toLocaleString() })}</em>
-                  </span>
-                </div>
-              )}
-              {flat && <p className="pw__hint">{t('Unverändert seit {d}, {n} Messpunkte.', { d: longDate(log[0].t), n: log.length })}</p>}
-            </>
-          ) : (
-            <p className="pw__hint">{t('Noch kein Verlauf: Das Diagramm erscheint ab dem zweiten Messpunkt, einer pro Tag.')}</p>
+          <div className="pw__chartbox">
+            {rangeUseful(log) && (
+              <div className="pw__range" role="radiogroup" aria-label={t('Zeitraum')}>
+                {([30, 90, 0] as Range[]).map((r) => (
+                  <button key={r} type="button" role="radio" aria-checked={range === r} className="pw__rbtn" data-on={range === r} data-testid={`range-${r}`} onClick={() => setRange(r)}>
+                    {r === 30 ? t('1 Monat') : r === 90 ? t('3 Monate') : t('Alles')}
+                  </button>
+                ))}
+              </div>
+            )}
+            {chart ? (
+              <PriceChart key={range} points={chart.points} sketch={chart.sketch} base={item.priceBase} target={item.priceTarget} cur={cur} />
+            ) : (
+              <PriceChart points={[]} sketch base={undefined} target={item.priceTarget} cur={cur} />
+            )}
+            {log.length < 2 && (
+              <p className="pw__hint pw__hint--c">
+                {chart ? t('Erst ein Messpunkt. Mit jeder Prüfung wächst der Verlauf, ein Punkt pro Tag.') : t('Noch kein Preis. Trag einen ein oder prüfe den Link, dann beginnt hier der Verlauf.')}
+              </p>
+            )}
+          </div>
+          {st && !flat && log.length >= 2 && (
+            <div className="pw__stats" data-testid="price-stats">
+              <span>
+                <small>{t('Tiefst')}</small>
+                <strong data-good>{money(st.low.p, cur)}</strong>
+                <em>{shortDay(st.low.t)}</em>
+              </span>
+              <span>
+                <small>{t('Höchst')}</small>
+                <strong>{money(st.high.p, cur)}</strong>
+                <em>{shortDay(st.high.t)}</em>
+              </span>
+              <span>
+                <small>{t('Schnitt')}</small>
+                <strong>{money(st.avg, cur)}</strong>
+                <em>{st.aboveLow <= 0.05 ? t('Jetzt am Tiefstpreis') : t('{p} % über Tiefst', { p: st.aboveLow.toLocaleString() })}</em>
+              </span>
+            </div>
           )}
+          {flat && <p className="pw__hint">{t('Unverändert seit {d}, {n} Messpunkte.', { d: longDate(log[0].t), n: log.length })}</p>}
 
           <label className="pw__target" data-hit={hit || undefined}>
             <Target size={16} aria-hidden />
@@ -278,14 +291,16 @@ export function PriceWatch({ item, link, onPrice }: { item: Item; link: string; 
           </label>
 
           <div className="pw__foot">
-            <button type="button" className="btn btn--small btn--ghost" onClick={() => void check()} disabled={busy || !native || !hasLink} data-testid="price-check">
-              {busy ? <Loader2 size={14} className="spin" /> : <RefreshCw size={14} />} {t('Preis jetzt prüfen')}
-            </button>
-            <button type="button" className="btn btn--small btn--ghost" onClick={() => void choose()} disabled={busy || !native || !hasLink} data-testid="price-choose">
-              <ListChecks size={14} /> {item.priceSpot ? t('Andere Stelle wählen') : t('Preis-Stelle wählen')}
-            </button>
+            <div className="pw__btns">
+              <button type="button" className="btn btn--small btn--soft" onClick={() => void check()} disabled={busy || !native || !hasLink} data-testid="price-check">
+                {busy ? <Loader2 size={14} className="spin" /> : <RefreshCw size={14} />} {t('Preis jetzt prüfen')}
+              </button>
+              <button type="button" className="btn btn--small btn--soft" onClick={() => void choose()} disabled={busy || !native || !hasLink} data-testid="price-choose">
+                <ListChecks size={14} /> {item.priceSpot ? t('Andere Stelle wählen') : t('Preis-Stelle wählen')}
+              </button>
+            </div>
             <span className="pw__when">
-              {!native ? t('Nur in der Android-App') : !hasLink ? t('Ohne Link nicht möglich') : item.priceCheckedAt ? `${t('Zuletzt geprüft')}: ${agoLabel(item.priceCheckedAt, t)}` : t('Noch nie geprüft')}
+              {!native ? t('Prüfen geht nur in der Android-App') : !hasLink ? t('Ohne Link nicht möglich') : item.priceCheckedAt ? `${t('Zuletzt geprüft')}: ${agoLabel(item.priceCheckedAt, t)}` : t('Noch nie geprüft')}
             </span>
           </div>
           {msg && (

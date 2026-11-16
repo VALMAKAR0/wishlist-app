@@ -2201,8 +2201,8 @@ input[data-busy] { animation: busyGlow 1.1s ease-in-out infinite; }
   overflow-x: auto;
   scrollbar-width: none;
   scroll-snap-type: x proximity;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 18px), transparent 100%);
-  mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 18px), transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent 100%);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent 100%);
 }
 
 .ltools__row::-webkit-scrollbar {
@@ -2440,4 +2440,54 @@ input[data-busy] { animation: busyGlow 1.1s ease-in-out infinite; }
 
 
 
+
+
+/* ---------- Preisbereich, V0.14 ---------- */
+
+.btn--soft { color: var(--text); background: var(--card); box-shadow: inset 0 0 0 1px var(--hairline); }
+.btn--soft:hover:not(:disabled) { background: var(--card-hover); }
+.btn--soft:disabled { opacity: 0.5; }
+.pw { gap: 12px; padding: 14px; border-radius: 18px; }
+.pw__chartbox { display: grid; gap: 6px; padding: 10px 8px 8px; border-radius: 14px; background: var(--card); box-shadow: inset 0 0 0 1px var(--hairline); }
+.pw__chartbox .pw__range { margin: 0 4px; }
+.pchart { width: 100%; height: auto; overflow: visible; }
+.pchart__grid { stroke: var(--hairline); stroke-width: 1; }
+.pchart__ghost { fill: none; stroke: var(--text-3); stroke-width: 2; stroke-dasharray: 5 6; opacity: 0.4; }
+.pchart__line[data-sketch] { stroke-dasharray: 5 5; opacity: 0.85; }
+.pchart__val { font-size: 12.5px; font-weight: 800; paint-order: stroke; stroke: var(--card); stroke-width: 4px; stroke-linejoin: round; }
+.pchart__day { font-size: 10.5px; font-weight: 600; }
+.pchart__target text { paint-order: stroke; stroke: var(--card); stroke-width: 3px; }
+.pchart__dot { stroke: var(--card); transform-box: fill-box; transform-origin: center; }
+.pw__hint--c { text-align: center; margin: 0 6px 2px; }
+.pw__foot { display: grid; gap: 6px; justify-content: stretch; align-items: stretch; }
+.pw__btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pw__btns .btn { width: 100%; height: 40px; padding: 0 10px; font-size: calc(13px * var(--fs, 1)); }
+.pw__when { text-align: center; }
+.pw__target { grid-template-columns: auto minmax(0, 1fr) 104px; }
+.pw__tin input {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  outline: none;
+  text-align: right;
+  font: inherit;
+  font-size: calc(15px * var(--fs, 1));
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  background: var(--field);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+  transition: box-shadow 0.18s;
+}
+.pw__tin input:focus { box-shadow: inset 0 0 0 2px var(--accent); }
+.pw__tin input::placeholder { color: var(--text-3); font-weight: 600; }
+.pw__stats span { padding: 9px 10px; }
+
+/* ---------- Breite Bildschirme (Tablet quer), V0.14 ---------- */
+@media (min-width: 1100px) {
+  .page__bar-row, .page__inner { max-width: 880px; }
+  .ltiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 

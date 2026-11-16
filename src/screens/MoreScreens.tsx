@@ -58,21 +58,14 @@ export function MoreScreen() {
 
   return (
     <Page title={t('Mehr')} eyebrow={`${APP_NAME} · V${APP_VERSION}`} subtitle={t('Einstellungen und alles andere')}>
-      <motion.aside className="preview-note" data-warn={storage === 'memory'} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
-        <Flame size={18} />
-        <p>
-          {storage === 'memory' ? (
-            <>
-              <strong>{t('Speichern nicht möglich.')}</strong> {t('Einträge gelten nur, bis du die App schließt.')}
-            </>
-          ) : (
-            <>
-              <strong>{t('Vorschau (V{v}).', { v: APP_VERSION.split('.').slice(0, 2).join('.') })}</strong> {t('Deine Einträge bleiben auf diesem Gerät gespeichert. Installieren wie eine App folgt.')}{' '}
-              <button onClick={() => open({ type: 'roadmap' })}>{t('Roadmap')}</button>
-            </>
-          )}
-        </p>
-      </motion.aside>
+      {storage === 'memory' && (
+        <motion.aside className="preview-note" data-warn initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
+          <Flame size={18} />
+          <p>
+            <strong>{t('Speichern nicht möglich.')}</strong> {t('Einträge gelten nur, bis du die App schließt.')}
+          </p>
+        </motion.aside>
+      )}
 
       <div className="card spot bkmini">
         <Ring value={days === null ? 0.04 : Math.max(0.06, 1 - Math.min(days, 30) / 30)} size={44} stroke={5} hue={stale ? 20 : 150}>

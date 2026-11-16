@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 16.11.2026 · Status: V0.13.0 (Sortieren, Filter, Suche, Wichtigkeit, Wunschpreis, neues Preisdiagramm, Budget, kurze Namen, bessere Art-Erkennung; V0.12: Weitere Shops, Update-Download über den Android-Downloader; Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
+Stand: 16.11.2026 · Status: V0.14.0 (Feinschliff: Preisdiagramm immer sichtbar; V0.13: Sortieren, Filter, Suche, Wichtigkeit, Wunschpreis, neues Preisdiagramm, Budget, kurze Namen, bessere Art-Erkennung; V0.12: Weitere Shops, Update-Download über den Android-Downloader; Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -211,6 +211,7 @@ Eigener Tab mit Auswertungen über alles: Gesamtausgaben (für mich und für and
 - **V0.11 (erledigt, ungetestet auf Gerät):** Tägliche Prüfung im Hintergrund mit Meldung bei Preissenkung, nur Android (siehe 31)
 - **V0.11.x / V0.12 (erledigt, ungetestet auf Gerät):** Wünsche verschieben (V0.11.4), Kopfzeile (V0.11.5), weitere Shops und nativer Update-Download (V0.12.0), siehe 35 bis 37
 - **V0.13 (erledigt, ungetestet auf Gerät):** Ordnung und Preise: Sortieren, Filter, Suche, Wichtigkeit, Wunschpreis mit Meldung, Preisdiagramm mit Zeitraum und Kennzahlen, Budget für Ideenlisten, kurze Namen, bessere Art-Erkennung (siehe 39)
+- **V0.14 (erledigt, ungetestet auf Gerät):** Feinschliff an Aussehen und Abläufen, Preisdiagramm immer sichtbar (siehe 40)
 - **V1.0:** Test auf echten Geräten, Release (Checkliste in 38)
 
 ## 17. Entwicklung
@@ -605,4 +606,14 @@ Jeden Punkt abhaken oder mit einem Satz melden, was hakt.
 - **Weiches Laden:** Bilder blenden ein statt aufzuploppen, bis dahin schimmert die Fläche; einmal geladene Bilder erscheinen sofort. Beim Lesen eines Links schimmern Name und Preis. Bei "Bewegung reduzieren" ohne Animation.
 - **Feinschliff:** Dunkle Fenster etwas deckender, Kennzahlen mit kurzen Datumsangaben, Demo-Daten mit Verlauf, Wunschpreis, Wichtigkeit und Budget.
 - **Tests:** `v013.test.ts` (Diagramm, Sortierung, Filter, Teilen der Wichtigkeit), `names.test.ts`, `kind2.test.ts`, `runner.test.ts` (Wunschpreis-Meldung), `v0130.cjs` (Browser: Sortierung, Filter, Suche, Art, Etiketten, Wichtigkeit, Tracker, Budget). Der Hintergrund-Läufer `public/runners/background.js` ist neu gebaut (`npm run runner`).
+
+## 40. Feinschliff (V0.14.0)
+- **Vorgehen:** Screenshot-Rundgang durch alle Ansichten (Handy hell/dunkel, Tablet hoch und quer), Mängel gesammelt und behoben, danach erneut fotografiert.
+- **Preisdiagramm immer sichtbar:** Der Bereich "Preis beobachten" erscheint bei jedem gespeicherten Eintrag, auch ohne Link. Ohne Verlauf zeigt das Diagramm eine gestrichelte Skizze vom Anlegen bis heute ("Erst ein Messpunkt …"), ohne Preis ein leeres Diagramm mit Hinweis. Ab zwei Messpunkten der echte Verlauf.
+- **Diagramm:** Wird in echter Pixelbreite gezeichnet (`ResizeObserver`), Schrift und Linien bleiben auf Handy und Tablet gleich groß. Feine Hilfslinien, Linie zeichnet sich beim Öffnen, Punkte springen nacheinander auf, Beschriftungen mit Kontur für Lesbarkeit. Zeitraum-Auswahl sitzt im Diagramm-Kasten.
+- **Preis-Ansicht aufgeräumt:** "Preis jetzt prüfen" und "Preis-Stelle wählen" gleich breit nebeneinander, Status darunter mittig. Wunschpreis-Feld im Stil der übrigen Felder.
+- **Listen:** Umsortieren und Filtern gleiten bei bis zu 60 Einträgen weich an die neue Stelle (`layout`, `popLayout`). Die Filterleiste blendet nur rechts aus, die Lupe ist ganz sichtbar.
+- **Tablet quer (ab 1100 px):** Inhalt bis 880 px breit, Listen-Kacheln dreispaltig.
+- **Mehr:** Der veraltete Hinweis "Vorschau … Installieren wie eine App folgt" ist weg, es bleibt nur die Warnung, wenn nicht gespeichert werden kann.
+- **Tests:** `v0140.cjs` (Skizze, leeres Diagramm, echte Breite, Knöpfe, Hinweis entfernt).
 

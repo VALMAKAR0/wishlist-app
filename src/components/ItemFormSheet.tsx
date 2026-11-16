@@ -571,7 +571,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
       {ui.settings.priceSearch && <PriceSearch name={name} />}
       <Presence show={chooser}>{chooser && <PriceChooser candidates={report?.candidates ?? []} current={parsePriceInput(price) || undefined} spot={spotRef.current ?? stored?.priceSpot} cur={cur} onPick={pickPrice} onClose={() => setChooser(false)} />}</Presence>
 
-      {stored && ui.settings.priceWatch && !!(link.trim() || stored.priceLog?.length) && (
+      {stored && ui.settings.priceWatch && (
         <PriceWatch
           item={stored}
           link={link}
