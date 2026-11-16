@@ -114,3 +114,53 @@ export async function saveFile(bytes: Uint8Array, name: string): Promise<Deliver
 export async function exportFile(bytes: Uint8Array, name: string, type: string): Promise<Delivered> {
   return isNative() ? shareNative(bytes, name) : shareOrDownload(bytes, name, undefined, type)
 }
+
+export interface OutFile {
+  bytes: Uint8Array
+  name: string
+  type: string
+}
+
+/** Mehrere fertige Dateien (z. B. Bildteile): ein Teilen-Menü mit allen, sonst nacheinander als Download. */
+export async function exportFiles(files: OutFile[], text?: string): Promise<Delivered> {
+  if (files.length === 1) return exportFile(files[0].bytes, files[0].name, files[0].type)
+  if (isNative()) {
+    const uris: string[] = []
+    for (const f of files) uris.push((await Filesystem.writeFile({ path: f.name, data: toBase64(f.bytes), directory: Directory.Cache })).uri)
+    try {
+      await Share.share({ title: files[0].name, text, files: uris })
+      return { where: 'shared' }
+    } catch (e) {
+      if (/cancel/i.test(String((e as Error)?.message ?? e))) return { where: 'cancelled' }
+      throw e
+    }
+  }
+  const list = files.map((f) => new File([f.bytes as BlobPart], f.name, { type: f.type }))
+  if (touch() && navigator.canShare?.({ files: list })) {
+    try {
+      await navigator.share({ files: list, title: files[0].name, text })
+      return { where: 'shared' }
+    } catch (e) {
+      if ((e as Error)?.name === 'AbortError') return { where: 'cancelled' }
+    }
+  }
+  for (const f of list) {
+    const url = URL.createObjectURL(f)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = f.name
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 10_000)
+    await new Promise((r) => setTimeout(r, 350))
+  }
+  return { where: 'download' }
+}
+
+/** Legt mehrere Dateien zum Selbstversenden ab (Android-App: Dokumente/Wunschliste). */
+export async function saveFiles(files: OutFile[]): Promise<Delivered> {
+  let last: Delivered = { where: 'download' }
+  for (const f of files) last = await saveFile(f.bytes, f.name)
+  return last
+}

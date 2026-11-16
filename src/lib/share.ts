@@ -41,10 +41,12 @@ export interface ShareCounts {
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
-export function shareFileName(name: string, at = new Date()): string {
+export function exportFileName(name: string, ext: string, at = new Date(), part?: number): string {
   const slug = name.normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'liste'
-  return `wunschliste-von-${slug}-${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}.${SHARE_EXT}`
+  return `wunschliste-von-${slug}-${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}${part ? `-${part}` : ''}.${ext}`
 }
+
+export const shareFileName = (name: string, at = new Date()) => exportFileName(name, SHARE_EXT, at)
 
 interface Source {
   items: Item[]

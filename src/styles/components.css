@@ -923,6 +923,19 @@
   overflow: hidden;
 }
 
+.hint--tight {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 9px 2px 0;
+  line-height: 1.4;
+}
+
+.hint--tight > svg {
+  flex: none;
+  margin-top: 2px;
+}
+
 .hint--lock {
   display: flex;
   align-items: center;

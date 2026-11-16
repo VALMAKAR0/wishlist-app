@@ -1,15 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Check, ChevronDown, EyeOff, FolderDown, Lock, Send } from 'lucide-react'
+import { Check, ChevronDown, EyeOff, FileText, FolderDown, ImageIcon, Lock, Package, Send } from 'lucide-react'
 import { APP_VERSION } from '../lib/brand'
-import { isNative, saveFile, shareFile } from '../lib/backupFiles'
+import { exportFiles, isNative, saveFile, saveFiles, shareFile, type OutFile } from '../lib/backupFiles'
+import { makePdf, makePngs } from '../lib/exportList'
 import { listTitle } from '../lib/lists'
-import { buildShare, estimateBytes, type ShareOptions } from '../lib/share'
+import { buildShare, estimateBytes, exportFileName, pickShared, type ShareOptions } from '../lib/share'
+import { loadImages } from '../lib/backup'
 import type { ShareBought } from '../lib/types'
 import { useStore } from '../state/store'
+import { cap } from '../lib/i18n'
 import { useT, useUI } from '../state/ui'
 import { Cover, CountUp, Segmented, Switch } from './Primitives'
 import { Sheet } from './Sheet'
+
+type Fmt = 'file' | 'pdf' | 'png'
 
 export function ShareSheet({ onClose, initialList }: { onClose: () => void; initialList?: string }) {
   const t = useT()
@@ -22,12 +27,15 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
   const [price, setPrice] = useState(settings.shareDefaults.price)
   const [images, setImages] = useState(settings.shareDefaults.images)
   const [listDate, setListDate] = useState(settings.shareDefaults.listDate)
-  const [mode, setMode] = useState<ShareBought>(settings.shareDefaults.bought)
+  const [pick, setMode] = useState<ShareBought>(settings.shareDefaults.bought)
+  const [fmt, setFmt] = useState<Fmt>('file')
   const [name, setName] = useState(settings.shareName)
   const [adv, setAdv] = useState(false)
   const [shake, setShake] = useState(0)
   const [busy, setBusy] = useState(false)
   const [bytes, setBytes] = useState<number | null>(null)
+
+  const mode: ShareBought = fmt === 'file' ? pick : 'exclude'
 
   const toggle = (id: string) =>
     setPicked((prev) => {
@@ -68,13 +76,14 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
 
   useEffect(() => {
     let off = false
+    if (fmt !== 'file') return
     void estimateBytes({ items, lists }, opts, t).then((n) => {
       if (!off) setBytes(n)
     })
     return () => {
       off = true
     }
-  }, [optsKey, items, lists])
+  }, [optsKey, items, lists, fmt])
 
   const send = async (save = false) => {
     if (!name.trim()) {
@@ -84,10 +93,27 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
     }
     setBusy(true)
     try {
-      setSettings({ shareName: name.trim(), shareDefaults: { notes, price, images, listDate, bought: mode } })
-      const out = await buildShare({ items, lists }, opts, t, APP_VERSION)
-      const text = t('{name} schickt dir die Wunschliste. Öffne die Datei in der App „Wunschliste“ unter „Erhalten“ → „Import“.', { name: name.trim() })
-      const r = save ? await saveFile(out.bytes, out.name) : await shareFile(out.bytes, out.name, text)
+      setSettings({ shareName: name.trim(), shareDefaults: { notes, price, images, listDate, bought: pick } })
+      const now = Date.now()
+      const at = new Date(now)
+      let r
+      if (fmt === 'file') {
+        const out = await buildShare({ items, lists }, opts, t, APP_VERSION)
+        const text = t('{name} schickt dir die Wunschliste. Öffne die Datei in der App „Wunschliste“ unter „Erhalten“ → „Import“.', { name: name.trim() })
+        r = save ? await saveFile(out.bytes, out.name) : await shareFile(out.bytes, out.name, text)
+      } else {
+        const { collections } = pickShared({ items, lists }, opts, t)
+        const ids = [...new Set(collections.flatMap((c) => c.items.flatMap((i) => (i.imageId ? [i.imageId] : []))))]
+        const input = { from: name.trim(), hue: settings.hue, lists: collections, images: await loadImages(ids), t, now }
+        let files: OutFile[]
+        if (fmt === 'pdf') files = [{ bytes: await makePdf(input), name: exportFileName(name, 'pdf', at), type: 'application/pdf' }]
+        else {
+          const parts = await makePngs(input)
+          files = parts.map((bytes, n) => ({ bytes, name: exportFileName(name, 'png', at, parts.length > 1 ? n + 1 : undefined), type: 'image/png' }))
+        }
+        const text = t('Meine Wunschliste')
+        r = save ? await saveFiles(files) : await exportFiles(files, text)
+      }
       if (r.where === 'cancelled') return
       ui.haptic(18)
       ui.toast({ emoji: '📤', message: r.where === 'download' ? t('Datei heruntergeladen. Schick sie z. B. per WhatsApp.') : r.where === 'documents' ? t('Gespeichert unter Dokumente/Wunschliste. Hänge sie in WhatsApp als Dokument an.') : t('Wunschliste geteilt') })
@@ -110,16 +136,37 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
       footer={
         <>
           <button className="btn btn--primary btn--block" disabled={nothing || busy} onClick={() => void send()}>
-            <Send size={17} /> {t('Datei teilen')}
+            {busy ? <Package size={17} /> : <Send size={17} />} {busy ? t('Wird erstellt …') : fmt === 'pdf' ? t('PDF teilen') : fmt === 'png' ? t('Bild teilen') : t('Datei teilen')}
           </button>
           {isNative() && (
             <button className="btn btn--ghost btn--block" style={{ marginTop: 8 }} disabled={nothing || busy} onClick={() => void send(true)}>
-              <FolderDown size={17} /> {t('Als Datei speichern')}
+              <FolderDown size={17} /> {fmt === 'pdf' ? t('Als PDF speichern') : fmt === 'png' ? t('Als Bild speichern') : t('Als Datei speichern')}
             </button>
           )}
         </>
       }
     >
+      <div className="field">
+        <Segmented
+          id="share-fmt"
+          value={fmt}
+          onChange={setFmt}
+          options={[
+            { value: 'file', label: t('App-Datei') },
+            { value: 'pdf', label: 'PDF' },
+            { value: 'png', label: cap(t('Bild')) },
+          ]}
+        />
+        <p className="hint hint--tight">
+          {fmt === 'file' ? <Package size={13} /> : fmt === 'pdf' ? <FileText size={13} /> : <ImageIcon size={13} />}{' '}
+          {fmt === 'file'
+            ? t('Für Leute mit der App. Sie können die Liste importieren und Dinge abhaken.')
+            : fmt === 'pdf'
+              ? t('Zum Lesen und Drucken, auch ohne App. Wünsche mit Link lassen sich antippen und öffnen den Shop.')
+              : t('Ein Bild zum Speichern oder Verschicken, auch ohne App. Bilder haben keine antippbaren Links.')}
+        </p>
+      </div>
+
       <motion.label key={`n${shake}`} className="field" animate={shake ? { x: [0, -9, 9, -6, 6, 0] } : undefined} transition={{ duration: 0.4 }}>
         <span>{t('Dein Name')}</span>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('So steht es beim Empfänger')} maxLength={40} data-invalid={shake > 0 && !name.trim()} />
@@ -176,7 +223,7 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
         </div>
       </div>
 
-      {mb && (
+      {fmt === 'file' && mb && (
         <p className="hint" data-warn={big}>
           {t('Dateigröße ca. {size}', { size: mb })}
           {big ? ` · ${t('Discord erlaubt ohne Abo nur 10 MB. Schalte unter „Erweiterte Einstellungen“ die Bilder aus.')}` : ''}
@@ -219,11 +266,12 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
               <Switch checked={listDate} onChange={setListDate} label={t('Datum der Liste mitsenden')} />
             </div>
 
+            {fmt === 'file' && (
             <div className="field">
               <span>{t('Gekaufte Artikel')}</span>
               <Segmented
                 id="share-bought"
-                value={mode}
+                value={pick}
                 onChange={setMode}
                 options={[
                   { value: 'hidden', label: t('Unauffällig') },
@@ -232,15 +280,16 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
                 ]}
               />
               <AnimatePresence mode="wait" initial={false}>
-                <motion.div key={mode} className="explain" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}>
+                <motion.div key={pick} className="explain" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}>
                   <EyeOff size={18} />
                   <div>
-                    <strong>{MODE_TEXT[mode].title}</strong>
-                    <p>{MODE_TEXT[mode].text}</p>
+                    <strong>{MODE_TEXT[pick].title}</strong>
+                    <p>{MODE_TEXT[pick].text}</p>
                   </div>
                 </motion.div>
               </AnimatePresence>
             </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
