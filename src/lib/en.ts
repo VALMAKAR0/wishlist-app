@@ -765,6 +765,12 @@ export const en: Record<string, string> = {
   'Test auf echten Geräten.': 'Testing on real devices.',
 
   // V0.15
+  'Vorschau': 'Preview',
+  'Als Text kopiert': 'Copied as text',
+  'Kopieren hat nicht geklappt.': 'Copying did not work.',
+  'Text kopieren': 'Copy text',
+  'Text teilen': 'Share text',
+  'Die Liste als Text, z. B. für WhatsApp oder Notizen. Links stehen direkt beim Wunsch.': 'The list as text, e.g. for WhatsApp or notes. Links sit right at each wish.',
   'PDF und Bild': 'PDF and image',
   'Stand {date}': 'As of {date}',
   'Erstellt mit der App Wunschliste': 'Made with the Wunschliste app',
@@ -781,7 +787,7 @@ export const en: Record<string, string> = {
   'Für Leute mit der App. Sie können die Liste importieren und Dinge abhaken.': 'For people with the app. They can import the list and tick things off.',
   'Zum Lesen und Drucken, auch ohne App. Wünsche mit Link lassen sich antippen und öffnen den Shop.': 'For reading and printing, no app needed. Wishes with a link can be tapped to open the shop.',
   'Ein Bild zum Speichern oder Verschicken, auch ohne App. Bilder haben keine antippbaren Links.': 'An image to save or send, no app needed. Images cannot have tappable links.',
-  'Listen als PDF oder Bild teilen, auch für Leute ohne die App.': 'Share lists as PDF or image, also for people without the app.',
+  'Listen als PDF, Bild oder Text teilen, auch für Leute ohne die App.': 'Share lists as PDF, image or text, also for people without the app.',
   // V0.14
   Feinschliff: 'Polish',
   'Preisdiagramm immer sichtbar und pixelgenau, ruhigere Preis-Ansicht, weiches Umsortieren, breiteres Tablet-Layout.': 'Price chart always visible and pixel-sharp, calmer price view, smooth re-sorting, wider tablet layout.',

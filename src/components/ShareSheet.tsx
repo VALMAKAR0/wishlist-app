@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Check, ChevronDown, EyeOff, FileText, FolderDown, ImageIcon, Lock, Package, Send } from 'lucide-react'
+import { AlignLeft, Check, ChevronDown, Copy, EyeOff, FileText, FolderDown, ImageIcon, Lock, Package, Send } from 'lucide-react'
 import { APP_VERSION } from '../lib/brand'
 import { exportFiles, isNative, saveFile, saveFiles, shareFile, type OutFile } from '../lib/backupFiles'
 import { makePdf, makePngs } from '../lib/exportList'
+import { canShareText, copyText, makeText, shareText } from '../lib/exportText'
 import { listTitle } from '../lib/lists'
 import { buildShare, estimateBytes, exportFileName, pickShared, type ShareOptions } from '../lib/share'
 import { loadImages } from '../lib/backup'
@@ -14,7 +15,7 @@ import { useT, useUI } from '../state/ui'
 import { Cover, CountUp, Segmented, Switch } from './Primitives'
 import { Sheet } from './Sheet'
 
-type Fmt = 'file' | 'pdf' | 'png'
+type Fmt = 'file' | 'pdf' | 'png' | 'text'
 
 export function ShareSheet({ onClose, initialList }: { onClose: () => void; initialList?: string }) {
   const t = useT()
@@ -85,6 +86,31 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
     }
   }, [optsKey, items, lists, fmt])
 
+  const textOut = useMemo(() => (fmt === 'text' ? makeText({ from: name.trim() || t('Dein Name'), lists: pickShared({ items, lists }, opts, t).collections, t }) : ''), [fmt, name, optsKey, items, lists])
+
+  const sendText = async (copy: boolean) => {
+    if (!name.trim()) {
+      setShake((n) => n + 1)
+      ui.haptic(30)
+      return
+    }
+    setSettings({ shareName: name.trim(), shareDefaults: { notes, price, images, listDate, bought: pick } })
+    try {
+      if (copy) {
+        const ok = await copyText(textOut)
+        ui.haptic(18)
+        ui.toast({ emoji: ok ? '📋' : '⚠️', message: ok ? t('Als Text kopiert') : t('Kopieren hat nicht geklappt.') })
+        if (ok) onClose()
+        return
+      }
+      if ((await shareText(textOut, t('Meine Wunschliste'))) === 'cancelled') return
+      ui.haptic(18)
+      onClose()
+    } catch {
+      ui.toast({ message: t('Teilen hat nicht geklappt.'), emoji: '⚠️' })
+    }
+  }
+
   const send = async (save = false) => {
     if (!name.trim()) {
       setShake((n) => n + 1)
@@ -135,6 +161,19 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
       onClose={onClose}
       footer={
         <>
+          {fmt === 'text' ? (
+            <>
+              <button className="btn btn--primary btn--block" disabled={nothing} onClick={() => void sendText(true)}>
+                <Copy size={17} /> {t('Text kopieren')}
+              </button>
+              {canShareText() && (
+                <button className="btn btn--ghost btn--block" style={{ marginTop: 8 }} disabled={nothing} onClick={() => void sendText(false)}>
+                  <Send size={17} /> {t('Text teilen')}
+                </button>
+              )}
+            </>
+          ) : (
+          <>
           <button className="btn btn--primary btn--block" disabled={nothing || busy} onClick={() => void send()}>
             {busy ? <Package size={17} /> : <Send size={17} />} {busy ? t('Wird erstellt …') : fmt === 'pdf' ? t('PDF teilen') : fmt === 'png' ? t('Bild teilen') : t('Datei teilen')}
           </button>
@@ -142,6 +181,8 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
             <button className="btn btn--ghost btn--block" style={{ marginTop: 8 }} disabled={nothing || busy} onClick={() => void send(true)}>
               <FolderDown size={17} /> {fmt === 'pdf' ? t('Als PDF speichern') : fmt === 'png' ? t('Als Bild speichern') : t('Als Datei speichern')}
             </button>
+          )}
+          </>
           )}
         </>
       }
@@ -155,15 +196,18 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
             { value: 'file', label: t('App-Datei') },
             { value: 'pdf', label: 'PDF' },
             { value: 'png', label: cap(t('Bild')) },
+            { value: 'text', label: t('Text') },
           ]}
         />
         <p className="hint hint--tight">
-          {fmt === 'file' ? <Package size={13} /> : fmt === 'pdf' ? <FileText size={13} /> : <ImageIcon size={13} />}{' '}
+          {fmt === 'file' ? <Package size={13} /> : fmt === 'pdf' ? <FileText size={13} /> : fmt === 'text' ? <AlignLeft size={13} /> : <ImageIcon size={13} />}{' '}
           {fmt === 'file'
             ? t('Für Leute mit der App. Sie können die Liste importieren und Dinge abhaken.')
             : fmt === 'pdf'
               ? t('Zum Lesen und Drucken, auch ohne App. Wünsche mit Link lassen sich antippen und öffnen den Shop.')
-              : t('Ein Bild zum Speichern oder Verschicken, auch ohne App. Bilder haben keine antippbaren Links.')}
+              : fmt === 'text'
+                ? t('Die Liste als Text, z. B. für WhatsApp oder Notizen. Links stehen direkt beim Wunsch.')
+                : t('Ein Bild zum Speichern oder Verschicken, auch ohne App. Bilder haben keine antippbaren Links.')}
         </p>
       </div>
 
@@ -171,6 +215,13 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
         <span>{t('Dein Name')}</span>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('So steht es beim Empfänger')} maxLength={40} data-invalid={shake > 0 && !name.trim()} />
       </motion.label>
+
+      {fmt === 'text' && !nothing && (
+        <div className="field">
+          <span>{t('Vorschau')}</span>
+          <pre className="textprev" data-testid="text-preview">{textOut}</pre>
+        </div>
+      )}
 
       <div className="field">
         <span>{t('Welche Listen?')}</span>

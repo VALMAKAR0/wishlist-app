@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 16.11.2026 · Status: V0.15.0 (Teilen als PDF und Bild; V0.14: Feinschliff: Preisdiagramm immer sichtbar; V0.13: Sortieren, Filter, Suche, Wichtigkeit, Wunschpreis, neues Preisdiagramm, Budget, kurze Namen, bessere Art-Erkennung; V0.12: Weitere Shops, Update-Download über den Android-Downloader; Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
+Stand: 16.11.2026 · Status: V0.15.1 (Teilen als PDF, Bild und Text; V0.14: Feinschliff: Preisdiagramm immer sichtbar; V0.13: Sortieren, Filter, Suche, Wichtigkeit, Wunschpreis, neues Preisdiagramm, Budget, kurze Namen, bessere Art-Erkennung; V0.12: Weitere Shops, Update-Download über den Android-Downloader; Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -626,3 +626,8 @@ Jeden Punkt abhaken oder mit einem Satz melden, was hakt.
 - **Gerätetest:** PDF in WhatsApp senden und dort öffnen, Link-Tipp im PDF-Betrachter des Handys prüfen, Bild-Teile mit sehr langer Liste.
 - **Tests:** `v0150.cjs` (Umschalter, Name Pflicht, PDF gültig, Links) und `v0150b.cjs` (40 Wünsche mit Bildern, lange Namen, mehrere Seiten, URL-Kodierung, Bild).
 - **App-Symbol (Android):** Der Vordergrund des Launcher-Symbols ist jetzt eine Vektorgrafik (`drawable/ic_launcher_foreground.xml`) statt fester Bilder. Damit bleibt es auf jedem Gerät und beim Hochskalieren (Start-Bildschirm ab Android 12, große Tablet-Raster) scharf. In der Cloud nicht baubar, beim nächsten Build prüfen: Symbol im Launcher und beim App-Start ansehen.
+
+## 42. Teilen als Text (V0.15.1)
+- **Wo:** Teilen-Fenster, vierter Reiter "Text". Zeigt eine Vorschau und kopiert die Liste mit "Text kopieren" in die Zwischenablage. Wo das Gerät es kann, gibt es "Text teilen" über das Teilen-Menü.
+- **Aufbau:** Kopfzeile mit Name, Anzahl und Datum, je Liste ein Abschnitt (Symbol, Name, Datum, Anzahl), je Wunsch eine nummerierte Zeile mit Preis und Herzen, darunter Art/Notiz und der ausgeschriebene Link mit 🔗. Wichtigste zuerst, Gekauftes und Ideen für andere nie dabei.
+- **Test:** `v0151.cjs`.
