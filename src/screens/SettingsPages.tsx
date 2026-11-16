@@ -288,12 +288,12 @@ function LookPage() {
               options={[{ value: 'wishes', label: t('Wünsche') }, { value: 'ideas', label: t('Ideen') }, { value: 'received', label: t('Erhalten') }, { value: 'stats', label: t('Statistik') }, { value: 'last', label: t('Zuletzt benutzt') }]}
             />
           </Choice>
-          <Choice title={t('Sortierung')} text={t('Reihenfolge der offenen Einträge in Listen.')}>
+          <Choice title={t('Sortierung')} text={t('Reihenfolge in Listen. Lässt sich auch direkt über der Liste ändern.')}>
             <ChipChoice<SortMode>
               label={t('Sortierung')}
               value={settings.sort}
               onChange={(sort) => setSettings({ sort })}
-              options={[{ value: 'new', label: t('Neueste zuerst') }, { value: 'old', label: t('Älteste zuerst') }, { value: 'name', label: t('Name A–Z') }, { value: 'priceDown', label: t('Teuerste zuerst') }, { value: 'priceUp', label: t('Günstigste zuerst') }]}
+              options={[{ value: 'new', label: t('Neueste zuerst') }, { value: 'old', label: t('Älteste zuerst') }, { value: 'name', label: t('Name A–Z') }, { value: 'priceDown', label: t('Teuerste zuerst') }, { value: 'priceUp', label: t('Günstigste zuerst') }, { value: 'prio', label: t('Wichtigste zuerst') }, { value: 'drop', label: t('Größte Preissenkung') }]}
             />
           </Choice>
         </div>

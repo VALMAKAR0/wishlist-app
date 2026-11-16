@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 16.11.2026 · Status: V0.12.0 (Weitere Shops mit Preisvergleich, Update-Download über den Android-Downloader; Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
+Stand: 16.11.2026 · Status: V0.13.0 (Sortieren, Filter, Suche, Wichtigkeit, Wunschpreis, neues Preisdiagramm, Budget, kurze Namen, bessere Art-Erkennung; V0.12: Weitere Shops, Update-Download über den Android-Downloader; Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -210,6 +210,7 @@ Eigener Tab mit Auswertungen über alles: Gesamtausgaben (für mich und für and
 - **V0.10 (erledigt, ungetestet auf Gerät):** Preisverlauf: "Preis jetzt prüfen", Diagramm, Etikett an der Karte, "Alle Preise prüfen" (siehe 30)
 - **V0.11 (erledigt, ungetestet auf Gerät):** Tägliche Prüfung im Hintergrund mit Meldung bei Preissenkung, nur Android (siehe 31)
 - **V0.11.x / V0.12 (erledigt, ungetestet auf Gerät):** Wünsche verschieben (V0.11.4), Kopfzeile (V0.11.5), weitere Shops und nativer Update-Download (V0.12.0), siehe 35 bis 37
+- **V0.13 (erledigt, ungetestet auf Gerät):** Ordnung und Preise: Sortieren, Filter, Suche, Wichtigkeit, Wunschpreis mit Meldung, Preisdiagramm mit Zeitraum und Kennzahlen, Budget für Ideenlisten, kurze Namen, bessere Art-Erkennung (siehe 39)
 - **V1.0:** Test auf echten Geräten, Release (Checkliste in 38)
 
 ## 17. Entwicklung
@@ -580,6 +581,10 @@ Jeden Punkt abhaken oder mit einem Satz melden, was hakt.
 - **Kopfzeile:** In langer Liste scrollen, Listenname bleibt neben den Knöpfen lesbar.
 - **Verschieben:** Auswählen (Knopf und langes Drücken), zwei Wünsche verschieben, Rückgängig, neue Liste anlegen.
 - **Weitere Shops:** Zweiten Shop-Link einfügen, Preis wird gelesen (oder "kein Preis"), "Als Hauptlink" bei günstigerem Shop.
+- **Sortieren und Filtern (V0.13):** Sortierung wechseln, Filter-Chips antippen, Suche, Art-Auswahl; fühlt sich das auf dem Handy flüssig an?
+- **Wunschpreis (V0.13):** Wunschpreis knapp über dem aktuellen Preis setzen, Hintergrundprüfung "Jetzt prüfen": kommt "Wunschpreis erreicht"?
+- **Diagramm (V0.13):** Im Verlauf tippen und ziehen, Zeitraum wechseln.
+- **Budget (V0.13):** Bei einer Ideenliste Budget setzen, Balken prüfen.
 - **Preise:** "Preis jetzt prüfen" mit Amazon-Link und einem anderen Shop. Stimmt der Preis? Wenn nicht: Link und gelesenen Preis melden.
 - **Hintergrund-Prüfung:** Mehr → App → Hintergrundprüfung einschalten, nach dem nächsten Morgen: Meldung bei Preissenkung?
 - **Erinnerungen:** Anlass mit Erinnerung für morgen anlegen, Benachrichtigung kommt zur Uhrzeit.
@@ -588,4 +593,16 @@ Jeden Punkt abhaken oder mit einem Satz melden, was hakt.
 - **iPhone (Freundin):** Web-App installieren (Teilen → Zum Home-Bildschirm), Eintrag anlegen, App neu öffnen, Eintrag noch da.
 - **Zurück-Taste (Android):** Schließt zuerst Fenster, dann Ansicht, erst am Start die App.
 - **Statusleiste (Android):** Passt die Farbe der Uhrzeit-Leiste zu hell und dunkel?
+
+## 39. Ordnung und Preise (V0.13.0)
+- **Werkzeugleiste über jeder Liste (`ListTools.tsx`, `lib/listQuery.ts`):** ab zwei Einträgen. Lupe (Suche in Name, Art, Notiz und Shop, ohne Rücksicht auf Umlaute und Groß/klein), Sortierung (Neueste, Älteste, Name, Günstigste, Teuerste, Wichtigste, Größte Preissenkung; gilt für alle Listen und wird gemerkt, Einträge ohne Preis stehen bei Preis-Sortierung hinten), Art-Auswahl (ab zwei Arten), Filter-Chips mit Anzahl (Wichtig, Preis gesunken, Wunschpreis erreicht, Mit Link, Ohne Preis, Mit Notiz; nur Chips mit Treffern, mehrere = UND). Zeile "n von m · Filter zurücksetzen", bei null Treffern "Nichts gefunden". Filter gelten für Offen und Archiv und enden beim Listenwechsel. "Alle" in der Auswahl nimmt nur die gefilterten.
+- **Wichtigkeit (`Item.prio` 1–3):** Im Eintrag "Wie wichtig?" (bei Ideen "Wie gut passt es?") mit drei Herzen, nochmal tippen nimmt die Stufe zurück. Herzen an der Karte. Geht beim Teilen mit (nicht bei Gekauftem), wird bei "Erhalten" angezeigt und beim Übernehmen übernommen.
+- **Wunschpreis (`Item.priceTarget`):** Im Bereich "Preis beobachten", speichert sich nach kurzer Pause, leeren entfernt ihn. Grünes Etikett "Wunschpreis" an der Karte, sobald der Preis darauf oder darunter liegt. Die Hintergrundprüfung meldet "Wunschpreis erreicht" (eigene Meldung, ID 7002), pro Eintrag nur einmal, erneut erst bei noch niedrigerem Preis oder nachdem der Preis zwischendurch darüber lag. Ein Eintrag mit Wunschpreis-Meldung erscheint nicht zusätzlich in "Preis gesunken". Nur gleiche Währung.
+- **Preisdiagramm (`PriceChart.tsx`, `lib/chart.ts`):** Stufenlinie (ein Preis gilt bis zur nächsten Messung) mit Fläche, gestrichelte Linie für Ausgangspreis, grüne für Wunschpreis, Tiefstpunkt grün. Antippen oder Ziehen zeigt Datum und Preis eines Messpunkts. Zeitraum 1 Monat / 3 Monate / Alles ab einem Verlauf über 31 Tage. Kennzahlen Tiefst, Höchst (mit Datum) und zeitgewichteter Schnitt mit Abstand zum Tiefstpreis. Etikett "Tiefstpreis" an der Karte, wenn der aktuelle Preis der niedrigste im Verlauf ist (ab drei Messpunkten und nur, wenn er schon mal höher war).
+- **Budget für Ideenlisten (`Wishlist.budget`):** Im Listen-Fenster bei Personen-Listen. Die Kennzahlen-Karte zeigt einen Balken: gekauft (voll), offen (gestreift), Rest bzw. "drüber", rot wenn alle offenen Ideen das Budget sprengen.
+- **Kurze Namen (`cleanName`, `shortenName`):** Entfernt Werbe-Klammern ([Amazon Exclusive], 【2025 Neu】), Emojis, Werbewörter am Anfang ("NEU!", "Angebot:"), schreibt reine Großbuchstaben-Titel normal, kürzt lange Titel auch vor "mit", "inkl." und "with". Generationen in Klammern bleiben ("AirPods Pro (2. Generation)").
+- **Art-Erkennung (`lib/match.ts`):** Neue Arten Konsole, NAS, VR-Brille, Erlebnis, Computer, Garten, mehr Begriffe bei Kleidung, Schuhe, Werkzeug, Haushalt, Küche, Kamera, Spielzeug. Der Kopf des Namens zählt (alles vor "mit", Komma, Klammer, Strich), Zubehör gewinnt im Kopf ("iPhone 15 Hülle" = Zubehör, "AirPods mit Ladecase" = Kopfhörer).
+- **Weiches Laden:** Bilder blenden ein statt aufzuploppen, bis dahin schimmert die Fläche; einmal geladene Bilder erscheinen sofort. Beim Lesen eines Links schimmern Name und Preis. Bei "Bewegung reduzieren" ohne Animation.
+- **Feinschliff:** Dunkle Fenster etwas deckender, Kennzahlen mit kurzen Datumsangaben, Demo-Daten mit Verlauf, Wunschpreis, Wichtigkeit und Budget.
+- **Tests:** `v013.test.ts` (Diagramm, Sortierung, Filter, Teilen der Wichtigkeit), `names.test.ts`, `kind2.test.ts`, `runner.test.ts` (Wunschpreis-Meldung), `v0130.cjs` (Browser: Sortierung, Filter, Suche, Art, Etiketten, Wichtigkeit, Tracker, Budget). Der Hintergrund-Läufer `public/runners/background.js` ist neu gebaut (`npm run runner`).
 

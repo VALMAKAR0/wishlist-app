@@ -18,6 +18,8 @@ export interface Wishlist {
   date?: string
   /** Verknüpfter Anlass der Person (Occasion.id). Das Datum folgt dann dem Anlass. */
   occasionId?: string
+  /** Budget für die Liste (nur Geschenkideen), in der Hauptwährung. */
+  budget?: number
   createdAt: number
 }
 
@@ -54,6 +56,8 @@ export interface Shop {
   err?: boolean
 }
 
+export type Prio = 1 | 2 | 3
+
 export interface Item {
   id: string
   owner: Owner
@@ -80,6 +84,10 @@ export interface Item {
   priceLog?: PricePoint[]
   /** Weitere Shops für den Vergleich (höchstens fünf). */
   shops?: Shop[]
+  /** Wunschpreis: Ab diesem Preis (oder darunter) gibt es eine Meldung und ein Etikett. */
+  priceTarget?: number
+  /** Wie wichtig: 1 = nett, 2 = sehr, 3 = am liebsten. */
+  prio?: Prio
   /** Aus: Der Preis dieses Eintrags wird nie geprüft. */
   priceTrack?: boolean
   priceCheckedAt?: number
@@ -126,6 +134,7 @@ export interface ReceivedItem {
   boughtAt?: number
   /** Bild aus dem Bilderspeicher, kommt beim Import mit. */
   imageId?: string
+  prio?: Prio
 }
 
 export interface ReceivedCollection {
@@ -156,7 +165,7 @@ export type FxSetting = 'full' | 'calm' | 'off'
 export type Lang = 'de' | 'en'
 export type DateFmt = 'auto' | 'dmy' | 'mdy' | 'iso'
 export type FontScale = 'small' | 'normal' | 'large' | 'xl'
-export type SortMode = 'new' | 'old' | 'name' | 'priceDown' | 'priceUp'
+export type SortMode = 'new' | 'old' | 'name' | 'priceDown' | 'priceUp' | 'prio' | 'drop'
 export type StartTab = 'wishes' | 'ideas' | 'received' | 'stats' | 'last'
 
 export interface ShareDefaults {

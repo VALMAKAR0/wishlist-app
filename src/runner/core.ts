@@ -12,6 +12,8 @@ export interface Snap {
   priceGuessOk?: boolean
   priceSpot?: PriceSpot
   priceNo?: number
+  /** Wunschpreis: Meldung, sobald der gelesene Preis darunter liegt. */
+  target?: number
 }
 
 export interface Cfg {
@@ -44,6 +46,14 @@ export interface Io {
 
 const OUT_MAX = 300
 export const NOTE_ID = 7001
+export const HIT_ID = 7002
+
+/** Gelesener Preis, wenn er den Wunschpreis erreicht (gleiche Währung), sonst null. */
+export function targetHit(snap: Pick<Snap, 'target' | 'currency'>, found: Found | 'lost' | null): number | null {
+  if (snap.target === undefined || !found || found === 'lost') return null
+  if (found.currency !== (snap.currency ?? 'EUR')) return null
+  return found.price <= snap.target + 0.005 ? found.price : null
+}
 
 const read = <T,>(io: Io, key: string, fallback: T): T => {
   try {
@@ -97,6 +107,8 @@ export async function runCheck(io: Io, force = false): Promise<{ ran: boolean; r
   }
   const out = read<Result[]>(io, 'out', [])
   const drops: Array<{ name: string; from: number; to: number; cur: string }> = []
+  const hits: Array<{ name: string; price: number; cur: string }> = []
+  const told = read<Record<string, number>>(io, 'hits', {})
   let ok = 0
   let failed = 0
   for (let i = 0; i < cfg.items.length; i++) {
@@ -109,7 +121,12 @@ export async function runCheck(io: Io, force = false): Promise<{ ran: boolean; r
       const at = now.getTime()
       const r = applyCheck(snap as unknown as Item, found, at)
       for (const k of NEUTRAL) if (k in r.patch) (snap as unknown as Record<string, unknown>)[k] = (r.patch as Record<string, unknown>)[k]
-      if (r.outcome.kind === 'changed' && r.outcome.to < r.outcome.from) drops.push({ name: snap.name, from: r.outcome.from, to: r.outcome.to, cur: snap.currency ?? 'EUR' })
+      const hit = targetHit(snap, found)
+      if (hit !== null) {
+        if (told[snap.id] === undefined || hit < told[snap.id] - 0.005) hits.push({ name: snap.name, price: hit, cur: snap.currency ?? 'EUR' })
+        told[snap.id] = hit
+      } else if (found && found !== 'lost') delete told[snap.id]
+      if (hit === null && r.outcome.kind === 'changed' && r.outcome.to < r.outcome.from) drops.push({ name: snap.name, from: r.outcome.from, to: r.outcome.to, cur: snap.currency ?? 'EUR' })
       out.push({ id: snap.id, at, found })
       ok += 1
     } catch {
@@ -120,6 +137,14 @@ export async function runCheck(io: Io, force = false): Promise<{ ran: boolean; r
   io.set('cfg', JSON.stringify(cfg))
   io.set('out', JSON.stringify(out.length > OUT_MAX ? out.slice(out.length - OUT_MAX) : out))
   io.set('runs', String(Number(io.get('runs') ?? 0) + 1))
+  io.set('hits', JSON.stringify(told))
+  if (hits.length === 1) {
+    const h = hits[0]
+    io.notify({ id: HIT_ID, title: 'Wunschpreis erreicht', body: `${h.name}: jetzt ${fmtMoney(h.price, h.cur)}` })
+  } else if (hits.length > 1) {
+    const lines = hits.map((h) => `${h.name}: ${fmtMoney(h.price, h.cur)}`)
+    io.notify({ id: HIT_ID, title: `${hits.length}× Wunschpreis erreicht`, body: lines.join(', '), largeBody: lines.join('\n') })
+  }
   if (ok > 0 || failed === 0) io.set('last', today)
   if (drops.length === 1) {
     const d = drops[0]
@@ -128,5 +153,5 @@ export async function runCheck(io: Io, force = false): Promise<{ ran: boolean; r
     const lines = drops.map((d) => `${d.name}: ${fmtMoney(d.from, d.cur)} → ${fmtMoney(d.to, d.cur)}`)
     io.notify({ id: NOTE_ID, title: `${drops.length} Preise gesunken`, body: lines.join(', '), largeBody: lines.join('\n') })
   }
-  return { ran: true, checked: ok, failed, drops: drops.length }
+  return { ran: true, checked: ok, failed, drops: drops.length + hits.length }
 }

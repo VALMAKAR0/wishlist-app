@@ -1,19 +1,69 @@
 import { useEffect, useId, type CSSProperties, type ReactNode } from 'react'
 import { animate, motion, useMotionValue, useTransform } from 'motion/react'
-import { Check } from 'lucide-react'
+import { Check, Heart } from 'lucide-react'
 import { initial, priceText } from '../lib/format'
 import { useImageUrl } from '../lib/images'
 
 type HueStyle = CSSProperties & { '--h'?: number }
+
+/** Schon einmal geladene Bilder erscheinen ohne Einblenden, damit Listen beim Zurückkehren nicht flackern. */
+const loadedUrls = new Set<string>()
+
+/** Wichtigkeit als ein bis drei kleine Herzen. */
+export function PrioMark({ prio, size = 11, label }: { prio?: number; size?: number; label?: string }) {
+  if (!prio) return null
+  return (
+    <span className="prio" data-p={prio} aria-label={label} title={label}>
+      {Array.from({ length: prio }, (_, i) => (
+        <Heart key={i} size={size} fill="currentColor" strokeWidth={0} />
+      ))}
+    </span>
+  )
+}
+
+/** Auswahl der Wichtigkeit: nochmal auf dieselbe Stufe tippen nimmt sie zurück. */
+export function PrioPicker({ value, onChange, labels }: { value?: number; onChange: (v: 1 | 2 | 3 | undefined) => void; labels: [string, string, string, string] }) {
+  return (
+    <div className="priopick" role="radiogroup" aria-label={labels[0]}>
+      {([1, 2, 3] as const).map((n) => (
+        <button key={n} type="button" role="radio" aria-checked={value === n} className="priopick__btn" data-on={(value ?? 0) >= n} data-testid={`prio-${n}`} aria-label={labels[n]} onClick={() => onChange(value === n ? undefined : n)}>
+          <motion.span animate={(value ?? 0) >= n ? { scale: [1, 1.3, 1] } : { scale: 1 }} transition={{ duration: 0.3 }}>
+            <Heart size={20} fill={(value ?? 0) >= n ? 'currentColor' : 'none'} strokeWidth={2} />
+          </motion.span>
+        </button>
+      ))}
+      <span className="priopick__label">{value ? labels[value] : ''}</span>
+    </div>
+  )
+}
 
 /** Cover mit Farbverlauf und Emoji. Mit Bild (gespeichert per ID oder direkt per Adresse) wird das Bild gezeigt. */
 export function Cover({ emoji, hue, size = 56, radius, imageId, src }: { emoji: string; hue: number; size?: number; radius?: number; imageId?: string; src?: string | null }) {
   const stored = useImageUrl(imageId)
   const url = src ?? stored
   const style: HueStyle = { '--h': hue, width: size, height: size, borderRadius: radius ?? size * 0.3, fontSize: size * 0.48 }
+  const waiting = url === undefined
+  const seen = !!url && loadedUrls.has(url)
   return (
-    <div className="cover" data-img={!!url} style={style} aria-hidden>
-      {url ? <img src={url} alt="" draggable={false} decoding="async" /> : <span>{emoji}</span>}
+    <div className="cover" data-img={!!url} data-wait={waiting || undefined} style={style} aria-hidden>
+      {url ? (
+        <img
+          src={url}
+          alt=""
+          draggable={false}
+          decoding="async"
+          data-in={seen || undefined}
+          onLoad={(e) => {
+            loadedUrls.add(url)
+            e.currentTarget.dataset.in = 'true'
+          }}
+          onError={(e) => {
+            e.currentTarget.dataset.in = 'true'
+          }}
+        />
+      ) : waiting ? null : (
+        <span>{emoji}</span>
+      )}
     </div>
   )
 }

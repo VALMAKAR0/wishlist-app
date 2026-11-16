@@ -87,7 +87,8 @@ export function imageUrl(id: string): Promise<string | null> {
   return p
 }
 
-export function useImageUrl(id?: string): string | null {
+/** Adresse des Bildes. undefined = wird noch geladen, null = kein Bild. */
+export function useImageUrl(id?: string): string | null | undefined {
   const [got, setGot] = useState<{ id: string; url: string | null } | null>(null)
   useEffect(() => {
     if (!id) return
@@ -100,7 +101,7 @@ export function useImageUrl(id?: string): string | null {
     }
   }, [id])
   if (!id) return null
-  return resolved.get(id) ?? (got?.id === id ? got.url : null)
+  return resolved.get(id) ?? (got?.id === id ? got.url : undefined)
 }
 
 /** Löscht Bilder, auf die kein Eintrag mehr zeigt. Läuft nur direkt nach dem Laden, wenn nichts mehr in Arbeit ist. */

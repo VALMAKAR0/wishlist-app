@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { CalendarDays, Check, ChevronRight, Download, ExternalLink, Eye, EyeOff, Link as LinkIcon, Link2Off, Plus, Trash2, TriangleAlert, Undo2, UserPlus } from 'lucide-react'
 import { AddButton, Page, Section } from '../components/Page'
-import { Avatar, Chip, Cover, CountUp, EmptyState, PriceTag } from '../components/Primitives'
+import { Avatar, Chip, Cover, CountUp, EmptyState, PriceTag, PrioMark } from '../components/Primitives'
 import { findTaken, targetList } from '../lib/received'
 import { buildAdopt, conflictOf, type Part as AdoptPart } from '../lib/adopt'
 import { listTitle } from '../lib/lists'
@@ -132,7 +132,10 @@ function ReceivedRow({ it, index, owned, taken, person, onToggle, onPerson }: Ro
     >
       <Cover emoji={it.emoji} hue={it.hue} size={44} imageId={it.imageId} />
       <div className="item__main">
-        <span className="item__name">{it.name}</span>
+        <div className="item__title">
+          <span className="item__name">{it.name}</span>
+          <PrioMark prio={it.prio} label={t('Wichtigkeit {n} von 3', { n: it.prio ?? 0 })} />
+        </div>
         <div className="item__meta">
           {it.price !== undefined && <PriceTag price={it.price} cur={it.cur} />}
           {it.link && (
@@ -217,7 +220,7 @@ export function ReceivedDetailScreen({ id, listId }: { id: string; listId?: stri
       if (!dest) continue
       where = listTitle(dest, t)
       for (const it of its) {
-        made.push({ id: uid(), owner: personId, listId: dest.id, name: it.name, kind: it.kind, link: it.link, price: it.price, currency: it.cur, note: it.note, imageId: it.imageId, emoji: it.emoji, hue: it.hue, bought: false, createdAt: Date.now() })
+        made.push({ id: uid(), owner: personId, listId: dest.id, name: it.name, kind: it.kind, link: it.link, price: it.price, currency: it.cur, note: it.note, imageId: it.imageId, emoji: it.emoji, hue: it.hue, prio: it.prio, bought: false, createdAt: Date.now() })
       }
     }
     if (!made.length) return

@@ -67,6 +67,7 @@ export function pickShared(src: Source, o: ShareOptions, t: TFn) {
       const it: ReceivedItem = { id: i.id, name: i.name, emoji: i.emoji, hue: i.hue, owned: isOwned }
       if (i.kind) it.kind = i.kind
       if (i.link) it.link = i.link
+      if (i.prio && !isOwned) it.prio = i.prio
       if (o.price && i.price !== undefined) {
         it.price = i.price
         if (i.currency && i.currency !== 'EUR') it.cur = i.currency
@@ -155,6 +156,7 @@ export function readShare(bytes: Uint8Array): ShareRead {
       const note = str(r.note, 2000)
       if (kind) it.kind = kind
       if (link) it.link = link
+      if (!it.owned && (r.prio === 1 || r.prio === 2 || r.prio === 3)) it.prio = r.prio
       if (price !== undefined) {
         it.price = price
         if (typeof r.cur === 'string' && r.cur !== 'EUR' && CURRENCIES.includes(r.cur)) it.cur = r.cur

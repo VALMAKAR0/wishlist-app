@@ -13,6 +13,9 @@ function list(id: string, owner: string, name: string, emoji: string, hue: numbe
   return { id, owner, name: isDefault ? '' : name, isDefault: isDefault || undefined, emoji, hue, date, occasionId, createdAt: now() }
 }
 
+/** Preisverlauf für die Demo: [Tage her, Preis]. */
+const demoLog = (pts: [number, number][]) => pts.map(([d, p]) => ({ t: dayAgoTs(d), p, k: 'sure' as const }))
+
 function item(id: string, owner: string, listId: string, name: string, emoji: string, hue: number, extra: Partial<Item> = {}): Item {
   return { id, owner, listId, name, emoji, hue, bought: false, createdAt: now(), ...extra }
 }
@@ -24,7 +27,7 @@ export function demoLists(): Wishlist[] {
     list('l-me-1', 'me', '', '📌', 14, true),
     list('l-me-2', 'me', 'Weihnachten', '🎄', 150, false, isoNext(12, 24)),
     list('l-me-3', 'me', 'Geburtstag', '🎂', 45, false, isoIn(12)),
-    list('l-lena-1', 'p-lena', 'Geburtstag', '🎂', 345, false, undefined, 'o1'),
+    { ...list('l-lena-1', 'p-lena', 'Geburtstag', '🎂', 345, false, undefined, 'o1'), budget: 220 },
     list('l-lena-2', 'p-lena', 'Weihnachten', '🎄', 150, false, undefined, 'o2'),
     list('l-jonas-1', 'p-jonas', '', '📌', 55, true),
     list('l-papa-1', 'p-papa', '', '📌', 225, true),
@@ -74,14 +77,14 @@ export function demoPersons(): Person[] {
 export function demoItems(): Item[] {
   return [
     // Eigene Wünsche, Standardliste
-    item('w1', 'me', 'l-me-1', 'Over-Ear-Kopfhörer', '🎧', 265, { kind: 'Kopfhörer', price: 399, link: 'https://example.com/kopfhoerer', note: 'Schwarz, mit Noise-Cancelling. Die Ohrpolster sollten austauschbar sein.' }),
-    item('w2', 'me', 'l-me-1', 'Sofortbildkamera', '📷', 15, { kind: 'Kamera', price: 89, link: 'https://example.com/kamera', note: 'Gern in Mint.' }),
+    item('w1', 'me', 'l-me-1', 'Over-Ear-Kopfhörer', '🎧', 265, { kind: 'Kopfhörer', price: 399, link: 'https://example.com/kopfhoerer', note: 'Schwarz, mit Noise-Cancelling. Die Ohrpolster sollten austauschbar sein.', prio: 3, priceState: 'sure', priceBase: 449, priceTarget: 350, priceLog: demoLog([[80, 449], [62, 429], [48, 449], [30, 419], [21, 379], [14, 409], [6, 399], [0, 399]]) }),
+    item('w2', 'me', 'l-me-1', 'Sofortbildkamera', '📷', 15, { kind: 'Kamera', prio: 2, price: 89, link: 'https://example.com/kamera', note: 'Gern in Mint.' }),
     item('w3', 'me', 'l-me-1', 'Monstera Deliciosa', '🪴', 150, { kind: 'Pflanze', price: 39 }),
     item('w7', 'me', 'l-me-1', 'Espresso-Tassen im Set', '☕', 35, { kind: 'Küche', price: 28, bought: true, boughtAt: dayAgoTs(5) }),
     item('w10', 'me', 'l-me-1', 'Fahrradlicht', '🔦', 60, { kind: 'Fahrrad', price: 25, bought: true, boughtAt: dayAgoTs(38) }),
     item('w11', 'me', 'l-me-1', 'Powerbank', '🔋', 120, { price: 34, bought: true, boughtAt: dayAgoTs(70) }),
     // Weihnachten
-    item('w4', 'me', 'l-me-2', 'Mechanische Armbanduhr', '⌚', 45, { kind: 'Uhr', price: 240, link: 'https://example.com/uhr' }),
+    item('w4', 'me', 'l-me-2', 'Mechanische Armbanduhr', '⌚', 45, { kind: 'Uhr', price: 240, link: 'https://example.com/uhr', priceState: 'sure', priceBase: 265, priceTarget: 250, priceLog: demoLog([[20, 265], [9, 255], [1, 240]]) }),
     item('w5', 'me', 'l-me-2', 'Dune-Trilogie als Box', '📚', 28, { kind: 'Buch', price: 36 }),
     // Geburtstag
     item('w6', 'me', 'l-me-3', 'Handgepäck-Koffer', '🧳', 200, { kind: 'Tasche', price: 159, note: 'Hartschale, mindestens 4 Rollen.' }),

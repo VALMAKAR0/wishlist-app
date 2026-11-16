@@ -1,11 +1,12 @@
 import { useEffect, useRef, type MouseEvent, type Ref } from 'react'
 import { animate, motion, useMotionValue, useTransform } from 'motion/react'
-import { Check, CircleHelp, ExternalLink, StickyNote, TrendingDown, TrendingUp, Trash2, Undo2 } from 'lucide-react'
+import { ArrowDownToLine, Check, CircleHelp, ExternalLink, StickyNote, Target, TrendingDown, TrendingUp, Trash2, Undo2 } from 'lucide-react'
 import { agoLabel, curOf, hostOf, money, toHref } from '../lib/format'
+import { atLowest, targetHit } from '../lib/listQuery'
 import { priceDelta } from '../lib/priceCheck'
 import type { Item } from '../lib/types'
 import { useT, useUI } from '../state/ui'
-import { Cover, PriceTag } from './Primitives'
+import { Cover, PriceTag, PrioMark } from './Primitives'
 
 interface ItemCardProps {
   item: Item
@@ -31,7 +32,10 @@ export function ItemCard({ item, index, onOpen, onToggle, onTrash, badge, listLa
   const t = useT()
   const ui = useUI()
   const delta = ui.settings.priceWatch ? priceDelta(item) : null
-  const asked = ui.settings.priceWatch && item.priceTrack !== false && !!item.priceSuggest
+  const watching = ui.settings.priceWatch && item.priceTrack !== false
+  const asked = watching && !!item.priceSuggest
+  const hit = watching && !item.bought && targetHit(item)
+  const low = watching && !item.bought && !hit && atLowest(item)
   const x = useMotionValue(0)
   const cardRef = useRef<HTMLDivElement>(null)
   // Antippen = Klick ohne nennenswerte Bewegung. So zählt das Loslassen nach einem Wisch nie als Antippen.
@@ -70,7 +74,7 @@ export function ItemCard({ item, index, onOpen, onToggle, onTrash, badge, listLa
     <motion.li
       ref={ref}
       className="swipe"
-      initial={{ opacity: 0, y: 22, scale: 0.97 }}
+      initial={index < 16 ? { opacity: 0, y: 22, scale: 0.97 } : false}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, scale: 0.92, height: 0, marginBottom: 0, overflow: 'hidden', pointerEvents: 'none', transition: { duration: 0.24 } }}
       transition={{ type: 'spring', stiffness: 300, damping: 28, delay: Math.min(index, 7) * 0.05 }}
@@ -152,12 +156,23 @@ export function ItemCard({ item, index, onOpen, onToggle, onTrash, badge, listLa
         <div className="item__main">
           <div className="item__title">
             <span className="item__name">{item.name}</span>
+            <PrioMark prio={item.prio} label={t('Wichtigkeit {n} von 3', { n: item.prio ?? 0 })} />
           </div>
           <div className="item__meta">
             {item.price !== undefined && <PriceTag price={item.price} cur={item.currency} />}
             {delta !== null && (
               <span className="item__delta" data-dir={delta < 0 ? 'down' : 'up'} data-testid="price-delta" aria-label={delta < 0 ? t('Preis gesunken um {p}', { p: money(-delta, curOf(item)) }) : t('Preis gestiegen um {p}', { p: money(delta, curOf(item)) })}>
                 {delta < 0 ? <TrendingDown size={12} /> : <TrendingUp size={12} />} {money(Math.abs(delta), curOf(item))}
+              </span>
+            )}
+            {hit && (
+              <span className="item__hit" data-testid="target-hit">
+                <Target size={12} /> {t('Wunschpreis')}
+              </span>
+            )}
+            {low && (
+              <span className="item__low" data-testid="at-lowest">
+                <ArrowDownToLine size={12} /> {t('Tiefstpreis')}
               </span>
             )}
             {asked && (

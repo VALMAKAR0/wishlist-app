@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useDeferredValue, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { CheckSquare, FolderInput, Link2, Plus, Share2, X } from 'lucide-react'
 import { ListSheetHost, ListStatsCard } from '../components/Lists'
 import { AddButton, Page } from '../components/Page'
@@ -7,10 +7,11 @@ import { EmptyState, Segmented } from '../components/Primitives'
 import { ItemFormSheet } from '../components/ItemFormSheet'
 import { MoveSheet } from '../components/MoveSheet'
 import { ShareSheet } from '../components/ShareSheet'
+import { ListTools } from '../components/ListTools'
 import { daysUntilIso, isoLabel, priceOf } from '../lib/format'
 import { listDate, listOccasion, listTitle } from '../lib/lists'
 import { occasionEmoji } from '../lib/occasions'
-import { sortItems } from '../lib/settings'
+import { EMPTY_QUERY, isActive, matches, sortList, type ListQuery } from '../lib/listQuery'
 import { listStats } from '../lib/stats'
 import type { Item, Owner } from '../lib/types'
 import { useNav } from '../state/nav'
@@ -48,19 +49,27 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) 
   const [listSheet, setListSheet] = useState(false)
   const [sel, setSel] = useState<Set<string> | null>(null)
   const [moving, setMoving] = useState(false)
+  const [query, setQuery] = useState<ListQuery>(EMPTY_QUERY)
+  // Tippen bleibt flüssig: Die Liste filtert mit dem zuletzt fertig gerenderten Suchtext nach.
+  const q = useDeferredValue(query)
 
   useEffect(() => {
     if (missing) back()
   }, [missing, back])
   // Beim Wechsel des Reiters oder der Liste endet die Auswahl.
   useEffect(() => setSel(null), [seg, listId])
+  useEffect(() => setQuery(EMPTY_QUERY), [listId, owner])
   if (missing) return null
 
   const person = forMe ? undefined : persons.find((p) => p.id === owner)
   const mineAll = items.filter((i) => i.owner === owner && !i.deletedAt)
   const scoped = list ? mineAll.filter((i) => i.listId === list.id) : mineAll
-  const open = sortItems(scoped.filter((i) => !i.bought), settings.sort, priceOf)
-  const done = scoped.filter((i) => i.bought).sort((a, b) => (b.boughtAt ?? 0) - (a.boughtAt ?? 0))
+  const openAll = scoped.filter((i) => !i.bought)
+  const doneAll = scoped.filter((i) => i.bought)
+  const filtering = isActive(q)
+  const open = sortList(filtering ? openAll.filter((i) => matches(i, q)) : openAll, settings.sort, priceOf)
+  const doneF = filtering ? doneAll.filter((i) => matches(i, q)) : doneAll
+  const done = settings.sort === 'new' || settings.sort === 'old' ? [...doneF].sort((a, b) => (b.boughtAt ?? 0) - (a.boughtAt ?? 0)) : sortList(doneF, settings.sort, priceOf)
   const shown = seg === 'open' ? open : done
   const stats = listStats(scoped)
   const pickedItems = sel ? shown.filter((i) => sel.has(i.id)) : []
@@ -159,6 +168,7 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) 
             emoji={list?.emoji}
             stats={stats}
             onEdit={list ? () => setListSheet(true) : undefined}
+            budget={forMe ? undefined : list?.budget}
           />
         )}
 
@@ -176,6 +186,18 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) 
           </div>
         )}
 
+        {scoped.length > 1 && (
+          <ListTools
+            items={seg === 'open' ? openAll : doneAll}
+            shown={shown.length}
+            query={query}
+            onQuery={setQuery}
+            sort={settings.sort}
+            onSort={(sort) => ui.setSettings({ sort })}
+            sortable
+          />
+        )}
+
         {shown.length > 0 ? (
           <ItemList
             items={shown}
@@ -184,6 +206,17 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) 
             onLongPress={(item) => startSelect(item.id)}
             badgeFor={forMe ? undefined : (item) => (alreadyOwned(item) ? t('Schon vorhanden') : undefined)}
             listLabelFor={listLabelFor}
+          />
+        ) : filtering && (seg === 'open' ? openAll : doneAll).length > 0 ? (
+          <EmptyState
+            emoji="🔍"
+            title={t('Nichts gefunden')}
+            text={t('Kein Eintrag passt zu Suche und Filtern.')}
+            action={
+              <button className="btn btn--ghost" data-testid="lt-empty-reset" onClick={() => setQuery(EMPTY_QUERY)}>
+                {t('Filter zurücksetzen')}
+              </button>
+            }
           />
         ) : (
           <EmptyState

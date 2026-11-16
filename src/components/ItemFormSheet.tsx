@@ -9,7 +9,7 @@ import { cleanName, cleanUrl, describeResult, extractUrl, fetchImageBytes, fetch
 import { listTitle } from '../lib/lists'
 import { candidatesFor, findSimilar, kindOptions, suggestKind } from '../lib/match'
 import { priceFieldsOnSave } from '../lib/priceCheck'
-import type { Item, Owner, PriceSpot, PriceState } from '../lib/types'
+import type { Item, Owner, PriceSpot, PriceState, Prio } from '../lib/types'
 import { useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
 import { LinkReport, type Report } from './LinkReport'
@@ -21,7 +21,7 @@ import { PriceSearch } from './PriceSearch'
 import { parsePriceInput, priceText } from '../lib/priceInput'
 import { PriceWatch } from './PriceWatch'
 import { ShopList } from './ShopList'
-import { Cover } from './Primitives'
+import { Cover, PrioPicker } from './Primitives'
 import { CurrencyButton, CurrencyPanel } from './CurrencyPicker'
 import { Sheet } from './Sheet'
 
@@ -55,6 +55,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
   const [cur, setCur] = useState(item ? (item.currency ?? 'EUR') : ui.settings.currency)
   const [curOpen, setCurOpen] = useState(false)
   const [note, setNote] = useState(item?.note ?? '')
+  const [prio, setPrio] = useState<Prio | undefined>(item?.prio)
   const [emoji, setEmoji] = useState(item?.emoji ?? EMOJIS[0])
   const [hue, setHue] = useState(item?.hue ?? HUES[Math.floor(Math.random() * HUES.length)])
   const [shake, setShake] = useState(0)
@@ -352,6 +353,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
       price: parsed !== undefined && Number.isFinite(parsed) ? parsed : undefined,
       currency: parsed !== undefined && Number.isFinite(parsed) && cur !== 'EUR' ? cur : undefined,
       note: note.trim() || undefined,
+      prio,
       imageId,
       emoji,
       hue,
@@ -436,7 +438,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
         </>
       )}
 
-      <motion.label key={shake} className="field" data-flash={flash.includes('name') || undefined} animate={shake ? { x: [0, -9, 9, -6, 6, 0] } : undefined} transition={{ duration: 0.4 }}>
+      <motion.label key={shake} className="field" data-loading={importing || undefined} data-flash={flash.includes('name') || undefined} animate={shake ? { x: [0, -9, 9, -6, 6, 0] } : undefined} transition={{ duration: 0.4 }}>
         <span>{t('Name')}</span>
         <input value={name} onChange={(e) => onName(e.target.value)} placeholder={t('Was soll es sein?')} autoFocus={!editing} data-invalid={shake > 0 && !name.trim()} enterKeyHint="next" />
       </motion.label>
@@ -480,6 +482,20 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
           </div>
         )}
       </label>
+
+      <div className="field">
+        <span>
+          {forMe ? t('Wie wichtig?') : t('Wie gut passt es?')} <em>· {t('optional')}</em>
+        </span>
+        <PrioPicker
+          value={prio}
+          onChange={(v) => {
+            setPrio(v)
+            ui.haptic(10)
+          }}
+          labels={forMe ? [t('Wie wichtig?'), t('Wäre schön'), t('Wünsche ich mir sehr'), t('Am allerliebsten')] : [t('Wie gut passt es?'), t('Gute Idee'), t('Sehr gute Idee'), t('Volltreffer')]}
+        />
+      </div>
 
       {ownerLists.length > 1 && (
         <div className="field">
@@ -540,7 +556,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
 
       <AnimatePresence initial={false}>{report && <LinkReport key="rep" report={report} onClose={() => setReport(null)} onUseName={useImportedName} onPickPrice={() => setChooser(true)} />}</AnimatePresence>
 
-      <label className="field" data-flash={flash.includes('price') || undefined}>
+      <label className="field" data-loading={importing || undefined} data-flash={flash.includes('price') || undefined}>
         <span>{t('Preis')}</span>
         <div className="field__row">
           <PriceInput value={price} onChange={(v) => { priceFrom.current = null; setPrice(v) }} placeholder="0,00" />

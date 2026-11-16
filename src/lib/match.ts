@@ -7,6 +7,9 @@ import type { Item, ReceivedList } from './types'
 /** Schlüsselwörter (ohne Umlaute, klein) -> Art. Mehrwort-Begriffe stehen vor Einzelwörtern, der erste Treffer gewinnt. */
 const KINDS: [string[], string][] = [
   [['gutschein', 'geschenkkarte', 'gift card', 'giftcard', 'guthaben'], 'Gutschein'],
+  [['vr brille', 'meta quest', 'oculus', 'vision pro', 'virtual reality'], 'VR-Brille'],
+  [['ticket', 'tickets', 'konzertkarte', 'eintrittskarte', 'erlebnisgutschein', 'workshop', 'massagegutschein', 'wellness', 'fallschirmsprung', 'escape room'], 'Erlebnis'],
+  [['playstation 5', 'ps5', 'ps4', 'xbox series', 'nintendo switch', 'switch 2', 'switch oled', 'steam deck', 'konsole', 'spielkonsole'], 'Konsole'],
   [['galaxy watch', 'apple watch', 'pixel watch', 'smartwatch', 'fitnessarmband', 'fitness tracker', 'fitbit', 'garmin'], 'Smartwatch'],
   [['galaxy tab', 'ipad', 'tablet'], 'Tablet'],
   [['galaxy buds', 'pixel buds', 'airpods', 'earbuds', 'kopfhor', 'headphone', 'headset', 'in ear', 'over ear', 'ohrhorer'], 'Kopfhörer'],
@@ -16,30 +19,32 @@ const KINDS: [string[], string][] = [
   [['grafikkarte', 'rtx', 'gtx', 'radeon', 'geforce'], 'Grafikkarte'],
   [['prozessor', 'cpu', 'ryzen', 'mainboard', 'arbeitsspeicher', 'ram', 'cpu kuhler', 'pc gehause', 'netzteil pc'], 'PC-Hardware'],
   [['festplatte', 'ssd', 'nvme', 'speicherkarte', 'sd karte', 'microsd', 'usb stick'], 'Speicher'],
-  [['router', 'repeater', 'mesh'], 'Netzwerk'],
+  [['nas', 'nasync', 'netzwerkspeicher', 'synology', 'qnap', 'diskstation'], 'NAS'],
+  [['router', 'repeater', 'mesh', 'switch lan', 'netzwerkswitch'], 'Netzwerk'],
   [['drucker'], 'Drucker'],
   [['kindle', 'e reader', 'ereader', 'tolino'], 'E-Reader'],
-  [['kamera', 'camera', 'gopro', 'instax', 'sofortbild', 'objektiv'], 'Kamera'],
-  [['laptop', 'notebook', 'macbook'], 'Laptop'],
+  [['kamera', 'camera', 'gopro', 'instax', 'sofortbild', 'objektiv', 'actioncam', 'spiegelreflex', 'systemkamera', 'stativ'], 'Kamera'],
+  [['laptop', 'notebook', 'macbook', 'chromebook'], 'Laptop'],
+  [['gaming pc', 'mini pc', 'desktop pc', 'imac', 'mac mini', 'mac studio', 'komplett pc'], 'Computer'],
   [['smartphone', 'handy', 'iphone'], 'Smartphone'],
-  [['monitor', 'bildschirm', 'fernseher', 'beamer'], 'Bildschirm'],
+  [['fire tv', 'chromecast', 'apple tv', 'streaming stick', 'roku'], 'Streaming'],
+  [['monitor', 'bildschirm', 'fernseher', 'beamer', 'tv', 'oled tv', 'qled', 'projektor'], 'Bildschirm'],
   [['soundbar', 'lautsprecher', 'speaker', 'boombox', 'mikrofon', 'plattenspieler', 'hifi', 'verstarker', 'subwoofer', 'radio'], 'Audio'],
   [['tastatur', 'keyboard'], 'Tastatur'],
   [['maus', 'mouse'], 'Maus'],
   [['controller', 'gamepad', 'lenkrad'], 'Controller'],
   [['drohne', 'drone'], 'Drohne'],
   [['armbanduhr', 'uhr'], 'Uhr'],
-  [['motorrad', 'roller', 'cbr', 'motorradhelm'], 'Motorrad'],
+  [['motorrad', 'roller', 'cbr', 'motorradhelm', 'e scooter', 'escooter', 'motorradjacke', 'motorradhandschuh'], 'Motorrad'],
   [['steckdose', 'smart home', 'zigbee', 'thermostat', 'hue', 'bewegungsmelder', 'rauchmelder', 'klingel', 'airtag'], 'Smart Home'],
-  [['fire tv', 'chromecast', 'apple tv', 'streaming stick', 'roku'], 'Streaming'],
-  [['staubsauger', 'trimmer', 'barttrimmer', 'saugroboter', 'rasierer', 'haartrockner', 'fohn', 'zahnburste', 'epilierer', 'toaster', 'wasserkocher', 'airfryer', 'heissluftfritteuse'], 'Haushalt'],
-  [['hobel', 'sage', 'bohrer', 'schrauber', 'hammer', 'zange', 'feile', 'stemmeisen', 'werkzeug', 'schraubzwinge', 'meissel', 'winkel', 'zollstock', 'schraubenzieher', 'schraubendreher', 'bohrmaschine', 'schleifer', 'frase', 'werkbank', 'messschieber', 'wasserwaage', 'multitool'], 'Werkzeug'],
+  [['staubsauger', 'trimmer', 'barttrimmer', 'saugroboter', 'rasierer', 'haartrockner', 'fohn', 'zahnburste', 'epilierer', 'toaster', 'wasserkocher', 'airfryer', 'heissluftfritteuse', 'sauger', 'luftreiniger', 'ventilator', 'heizlufter', 'bugeleisen', 'dampfreiniger', 'waschmaschine', 'trockner', 'entfeuchter'], 'Haushalt'],
+  [['hobel', 'sage', 'bohrer', 'schrauber', 'hammer', 'zange', 'feile', 'stemmeisen', 'werkzeug', 'schraubzwinge', 'meissel', 'winkel', 'zollstock', 'schraubenzieher', 'schraubendreher', 'bohrmaschine', 'schleifer', 'frase', 'werkbank', 'messschieber', 'wasserwaage', 'multitool', 'druckluft', 'air duster', 'kompressor', 'akkuschrauber', 'stichsage', 'kreissage', 'oberfrase', 'laser entfernungsmesser', 'lotkolben', 'heissklebe'], 'Werkzeug'],
   [['schallplatte', 'vinyl', 'blu ray', 'dvd', 'film', 'horbuch', 'cd'], 'Medien'],
   [['gitarre', 'klavier', 'piano', 'ukulele', 'schlagzeug', 'geige', 'flote', 'mundharmonika'], 'Instrument'],
   [['buch', 'roman', 'trilogie', 'bande', 'comic', 'manga'], 'Buch'],
   [['playstation', 'xbox', 'nintendo', 'spiel', 'game'], 'Spiel'],
-  [['sneaker', 'schuh', 'schuhe', 'stiefel', 'laufschuh'], 'Schuhe'],
-  [['jacke', 'mantel', 'pullover', 'hoodie', 'shirt', 'hose', 'schal', 'socken', 'mutze', 'handschuh', 'kleid', 'rock', 'gurtel', 'krawatte', 'badehose', 'unterwasche', 'weste', 'kappe', 'strumpf', 'pyjama', 'schlafanzug', 'bluse', 'jeans', 'leggings', 'sweatshirt', 'tshirt'], 'Kleidung'],
+  [['sneaker', 'schuh', 'schuhe', 'stiefel', 'laufschuh', 'sandale', 'sandalen', 'boots', 'slipper', 'pantoffel', 'clogs', 'crocs'], 'Schuhe'],
+  [['jacke', 'mantel', 'pullover', 'hoodie', 'shirt', 'hose', 'schal', 'socken', 'mutze', 'handschuh', 'kleid', 'rock', 'gurtel', 'krawatte', 'badehose', 'unterwasche', 'weste', 'kappe', 'strumpf', 'pyjama', 'schlafanzug', 'bluse', 'jeans', 'leggings', 'sweatshirt', 'tshirt', 'cap', 'beanie', 'hemd', 'fleece', 'shorts', 'boxershorts', 'trainingsanzug', 'sweatjacke', 'bademantel', 'bh', 'polo', 'cardigan', 'strickjacke', 'jogginghose', 'trikot'], 'Kleidung'],
   [['zelt', 'schlafsack', 'isomatte', 'camping', 'wander', 'hangematte', 'fernglas', 'kompass', 'taschenmesser'], 'Outdoor'],
   [['fussball', 'basketball', 'handball', 'volleyball', 'tennis', 'badminton', 'skateboard', 'inliner', 'schlittschuh', 'ski', 'snowboard', 'kletter', 'boxhandschuh'], 'Sport'],
   [['koffer', 'trolley', 'rucksack', 'tasche', 'geldborse', 'portemonnaie'], 'Tasche'],
@@ -52,7 +57,7 @@ const KINDS: [string[], string][] = [
   [['bilderrahmen', 'poster', 'vase', 'kissen', 'deko', 'wandbild', 'spiegel', 'teppich'], 'Deko'],
   [['schokolade', 'praline', 'gummibar', 'snack', 'bonbon', 'keks', 'gewurz', 'honig', 'geschenkkorb'], 'Essen'],
   [['parfum', 'deodorant', 'rasierschaum', 'sonnencreme', 'lippenpflege', 'handcreme', 'creme', 'kosmetik', 'duft', 'shampoo', 'seife'], 'Pflege'],
-  [['tasse', 'becher', 'pfanne', 'topf', 'messer', 'mixer', 'kaffeemuhle', 'espresso', 'kaffee', 'teekanne'], 'Küche'],
+  [['tasse', 'becher', 'pfanne', 'topf', 'messer', 'mixer', 'kaffeemuhle', 'espresso', 'kaffee', 'teekanne', 'kaffeevollautomat', 'siebtrager', 'kuchenmaschine', 'thermomix', 'waffeleisen', 'sandwichmaker'], 'Küche'],
   [['wolle', 'stricknadel', 'nadel'], 'Handarbeit'],
   [['angel', 'angelset'], 'Angeln'],
   [['wein', 'whisky', 'gin', 'bier', 'weinkuhler'], 'Getränke'],
@@ -60,15 +65,16 @@ const KINDS: [string[], string][] = [
   [['stuhl', 'tisch', 'regal', 'sofa', 'schrank', 'sessel', 'bett'], 'Möbel'],
   [['hantel', 'yoga', 'fitness', 'trainingsband', 'gymnastik'], 'Fitness'],
   [['aquarell', 'pinsel', 'zeichn', 'malen'], 'Malen'],
-  [['fahrrad', 'bike', 'velo', 'fahrradhelm'], 'Fahrrad'],
-  [['lego', 'puzzle', 'brettspiel', 'spielzeug', 'puppe', 'plusch'], 'Spielzeug'],
+  [['fahrrad', 'bike', 'velo', 'fahrradhelm', 'e bike', 'ebike', 'pedelec', 'mountainbike'], 'Fahrrad'],
+  [['lego', 'puzzle', 'brettspiel', 'spielzeug', 'puppe', 'plusch', 'playmobil', 'duplo', 'kuscheltier', 'modellbau', 'rc auto', 'ferngesteuert', 'hot wheels', 'kartenspiel'], 'Spielzeug'],
+  [['grill', 'gasgrill', 'rasenmaher', 'gartenschlauch', 'hochbeet', 'gartenmobel', 'pavillon', 'sonnenschirm', 'blumenkasten'], 'Garten'],
   [['thermos', 'trinkflasche', 'flasche'], 'Flasche'],
 ]
 
 /** Markennamen, die keine Art verraten ("Galaxy" kann Handy, Uhr oder Tablet sein). Zählen nur, wenn sonst nichts passt. */
 const WEAK: [string[], string][] = [
   [['galaxy', 'pixel', 'xiaomi', 'redmi'], 'Smartphone'],
-  [['switch'], 'Spiel'],
+  [['switch'], 'Konsole'],
 ]
 
 const hit = (n: string, toks: string[], w: string): boolean =>
@@ -96,11 +102,24 @@ function learnedKind(n: string, known: KnownKind[]): string | undefined {
 
 const tokensOf = (n: string): string[] => n.split(' ').flatMap((t) => [t, ...t.split(/(?<=[a-z])(?=\d)|(?<=\d)(?=[a-z])/)])
 
-function byWords(n: string): string | undefined {
-  if (!n) return undefined
+function allKinds(n: string): string[] {
+  if (!n) return []
   const toks = tokensOf(n)
-  for (const [words, kind] of KINDS) if (words.some((w) => hit(n, toks, w))) return kind
-  return undefined
+  return KINDS.filter(([words]) => words.some((w) => hit(n, toks, w))).map(([, kind]) => kind)
+}
+
+function byWords(n: string): string | undefined {
+  return allKinds(n)[0]
+}
+
+/** Kopf des Namens: alles vor "mit", "inkl.", Komma, Strich oder Klammer. Was danach kommt, ist meist Beigabe. */
+const headOf = (raw: string) => raw.split(/\s(?:mit|inkl\.?|inklusive|with|including|plus|und|and)\s|[,|(;]|\s[-–]\s/i)[0]
+
+/** Art aus dem Namen. Zubehör gewinnt im Kopf ("iPhone 15 Hülle" ist eine Hülle), Beigaben nach "mit" zählen nicht. */
+function byName(raw: string): string | undefined {
+  const head = allKinds(normalize(headOf(raw)))
+  if (head.length) return head.includes('Zubehör') ? 'Zubehör' : head[0]
+  return byWords(normalize(raw))
 }
 
 /** Wörter aus dem Pfad eines Links ("echo-dot-5-generation" -> "echo dot 5 generation"), ohne Nummern und Kennungen. */
@@ -128,7 +147,7 @@ export function linkWords(link: string | undefined): string {
 export function suggestKind(name: string, known: KnownKind[] = [], category?: string, link?: string): string | undefined {
   const n = normalize(name)
   if (!n) return undefined
-  const direct = byWords(n)
+  const direct = byName(name)
   if (direct) return direct
   const fromLink = byWords(linkWords(link))
   if (fromLink) return fromLink

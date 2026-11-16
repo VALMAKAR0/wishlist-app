@@ -75,7 +75,7 @@ export function buildAdopt(parts: Part[], from: string, mine: Wishlist[], items:
     duplicates += dup.length
     if (fresh.length || p.choice === 'new') where.push(listTitle(dest, t))
     for (const it of fresh) {
-      made.push({ id: id(), owner: 'me', listId: dest.id, name: it.name, kind: it.kind, link: it.link, price: it.price, currency: it.cur, note: it.note, imageId: it.imageId, emoji: it.emoji, hue: it.hue, bought: false, createdAt: now })
+      made.push({ id: id(), owner: 'me', listId: dest.id, name: it.name, kind: it.kind, link: it.link, price: it.price, currency: it.cur, note: it.note, imageId: it.imageId, emoji: it.emoji, hue: it.hue, prio: it.prio, bought: false, createdAt: now })
     }
   }
   return { newLists, made, duplicates, where }

@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Check, CircleHelp, Info, ListChecks, Loader2, RefreshCw, TrendingDown, TrendingUp, X } from 'lucide-react'
+import { Check, CircleHelp, Info, ListChecks, Loader2, RefreshCw, Target, TrendingDown, TrendingUp, X } from 'lucide-react'
 import { isNative } from '../lib/backupFiles'
 import { agoLabel, curOf, longDate, money } from '../lib/format'
 import { linkFailExtra, linkFailText, type PriceCandidate } from '../lib/linkImport'
@@ -9,11 +9,20 @@ import type { Item } from '../lib/types'
 import { useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
 import { PriceChart } from './PriceChart'
+import { PriceInput } from './PriceInput'
+import { inRange, rangeUseful, statsOf, type Range } from '../lib/chart'
+import { parsePriceInput, priceText } from '../lib/priceInput'
+import { targetHit } from '../lib/listQuery'
 import { PriceChooser } from './PriceChooser'
 import { Presence } from './Presence'
 import { Switch } from './Primitives'
 
 type Msg = { text: string; tone: 'ok' | 'warn' }
+
+const shortDay = (ts: number) => {
+  const d = new Date(ts)
+  return d.toLocaleDateString(undefined, d.getFullYear() === new Date().getFullYear() ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: '2-digit' })
+}
 
 /** Preisbeobachtung im Eintrag: prüfen, Vorschlag bestätigen, Verlauf ansehen, abschalten. */
 export function PriceWatch({ item, link, onPrice }: { item: Item; link: string; onPrice: (price: number, cur: string) => void }) {
@@ -31,6 +40,25 @@ export function PriceWatch({ item, link, onPrice }: { item: Item; link: string; 
   const hasLink = !!link.trim()
   const delta = priceDelta(item)
   const log = item.priceLog ?? []
+  const [range, setRange] = useState<Range>(0)
+  const [now] = useState(() => Date.now())
+  const view = inRange(log, range, now)
+  const st = statsOf(view, now)
+  const [target, setTarget] = useState(item.priceTarget !== undefined ? priceText(item.priceTarget) : '')
+  useEffect(() => setTarget(item.priceTarget !== undefined ? priceText(item.priceTarget) : ''), [item.priceTarget])
+  const saveTarget = (text: string) => {
+    const v = parsePriceInput(text)
+    const next = v !== undefined && Number.isFinite(v) && v > 0 ? v : undefined
+    if (next === item.priceTarget) return
+    patch({ priceTarget: next })
+    if (next !== undefined) ui.haptic(10)
+  }
+  const hit = targetHit(item)
+  useEffect(() => {
+    const id = window.setTimeout(() => saveTarget(target), 700)
+    return () => window.clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target])
 
   const describe = (o: Outcome): Msg => {
     switch (o.kind) {
@@ -45,7 +73,12 @@ export function PriceWatch({ item, link, onPrice }: { item: Item; link: string; 
       case 'set':
         return { text: t('Preis eingetragen: {p}', { p: money(o.price, cur) }), tone: 'ok' }
       case 'changed':
-        return { text: o.to < o.from ? t('Preis gesunken auf {p}', { p: money(o.to, cur) }) : t('Preis gestiegen auf {p}', { p: money(o.to, cur) }), tone: 'ok' }
+        return {
+          text:
+            (o.to < o.from ? t('Preis gesunken auf {p}', { p: money(o.to, cur) }) : t('Preis gestiegen auf {p}', { p: money(o.to, cur) })) +
+            (item.priceTarget !== undefined && o.to <= item.priceTarget + 0.005 ? ' · ' + t('Wunschpreis erreicht!') : ''),
+          tone: 'ok',
+        }
       case 'suggest':
         return { text: t('Neuer Preis gefunden, bitte bestätigen.'), tone: 'warn' }
       case 'lost':
@@ -198,12 +231,51 @@ export function PriceWatch({ item, link, onPrice }: { item: Item; link: string; 
 
           {log.length >= 2 ? (
             <>
-              <PriceChart points={log} base={item.priceBase} cur={cur} />
+              {rangeUseful(log) && (
+                <div className="pw__range" role="radiogroup" aria-label={t('Zeitraum')}>
+                  {([30, 90, 0] as Range[]).map((r) => (
+                    <button key={r} type="button" role="radio" aria-checked={range === r} className="pw__rbtn" data-on={range === r} data-testid={`range-${r}`} onClick={() => setRange(r)}>
+                      {r === 30 ? t('1 Monat') : r === 90 ? t('3 Monate') : t('Alles')}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <PriceChart key={range} points={view} base={item.priceBase} target={item.priceTarget} cur={cur} />
+              {st && !flat && (
+                <div className="pw__stats" data-testid="price-stats">
+                  <span>
+                    <small>{t('Tiefst')}</small>
+                    <strong data-good>{money(st.low.p, cur)}</strong>
+                    <em>{shortDay(st.low.t)}</em>
+                  </span>
+                  <span>
+                    <small>{t('Höchst')}</small>
+                    <strong>{money(st.high.p, cur)}</strong>
+                    <em>{shortDay(st.high.t)}</em>
+                  </span>
+                  <span>
+                    <small>{t('Schnitt')}</small>
+                    <strong>{money(st.avg, cur)}</strong>
+                    <em>{st.aboveLow <= 0.05 ? t('Jetzt am Tiefstpreis') : t('{p} % über Tiefst', { p: st.aboveLow.toLocaleString() })}</em>
+                  </span>
+                </div>
+              )}
               {flat && <p className="pw__hint">{t('Unverändert seit {d}, {n} Messpunkte.', { d: longDate(log[0].t), n: log.length })}</p>}
             </>
           ) : (
             <p className="pw__hint">{t('Noch kein Verlauf: Das Diagramm erscheint ab dem zweiten Messpunkt, einer pro Tag.')}</p>
           )}
+
+          <label className="pw__target" data-hit={hit || undefined}>
+            <Target size={16} aria-hidden />
+            <span>
+              <strong>{t('Wunschpreis')}</strong>
+              <small>{hit ? t('Erreicht! Der Preis liegt bei {p}.', { p: money(item.price as number, cur) }) : native ? t('Meldung, sobald der Preis darunter fällt.') : t('Etikett an der Karte, sobald der Preis darunter liegt.')}</small>
+            </span>
+            <span className="pw__tin" data-testid="price-target" onBlur={() => saveTarget(target)}>
+              <PriceInput value={target} onChange={setTarget} placeholder={t('kein')} />
+            </span>
+          </label>
 
           <div className="pw__foot">
             <button type="button" className="btn btn--small btn--ghost" onClick={() => void check()} disabled={busy || !native || !hasLink} data-testid="price-check">

@@ -16,7 +16,7 @@ const call = async <T,>(event: string, details?: Record<string, unknown>): Promi
   }
 }
 
-export const snapOf = (i: Item): Snap => ({ id: i.id, name: i.name, link: i.link ?? '', price: i.price, currency: i.currency, priceState: i.priceState, priceGuessOk: i.priceGuessOk, priceSpot: i.priceSpot, priceNo: i.priceNo })
+export const snapOf = (i: Item): Snap => ({ id: i.id, name: i.name, link: i.link ?? '', price: i.price, currency: i.currency, priceState: i.priceState, priceGuessOk: i.priceGuessOk, priceSpot: i.priceSpot, priceNo: i.priceNo, target: i.priceTarget })
 
 export const snapsOf = (items: Item[]): Snap[] => items.filter(checkable).map(snapOf)
 

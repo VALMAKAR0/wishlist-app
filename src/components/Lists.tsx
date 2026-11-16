@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { dateLabel, money } from '../lib/format'
+import { dateLabel, mainCurrency, money } from '../lib/format'
+import { parsePriceInput, priceText } from '../lib/priceInput'
+import { PriceInput } from './PriceInput'
 import { listTitle } from '../lib/lists'
 import { occasionEmoji } from '../lib/occasions'
 import type { ListStats } from '../lib/stats'
@@ -50,10 +52,12 @@ interface StatsCardProps {
   emoji?: string
   stats: ListStats
   onEdit?: () => void
+  /** Budget (nur Geschenkideen): gekauft und geplant gegen das Budget. */
+  budget?: number
 }
 
 /** Kleine Kennzahlen zu einer Liste: Anzahl, Gesamtwert, offen, gekauft und Durchschnitt. */
-export function ListStatsCard({ title, emoji, stats, onEdit }: StatsCardProps) {
+export function ListStatsCard({ title, emoji, stats, onEdit, budget }: StatsCardProps) {
   const t = useT()
   const done = stats.count ? stats.bought / stats.count : 0
   return (
@@ -75,6 +79,7 @@ export function ListStatsCard({ title, emoji, stats, onEdit }: StatsCardProps) {
       <div className="lstats__bar" aria-hidden>
         <motion.span initial={{ width: 0 }} animate={{ width: `${done * 100}%` }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }} />
       </div>
+      {budget !== undefined && budget > 0 && <BudgetBar budget={budget} spent={stats.boughtValue} planned={stats.openValue} />}
       <dl className="lstats__grid">
         <div>
           <dt>{t('Einträge')}</dt>
@@ -94,6 +99,32 @@ export function ListStatsCard({ title, emoji, stats, onEdit }: StatsCardProps) {
         </div>
       </dl>
     </section>
+  )
+}
+
+/** Budget-Balken: gekauft (voll), geplant (gestreift), Rest. Über dem Budget wird es rot. */
+function BudgetBar({ budget, spent, planned }: { budget: number; spent: number; planned: number }) {
+  const t = useT()
+  const total = spent + planned
+  const scale = Math.max(budget, total)
+  const left = budget - spent
+  const over = total > budget + 0.005
+  return (
+    <div className="budget" data-over={over || undefined} data-testid="budget">
+      <div className="budget__head">
+        <span>{t('Budget {b}', { b: money(budget) })}</span>
+        <strong>{left >= 0 ? t('{p} übrig', { p: money(left) }) : t('{p} drüber', { p: money(-left) })}</strong>
+      </div>
+      <div className="budget__bar" aria-hidden>
+        <motion.span className="budget__spent" initial={{ width: 0 }} animate={{ width: `${(spent / scale) * 100}%` }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }} />
+        <motion.span className="budget__plan" initial={{ width: 0 }} animate={{ width: `${(planned / scale) * 100}%` }} transition={{ duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] }} />
+        {total > budget && <i className="budget__line" style={{ left: `${(budget / scale) * 100}%` }} />}
+      </div>
+      <p className="budget__sub">
+        {t('{a} gekauft · {b} geplant', { a: money(spent), b: money(planned) })}
+        {over && ' · ' + t('Mit allen offenen Ideen über dem Budget')}
+      </p>
+    </div>
   )
 }
 
@@ -125,6 +156,11 @@ export function ListSheet({ owner: baseOwner, ownerChoices, list, onClose, onCre
   const [emoji, setEmoji] = useState(list?.emoji ?? '⭐')
   const [hue, setHue] = useState(list?.hue ?? HUES[Math.floor(Math.random() * HUES.length)])
   const [shake, setShake] = useState(0)
+  const [budget, setBudget] = useState(list?.budget !== undefined ? priceText(list.budget) : '')
+  const budgetVal = (() => {
+    const v = parsePriceInput(budget)
+    return v !== undefined && Number.isFinite(v) && v > 0 ? v : undefined
+  })()
   const canDelete = editing && lists.filter((l) => l.owner === owner).length > 1
 
   const save = () => {
@@ -136,11 +172,11 @@ export function ListSheet({ owner: baseOwner, ownerChoices, list, onClose, onCre
     }
     if (list) {
       // Ein Standardname bleibt "Allgemein", sonst wird die Liste zu einer eigenen.
-      dispatch({ type: 'updateList', id: list.id, patch: { name: finalName, emoji, hue, occasionId: linked?.id, date: linked ? list.date : date || undefined, isDefault: finalName ? undefined : list.isDefault } })
+      dispatch({ type: 'updateList', id: list.id, patch: { name: finalName, emoji, hue, occasionId: linked?.id, date: linked ? list.date : date || undefined, isDefault: finalName ? undefined : list.isDefault, budget: owner === 'me' ? undefined : budgetVal } })
       ui.toast({ message: t('Liste aktualisiert'), emoji: '✨' })
     } else {
       const id = uid()
-      dispatch({ type: 'addList', list: { id, owner, name: finalName, emoji, hue, occasionId: linked?.id, date: linked ? undefined : date || undefined, createdAt: Date.now() } })
+      dispatch({ type: 'addList', list: { id, owner, name: finalName, emoji, hue, occasionId: linked?.id, date: linked ? undefined : date || undefined, budget: owner === 'me' ? undefined : budgetVal, createdAt: Date.now() } })
       ui.toast({ message: t('Liste „{name}“ angelegt', { name: finalName }), emoji })
       onCreated?.(id)
     }
@@ -240,6 +276,18 @@ export function ListSheet({ owner: baseOwner, ownerChoices, list, onClose, onCre
           <span>{t('Datum')} · {t('optional')}</span>
           <DateField value={date} onChange={setDate} label={t('Datum')} clearable />
         </div>
+      )}
+      {owner !== 'me' && (
+        <label className="field">
+          <span>
+            {t('Budget')} · {t('optional')}
+          </span>
+          <div className="field__row" data-testid="list-budget">
+            <PriceInput value={budget} onChange={setBudget} placeholder={t('z. B. 50')} />
+            <span className="field__unit">{mainCurrency()}</span>
+          </div>
+          <small className="hint">{t('Zeigt, wie viel gekauft und geplant ist und was übrig bleibt.')}</small>
+        </label>
       )}
       <div className="field">
         <span>{t('Symbol')}</span>

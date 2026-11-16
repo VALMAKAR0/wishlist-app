@@ -127,7 +127,7 @@ export function normalize(raw: unknown, base: UiSettings = defaults()): UiSettin
     trashDays: num(r.trashDays, TRASH_CHOICES) ?? base.trashDays,
     autoKeep: num(r.autoKeep, KEEP_CHOICES) ?? base.autoKeep,
     startTab: oneOf<StartTab>(r.startTab, ['wishes', 'ideas', 'received', 'stats', 'last']) ?? base.startTab,
-    sort: oneOf<SortMode>(r.sort, ['new', 'old', 'name', 'priceDown', 'priceUp']) ?? base.sort,
+    sort: oneOf<SortMode>(r.sort, ['new', 'old', 'name', 'priceDown', 'priceUp', 'prio', 'drop']) ?? base.sort,
     shareDefaults: cleanShare(r.shareDefaults) ?? base.shareDefaults,
     lockHash: /^[0-9a-f]{64}$/.test(str(r.lockHash, '')) ? (r.lockHash as string) : '',
     lockSalt: /^[0-9a-f]{32}$/.test(str(r.lockSalt, '')) ? (r.lockSalt as string) : '',

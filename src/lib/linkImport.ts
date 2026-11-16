@@ -487,8 +487,29 @@ export function imageFallback(html: string): { url?: string; imgTags: number } {
   return { url: best.url, imgTags }
 }
 
-/** Entfernt Markenzeichen und Leerraum. */
-export const cleanName = (name: string): string => name.replace(/[®™©℗]/g, '').replace(/\s+/g, ' ').trim()
+const LEAD_JUNK = /^(?:(?:neu|new|neuheit|angebot|sale|bestseller|2\d{3}(?:\s*(?:neu|new|upgrade|version|modell))?)\s*[:!|–-]\s*)+/i
+const LEAD_CAPS = /^(?:(?:NEU|NEW|NEUHEIT|ANGEBOT|SALE|BESTSELLER|TOP|HOT|ORIGINAL)!?\s+)+/
+
+/** Großgeschriebene Titel ("SAMSUNG GALAXY S24 ULTRA") in normale Schreibweise. Kürzel bis drei Buchstaben und Modellnummern bleiben. */
+function calmCaps(n: string): string {
+  const letters = n.replace(/[^A-Za-zÄÖÜäöüß]/g, '')
+  if (letters.length < 10 || /[a-zäöüß]/.test(letters)) return n
+  return n.replace(/[A-Za-zÄÖÜäöüß][\wÄÖÜäöüß-]*/g, (w) => (w.length <= 3 || /\d/.test(w) ? w : w[0] + w.slice(1).toLowerCase()))
+}
+
+/** Entfernt Markenzeichen, Werbe-Klammern wie [2025 Upgrade] oder 【Neu】, Werbewörter am Anfang und Leerraum. */
+export const cleanName = (name: string): string => {
+  let n = name
+    .replace(/[®™©℗]/g, '')
+    .replace(/【[^】]*】|\[[^\]]*\]|\{[^}]*\}/g, ' ')
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]\uFE0F?/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  const stripped = n.replace(LEAD_JUNK, '').replace(LEAD_CAPS, '')
+  if (stripped.length >= 3) n = stripped
+  n = calmCaps(n)
+  return n.replace(/^[\s,;:|\-–]+|[\s,;:|\-–]+$/g, '').trim()
+}
 
 const TAIL_JUNK = /(?:\s+(?:und|and|mit|with|für|for|von|of|the|der|die|das|&|\+|-|–|\/))+$|[\s,;:&+\-–/]+$/i
 
@@ -496,7 +517,7 @@ const TAIL_JUNK = /(?:\s+(?:und|and|mit|with|für|for|von|of|the|der|die|das|&|\
 export function shortenName(name: string, max = 64): string {
   const n = cleanName(name)
   if (n.length <= 48) return n
-  const re = /,\s|\s[-–|]\s|\s[([]|;\s|\s\/\s/g
+  const re = /,\s|\s[-–|]\s|\s[([]|;\s|\s\/\s|\s(?:mit|inkl\.?|inklusive|with|including)\s/gi
   let head = n
   for (let m = re.exec(n); m; m = re.exec(n)) {
     if (m.index >= 18) {
