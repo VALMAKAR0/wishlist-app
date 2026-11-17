@@ -1,3 +1,5 @@
+import { APP_NAME } from './brand'
+import { drawIcon, iconOf } from './icons'
 import { isoLabel, longDate, priceText, toHref } from './format'
 import type { TFn } from './i18n'
 import { A4, buildPdf, safeUrl, type PdfLink } from './pdf'
@@ -206,7 +208,7 @@ function drawTitle(ctx: Ctx, o: ExportInput, y: number, count: number) {
   ctx.fillStyle = a
   ctx.font = `800 9.5px ${BODY}`
   ctx.letterSpacing = '1.6px'
-  ctx.fillText(t('Wunschliste').toUpperCase(), M + 24, y + 30)
+  ctx.fillText(APP_NAME.toUpperCase(), M + 24, y + 30)
   ctx.letterSpacing = '0px'
   ctx.fillStyle = INK
   const title = t('Wunschliste von {name}', { name: o.from })
@@ -271,14 +273,25 @@ function drawItem(ctx: Ctx, r: Row, bmp: ImageBitmap | null, hue: number): PdfLi
     const dh = bmp.height * s
     ctx.drawImage(bmp, tx + (THUMB - dw) / 2, ty + (THUMB - dh) / 2, dw, dh)
   } else {
-    ctx.fillStyle = tint(i.hue ?? hue, 91)
-    ctx.fillRect(tx, ty, THUMB, THUMB)
-    ctx.font = `28px ${BODY}`
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillStyle = INK
-    ctx.fillText(i.emoji, tx + THUMB / 2, ty + THUMB / 2 + 2)
-    ctx.textAlign = 'left'
+    if (iconOf(i.emoji)) {
+      const h = i.hue ?? hue
+      const g = ctx.createLinearGradient(tx, ty, tx + THUMB, ty + THUMB)
+      g.addColorStop(0, `hsl(${h} 72% 64%)`)
+      g.addColorStop(1, `hsl(${(h + 35) % 360} 66% 46%)`)
+      ctx.fillStyle = g
+      ctx.fillRect(tx, ty, THUMB, THUMB)
+      const sz = THUMB * 0.66
+      drawIcon(ctx, i.emoji, tx + (THUMB - sz) / 2, ty + (THUMB - sz) / 2, sz)
+    } else {
+      ctx.fillStyle = tint(i.hue ?? hue, 91)
+      ctx.fillRect(tx, ty, THUMB, THUMB)
+      ctx.font = `28px ${BODY}`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillStyle = INK
+      ctx.fillText(i.emoji, tx + THUMB / 2, ty + THUMB / 2 + 2)
+      ctx.textAlign = 'left'
+    }
   }
   ctx.restore()
   if (bmp) {
@@ -341,7 +354,7 @@ function drawFooter(ctx: Ctx, o: ExportInput, y: number, label: string, tip: boo
   ctx.fillStyle = SOFT
   ctx.globalAlpha = 0.85
   ctx.font = `600 8.4px ${BODY}`
-  ctx.fillText(tip ? `${o.t('Erstellt mit der App Wunschliste')} · ${o.t('Wunsch antippen öffnet den Shop')}` : o.t('Erstellt mit der App Wunschliste'), M, y)
+  ctx.fillText(tip ? `${o.t('Erstellt mit Wishlist')} · ${o.t('Wunsch antippen öffnet den Shop')}` : o.t('Erstellt mit Wishlist'), M, y)
   ctx.textAlign = 'right'
   ctx.fillText(label, W - M, y)
   ctx.textAlign = 'left'

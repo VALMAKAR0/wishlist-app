@@ -35,7 +35,6 @@ export function AutoBackup() {
           const { bytes, meta } = await buildBackup(s, APP_VERSION, now, syncPart(settings.current))
           await writeAutoBackup(bytes, backupName('auto', new Date(now)), settings.current.autoKeep)
           latest.current.dispatch({ type: 'backedUp', at: meta.createdAt })
-          ui.toast({ message: t('Automatisch gesichert'), emoji: '🗄️' })
         } catch {
           ui.toast({ message: t('Automatisches Backup hat nicht geklappt.'), emoji: '⚠️' })
         }

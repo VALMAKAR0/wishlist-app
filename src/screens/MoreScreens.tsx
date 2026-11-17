@@ -146,7 +146,6 @@ export function TrashScreen() {
       tone: 'danger',
       onConfirm: () => {
         dispatch({ type: 'emptyTrash' })
-        ui.toast({ message: t('Papierkorb geleert'), emoji: '🧹' })
       },
     })
 
@@ -183,7 +182,6 @@ export function TrashScreen() {
                     aria-label={t('Wiederherstellen')}
                     onClick={() => {
                       dispatch({ type: 'restoreItem', id: it.id })
-                      ui.toast({ message: t('„{name}“ wiederhergestellt', { name: it.name }), emoji: '♻️' })
                     }}
                   >
                     <Undo2 size={17} />

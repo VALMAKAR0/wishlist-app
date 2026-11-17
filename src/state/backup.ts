@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { APP_VERSION } from '../lib/brand'
-import { BACKUP_DIR, deliverBackup, isNative } from '../lib/backupFiles'
+import { deliverBackup, isNative } from '../lib/backupFiles'
 import {
   backupName, buildBackup, listSafetyCopies, loadSafetyCopy, readBackup, restoreImages, saveSafetyCopy, type ReadResult,
 } from '../lib/backup'
@@ -27,15 +27,6 @@ export function useBackup() {
       if (out.where === 'cancelled') return
       dispatch({ type: 'backedUp', at: meta.createdAt })
       ui.haptic(18)
-      ui.toast({
-        emoji: '🗄️',
-        message:
-          out.where === 'documents'
-            ? t('Gesichert in Dokumente/{dir}', { dir: BACKUP_DIR })
-            : out.where === 'shared'
-              ? t('Backup bereit. Speichere es z. B. in „Dateien“.')
-              : t('Backup heruntergeladen'),
-      })
     } catch {
       ui.toast({ message: t('Backup hat nicht geklappt.'), emoji: '⚠️' })
     } finally {

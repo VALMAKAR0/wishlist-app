@@ -1,6 +1,6 @@
-import { useEffect, useRef, type MouseEvent, type Ref } from 'react'
+import { useEffect, useRef, useState, type MouseEvent, type Ref } from 'react'
 import { animate, motion, useMotionValue, useTransform } from 'motion/react'
-import { ArrowDownToLine, Check, CircleHelp, ExternalLink, StickyNote, Target, TrendingDown, TrendingUp, Trash2, Undo2 } from 'lucide-react'
+import { ArrowDownToLine, Check, CircleHelp, ExternalLink, FolderInput, Heart, HeartOff, StickyNote, Target, TrendingDown, TrendingUp, Trash2, Undo2 } from 'lucide-react'
 import { agoLabel, curOf, hostOf, money, toHref } from '../lib/format'
 import { atLowest, targetHit } from '../lib/listQuery'
 import { priceDelta } from '../lib/priceCheck'
@@ -14,6 +14,10 @@ interface ItemCardProps {
   onOpen: () => void
   onToggle: (origin: { x: number; y: number }) => void
   onTrash: () => void
+  /** Langer Wisch nach rechts: in eine andere Liste verschieben. Fehlt der Handler, gibt es nur die kurze Stufe. */
+  onMove?: () => void
+  /** Kurzer Wisch nach links: als Favorit (höchste Wichtigkeit) markieren oder wieder lösen. */
+  onFavorite?: () => void
   /** Hinweis-Badge, z. B. "Schon vorhanden". */
   badge?: string
   /** Name der Liste, wenn mehrere Listen gemischt angezeigt werden. */
@@ -27,10 +31,13 @@ interface ItemCardProps {
   ref?: Ref<HTMLLIElement>
 }
 
-const SWIPE = 92
+const SWIPE = 88
+const SWIPE_FAR = 200
+/** So viel von der Fingerbewegung folgt die Zeile, darüber hinaus gibt sie federnd nach. */
+const PULL = 0.85
 
-/** Zeile mit Wisch-Gesten: nach rechts = gekauft, nach links = Papierkorb. */
-export function ItemCard({ item, index, onOpen, onToggle, onTrash, badge, listLabel, selectMode, selected, onLongPress, flow, ref }: ItemCardProps) {
+/** Zeile mit vier Wisch-Stufen: rechts kurz = gekauft, rechts weit = verschieben, links kurz = Favorit, links weit = Papierkorb. */
+export function ItemCard({ item, index, onOpen, onToggle, onTrash, onMove, onFavorite, badge, listLabel, selectMode, selected, onLongPress, flow, ref }: ItemCardProps) {
   const t = useT()
   const ui = useUI()
   const delta = ui.settings.priceWatch ? priceDelta(item) : null
@@ -49,10 +56,21 @@ export function ItemCard({ item, index, onOpen, onToggle, onTrash, badge, listLa
     hold.current = undefined
   }
   useEffect(() => stopHold, [])
-  const rightBg = useTransform(x, [0, SWIPE], [0, 1])
-  const leftBg = useTransform(x, [-SWIPE, 0], [1, 0])
-  const rightScale = useTransform(x, [0, SWIPE], [0.6, 1])
-  const leftScale = useTransform(x, [-SWIPE, 0], [1, 0.6])
+  const rightBg = useTransform(x, [0, SWIPE * PULL * 0.6], [0, 1])
+  const leftBg = useTransform(x, [-SWIPE * PULL * 0.6, 0], [1, 0])
+  const rightScale = useTransform(x, [0, SWIPE * PULL], [0.6, 1])
+  const leftScale = useTransform(x, [-SWIPE * PULL, 0], [1, 0.6])
+  const canMove = !!onMove
+  const stageOf = (v: number) => (v > SWIPE_FAR && canMove ? 2 : v > SWIPE ? 1 : v < -SWIPE_FAR ? -2 : v < -SWIPE ? -1 : 0)
+  const [stage, setStage] = useState(0)
+  const follow = (offset: number) => {
+    const next = stageOf(offset)
+    if (next !== stage) {
+      setStage(next)
+      if (next !== 0) ui.haptic(10)
+    }
+  }
+  const fav = (item.prio ?? 0) >= 3
 
   const center = (el: Element | null) => {
     const r = (el ?? document.body).getBoundingClientRect()
@@ -83,15 +101,13 @@ export function ItemCard({ item, index, onOpen, onToggle, onTrash, badge, listLa
       transition={{ type: 'spring', stiffness: 300, damping: 28, delay: Math.min(index, 7) * 0.05 }}
     >
       <div className="swipe__bg" aria-hidden>
-        <motion.span className="swipe__act swipe__act--good" style={{ opacity: rightBg }}>
-          <motion.span style={{ scale: rightScale }}>{item.bought ? <Undo2 size={22} /> : <Check size={22} />}</motion.span>
-          {item.bought ? t('Zurück') : t('Gekauft')}
+        <motion.span className="swipe__act swipe__act--good" data-stage={stage > 0 ? stage : undefined} style={{ opacity: rightBg }}>
+          <motion.span style={{ scale: rightScale }}>{stage === 2 ? <FolderInput size={22} /> : item.bought ? <Undo2 size={22} /> : <Check size={22} />}</motion.span>
+          {stage === 2 ? t('Verschieben') : item.bought ? t('Zurück') : t('Gekauft')}
         </motion.span>
-        <motion.span className="swipe__act swipe__act--bad" style={{ opacity: leftBg }}>
-          {t('Löschen')}
-          <motion.span style={{ scale: leftScale }}>
-            <Trash2 size={22} />
-          </motion.span>
+        <motion.span className="swipe__act swipe__act--bad" data-stage={stage < 0 ? -stage : undefined} style={{ opacity: leftBg }}>
+          {stage === -2 ? t('Löschen') : fav ? t('Kein Favorit') : t('Favorit')}
+          <motion.span style={{ scale: leftScale }}>{stage === -2 ? <Trash2 size={22} /> : fav ? <HeartOff size={22} /> : <Heart size={22} />}</motion.span>
         </motion.span>
       </div>
 
@@ -104,19 +120,28 @@ export function ItemCard({ item, index, onOpen, onToggle, onTrash, badge, listLa
         drag={selectMode ? false : 'x'}
         dragDirectionLock
         dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.4}
+        dragElastic={PULL}
         dragMomentum={false}
         whileTap={{ scale: 0.985 }}
+        onDrag={(_, info) => follow(info.offset.x)}
         onDragEnd={(_, info) => {
-          if (info.offset.x > SWIPE) {
+          const st = stageOf(info.offset.x)
+          if (st === 2) {
+            snapBack()
+            onMove?.()
+          } else if (st === 1) {
             const origin = center(cardRef.current)
             snapBack()
             onToggle(origin)
-          } else if (info.offset.x < -SWIPE) {
+          } else if (st === -1) {
+            snapBack()
+            onFavorite?.()
+          } else if (st === -2) {
             animate(x, -window.innerWidth, { duration: 0.22, ease: 'easeIn' }).then(onTrash)
           } else {
             snapBack()
           }
+          setStage(0)
         }}
         role={selectMode ? 'checkbox' : 'button'}
         aria-checked={selectMode ? !!selected : undefined}

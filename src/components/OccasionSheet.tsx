@@ -4,7 +4,7 @@ import { Trash2 } from 'lucide-react'
 import { isNative } from '../lib/backupFiles'
 import { parseMonthDay, toInputDate, uid } from '../lib/format'
 import { listTitle } from '../lib/lists'
-import { OCCASION_PRESETS, occasionEmoji, presetOf } from '../lib/occasions'
+import { OCCASION_PRESETS, presetOf } from '../lib/occasions'
 import type { Occasion, Person } from '../lib/types'
 import { useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
@@ -61,7 +61,6 @@ export function OccasionSheet({ person, occasion, onClose }: Props) {
       if (want && l.occasionId !== id) dispatch({ type: 'updateList', id: l.id, patch: { occasionId: id } })
       if (!want && l.occasionId === id) dispatch({ type: 'updateList', id: l.id, patch: { occasionId: undefined } })
     }
-    ui.toast({ message: editing ? t('Anlass aktualisiert') : t('Anlass hinzugefügt'), emoji: occasionEmoji(label) })
     ui.haptic(18)
     onClose()
   }

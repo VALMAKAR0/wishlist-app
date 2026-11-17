@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Camera, ExternalLink, Loader2, Trash2, Wand2, X } from 'lucide-react'
+import { Camera, ChevronDown, ClipboardPaste, ExternalLink, Loader2, Shapes, Trash2, Wand2, X } from 'lucide-react'
 import { isNative } from '../lib/backupFiles'
+import { lastUrl, readClipboard } from '../lib/clipboard'
+import { ICONS, iconFor, iconValue, pickGift } from '../lib/icons'
 import { hasRate, money, toHref, uid } from '../lib/format'
 import { fetchRates } from '../lib/rates'
 import { processImage, saveImage } from '../lib/images'
@@ -25,7 +27,6 @@ import { Cover, PrioPicker } from './Primitives'
 import { CurrencyButton, CurrencyPanel } from './CurrencyPicker'
 import { Sheet } from './Sheet'
 
-const EMOJIS = ['🎁', '🎧', '📷', '👟', '📚', '🎮', '🧣', '☕', '🪴', '⌚', '🧳', '🕯️', '🍷', '🎨', '🧸', '💄', '🎸', '🧴', '🍫', '🛋️']
 const HUES = [14, 45, 100, 150, 190, 230, 275, 320]
 
 interface Props {
@@ -56,7 +57,10 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
   const [curOpen, setCurOpen] = useState(false)
   const [note, setNote] = useState(item?.note ?? '')
   const [prio, setPrio] = useState<Prio | undefined>(item?.prio)
-  const [emoji, setEmoji] = useState(item?.emoji ?? EMOJIS[0])
+  const [emoji, setEmoji] = useState(item?.emoji ?? pickGift())
+  const giftRef = useRef(emoji.startsWith('ic:gift') ? emoji : pickGift())
+  const [iconTouched, setIconTouched] = useState(!!item?.emoji && item.emoji !== '🎁' && !item.emoji.startsWith('ic:gift'))
+  const [panel, setPanel] = useState(false)
   const [hue, setHue] = useState(item?.hue ?? HUES[Math.floor(Math.random() * HUES.length)])
   const [shake, setShake] = useState(0)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -219,11 +223,19 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
       ui.toast({ message: isNative() ? t('Link-Import ist in den Einstellungen aus.') : t('Link-Import geht nur in der Android-App.'), emoji: '🪄' })
       return
     }
+    let text = ''
     try {
-      await importLink(await navigator.clipboard.readText())
+      text = await readClipboard()
     } catch {
       ui.toast({ message: t('Einfügen nicht erlaubt. Halte das Feld gedrückt und wähle „Einfügen“.'), emoji: '📋' })
+      return
     }
+    const url = lastUrl(text)
+    if (!url) {
+      ui.toast({ message: t('In der Zwischenablage steckt kein Link.'), emoji: '📋' })
+      return
+    }
+    await importLink(url)
   }
 
   const useImportedName = (n: string) => {
@@ -299,6 +311,13 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name, known, category, link, kindTouched, ui.settings.kindAuto])
 
+  // Das Symbol passt sich Name und Art an, bis es von Hand gewählt wird.
+  useEffect(() => {
+    if (iconTouched) return
+    const id = window.setTimeout(() => setEmoji(iconFor(name, kind) ?? giftRef.current), 250)
+    return () => window.clearTimeout(id)
+  }, [name, kind, iconTouched])
+
   // Ein Link, der getippt oder per Tastatur-Zwischenablage eingefügt wird, wird nach kurzer Ruhe automatisch gelesen.
   useEffect(() => {
     if (!canImport || !ui.settings.linkAuto || importing) return
@@ -361,10 +380,8 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
     const priceFields = priceFieldsOnSave(stored, data.price, cur, priceFrom.current, Date.now(), spotRef.current)
     if (item) {
       dispatch({ type: 'updateItem', id: item.id, patch: { ...data, ...priceFields } })
-      ui.toast({ message: t('Änderungen übernommen'), emoji: '✨' })
     } else {
       dispatch({ type: 'addItem', item: { id: uid(), owner, bought: false, createdAt: Date.now(), ...data, ...priceFields } })
-      ui.toast({ message: forMe ? t('Zu deinen Wünschen hinzugefügt') : t('Geschenkidee gespeichert'), emoji })
     }
     ui.haptic(18)
     onClose()
@@ -381,6 +398,7 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
 
   return (
     <Sheet
+      expandable
       title={editing ? t('Eintrag bearbeiten') : forMe ? t('Neuer Wunsch') : t('Neue Geschenkidee')}
       subtitle={forMe ? t('Landet auf deiner teilbaren Liste') : t('Bleibt privat und wird nie geteilt')}
       onClose={onClose}
@@ -397,220 +415,253 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
         </div>
       }
     >
-      <div className="form-cover">
-        <motion.div key={emoji + hue} initial={{ scale: 0.8, rotate: -6 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 420, damping: 16 }}>
-          <Cover emoji={emoji} hue={hue} size={72} radius={22} imageId={removed ? undefined : item?.imageId} src={pending?.preview} />
+      <div className="fhero">
+        <motion.div key={emoji + hue} initial={{ scale: 0.85, rotate: -5 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 420, damping: 18 }}>
+          <Cover emoji={emoji} hue={hue} size={84} radius={26} imageId={removed ? undefined : item?.imageId} src={pending?.preview} />
         </motion.div>
-        <div className="form-cover__actions">
-          <button type="button" className="chip chip--button" onClick={() => fileRef.current?.click()} disabled={busy}>
-            <Camera size={14} /> {busy ? t('Bild wird verkleinert …') : hasImage ? t('Bild ändern') : t('Bild wählen')}
+        <div className="fhero__side">
+          <button type="button" className="fbtn" onClick={() => fileRef.current?.click()} disabled={busy}>
+            <Camera size={16} /> {busy ? t('Bild wird verkleinert …') : hasImage ? t('Bild ändern') : t('Bild wählen')}
           </button>
-          {hasImage && !busy && (
-            <button
-              type="button"
-              className="chip chip--button"
-              onClick={() => {
-                setPending(null)
-                setRemoved(true)
-              }}
-            >
-              <X size={14} /> {t('Bild entfernen')}
+          {hasImage ? (
+            !busy && (
+              <button
+                type="button"
+                className="fbtn"
+                onClick={() => {
+                  setPending(null)
+                  setRemoved(true)
+                }}
+              >
+                <X size={16} /> {t('Bild entfernen')}
+              </button>
+            )
+          ) : (
+            <button type="button" className="fbtn" aria-expanded={panel} data-testid="icon-toggle" onClick={() => setPanel((o) => !o)}>
+              <Shapes size={16} /> {t('Symbol und Farbe')}
+              <ChevronDown size={15} className="fbtn__chev" data-open={panel || undefined} />
             </button>
           )}
         </div>
         <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
       </div>
 
-      {!hasImage && (
-        <>
-          <div className="swatches swatches--scroll" role="radiogroup" aria-label="Emoji">
-            {EMOJIS.map((e) => (
-              <button key={e} role="radio" aria-checked={e === emoji} data-active={e === emoji} className="swatch swatch--emoji" onClick={() => setEmoji(e)}>
-                {e}
-              </button>
-            ))}
-          </div>
-          <div className="swatches" role="radiogroup" aria-label={t('Farbe')}>
-            {HUES.map((h) => (
-              <button key={h} role="radio" aria-checked={h === hue} aria-label={`${h}`} data-active={h === hue} className="swatch swatch--color" style={{ ['--h' as string]: h }} onClick={() => setHue(h)} />
-            ))}
-          </div>
-        </>
-      )}
-
-      <motion.label key={shake} className="field" data-loading={importing || undefined} data-flash={flash.includes('name') || undefined} animate={shake ? { x: [0, -9, 9, -6, 6, 0] } : undefined} transition={{ duration: 0.4 }}>
-        <span>{t('Name')}</span>
-        <input value={name} onChange={(e) => onName(e.target.value)} placeholder={t('Was soll es sein?')} autoFocus={!editing} data-invalid={shake > 0 && !name.trim()} enterKeyHint="next" />
-      </motion.label>
-
-      <AnimatePresence initial={false}>{matches.length > 0 && <MatchWarning key="warn" matches={matches} ownerName={ownerName} />}</AnimatePresence>
-
-      <label className="field" data-flash={flash.includes('kind') || undefined}>
-        <span>
-          {t('Art')} {!kindTouched && kind.trim() !== '' && <em>· {t('erkannt, änderbar')}</em>}
-          {kindTouched && ui.settings.kindAuto && (
-            <button type="button" className="linkbtn" onClick={() => setKindTouched(false)}>
-              {t('Neu erkennen')}
-            </button>
-          )}
-        </span>
-        <input
-          value={kind}
-          onChange={(e) => {
-            setKind(e.target.value)
-            setKindTouched(true)
-          }}
-          placeholder={t('z. B. Grafikkarte')}
-        />
-        {kindChips.length > 0 && (
-          <div className="kindchips" role="listbox" aria-label={t('Arten')}>
-            {kindChips.map((k) => (
-              <button
-                key={k}
-                type="button"
-                role="option"
-                aria-selected={false}
-                className="chip chip--button"
-                onClick={() => {
-                  setKind(k)
-                  setKindTouched(true)
-                }}
-              >
-                {k}
-              </button>
-            ))}
-          </div>
-        )}
-      </label>
-
-      <div className="field">
-        <span>
-          {forMe ? t('Wie wichtig?') : t('Wie gut passt es?')} <em>· {t('optional')}</em>
-        </span>
-        <PrioPicker
-          value={prio}
-          onChange={(v) => {
-            setPrio(v)
-            ui.haptic(10)
-          }}
-          labels={forMe ? [t('Wie wichtig?'), t('Wäre schön'), t('Wünsche ich mir sehr'), t('Am allerliebsten')] : [t('Wie gut passt es?'), t('Gute Idee'), t('Sehr gute Idee'), t('Volltreffer')]}
-        />
-      </div>
-
-      {ownerLists.length > 1 && (
-        <div className="field">
-          <span>{t('Liste')}</span>
-          <div className="listbar listbar--form" role="radiogroup" aria-label={t('Liste')}>
-            {ownerLists.map((l) => (
-              <button key={l.id} type="button" role="radio" aria-checked={l.id === listId} className="listchip" data-active={l.id === listId} onClick={() => setListId(l.id)}>
-                <span aria-hidden>{l.emoji}</span> {listTitle(l, t)}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <label className="field">
-        <span>{t('Link')}</span>
-        <div className="field__row field__row--link">
-          <input
-            value={link}
-            data-busy={importing || undefined}
-            onChange={(e) => {
-              setLink(e.target.value)
-              if (report && extractUrl(e.target.value) !== report.url) setReport(null)
-            }}
-            onPaste={(e) => {
-              const text = e.clipboardData.getData('text')
-              if (canImport && ui.settings.linkAuto && extractUrl(text)) {
-                e.preventDefault()
-                void importLink(text)
-              }
-            }}
-            placeholder="https://…"
-            inputMode="url"
-            autoCapitalize="off"
-          />
-          {importing ? (
-            <span className="chip" aria-live="polite">
-              <Loader2 size={14} className="spin" /> {t('Lese Seite …')}
-            </span>
-          ) : link.trim() ? (
-            <>
-              {canImport && (
-                <button type="button" className="chip chip--button" onClick={() => void importLink(link)}>
-                  <Wand2 size={14} /> {t('Daten holen')}
-                </button>
-              )}
-              <button type="button" className="chip chip--button" onClick={() => window.open(toHref(link), '_blank', 'noopener,noreferrer')}>
-                <ExternalLink size={14} /> {t('Öffnen')}
-              </button>
-            </>
-          ) : (
-            <button type="button" className="chip chip--button" onClick={() => void fillFromClipboard()}>
-              <Wand2 size={14} /> {t('Ausfüllen')}
-            </button>
-          )}
-        </div>
-      </label>
-
-      <AnimatePresence initial={false}>{report && <LinkReport key="rep" report={report} onClose={() => setReport(null)} onUseName={useImportedName} onPickPrice={() => setChooser(true)} />}</AnimatePresence>
-
-      <label className="field" data-loading={importing || undefined} data-flash={flash.includes('price') || undefined}>
-        <span>{t('Preis')}</span>
-        <div className="field__row">
-          <PriceInput value={price} onChange={(v) => { priceFrom.current = null; setPrice(v) }} placeholder="0,00" />
-          <CurrencyButton value={cur} open={curOpen} onToggle={() => setCurOpen((o) => !o)} />
-        </div>
-        <CurrencyPanel open={curOpen} value={cur} onPick={changeCur} onClose={() => setCurOpen(false)} />
-        {price.trim() && cur !== ui.settings.currency && (!hasRate(cur) || !hasRate(ui.settings.currency)) && (
-          <small className="hint hint--warn">{t('Für {cur} fehlt ein Kurs. Trag ihn unter „Mehr“ → „Währung und Format“ ein, bis dahin zählt der Betrag ohne Umrechnung.', { cur })}</small>
-        )}
-      </label>
-
-      {ui.settings.priceSearch && <PriceSearch name={name} />}
-      <Presence show={chooser}>{chooser && <PriceChooser candidates={report?.candidates ?? []} current={parsePriceInput(price) || undefined} spot={spotRef.current ?? stored?.priceSpot} cur={cur} onPick={pickPrice} onClose={() => setChooser(false)} />}</Presence>
-
-      {stored && ui.settings.priceWatch && (
-        <PriceWatch
-          item={stored}
-          link={link}
-          onPrice={(p, c) => {
-            priceFrom.current = null
-            setPrice(priceText(p))
-            setCur(c)
-          }}
-        />
-      )}
-
-      {stored && !!link.trim() && (
-        <ShopList
-          item={stored}
-          link={link}
-          onPromoted={(l, p, c) => {
-            priceFrom.current = null
-            setLink(l)
-            setPrice(priceText(p))
-            setCur(c)
-          }}
-        />
-      )}
-
-      <label className="field">
-        <span>
-          {t('Notiz')}
-          {forMe && <em> · {t('optional beim Teilen')}</em>}
-        </span>
-        <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder={t('Größe, Farbe, Details …')} />
-      </label>
-
-      <AnimatePresence>
-        {forMe && (
-          <motion.p className="hint" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
-            {t('Notizen bleiben privat, du entscheidest beim Teilen, ob sie mitgehen.')}
-          </motion.p>
+      <AnimatePresence initial={false}>
+        {panel && !hasImage && (
+          <motion.div key="ipanel" className="ipanel" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}>
+            <div className="ipanel__in">
+              <div className="ipanel__grid" role="radiogroup" aria-label={t('Symbol')}>
+                {ICONS.map((ic) => {
+                  const v = iconValue(ic.id)
+                  return (
+                    <button
+                      key={ic.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={v === emoji}
+                      aria-label={t(ic.label)}
+                      title={t(ic.label)}
+                      data-active={v === emoji}
+                      className="ipick"
+                      onClick={() => {
+                        setEmoji(v)
+                        setIconTouched(true)
+                        ui.haptic(8)
+                      }}
+                    >
+                      <Cover emoji={v} hue={hue} size={40} radius={13} />
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="ipanel__foot">
+                <div className="swatches swatches--left" role="radiogroup" aria-label={t('Farbe')}>
+                  {HUES.map((h) => (
+                    <button key={h} type="button" role="radio" aria-checked={h === hue} aria-label={`${h}`} data-active={h === hue} className="swatch swatch--color" style={{ ['--h' as string]: h }} onClick={() => setHue(h)} />
+                  ))}
+                </div>
+                {iconTouched && (
+                  <button type="button" className="linkbtn" onClick={() => setIconTouched(false)}>
+                    {t('Automatisch wählen')}
+                  </button>
+                )}
+              </div>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
+
+      <section className="fsec">
+        <label className="field">
+          <span>{t('Link')}</span>
+          <div className="field__row field__row--link">
+            <input
+              value={link}
+              data-busy={importing || undefined}
+              onChange={(e) => {
+                setLink(e.target.value)
+                if (report && extractUrl(e.target.value) !== report.url) setReport(null)
+              }}
+              onPaste={(e) => {
+                const text = e.clipboardData.getData('text')
+                if (canImport && ui.settings.linkAuto && extractUrl(text)) {
+                  e.preventDefault()
+                  void importLink(text)
+                }
+              }}
+              placeholder="https://…"
+              inputMode="url"
+              autoCapitalize="off"
+            />
+            {importing ? (
+              <span className="chip" aria-live="polite">
+                <Loader2 size={14} className="spin" /> {t('Lese Seite …')}
+              </span>
+            ) : link.trim() ? (
+              <>
+                {canImport && (
+                  <button type="button" className="chip chip--button" onClick={() => void importLink(link)}>
+                    <Wand2 size={14} /> {t('Daten holen')}
+                  </button>
+                )}
+                <button type="button" className="chip chip--button" onClick={() => window.open(toHref(link), '_blank', 'noopener,noreferrer')}>
+                  <ExternalLink size={14} /> {t('Öffnen')}
+                </button>
+              </>
+            ) : (
+              <button type="button" className="chip chip--button chip--strong" data-testid="link-paste" onClick={() => void fillFromClipboard()}>
+                <ClipboardPaste size={14} /> {t('Einfügen')}
+              </button>
+            )}
+          </div>
+        </label>
+
+        <AnimatePresence initial={false}>{report && <LinkReport key="rep" report={report} onClose={() => setReport(null)} onUseName={useImportedName} onPickPrice={() => setChooser(true)} />}</AnimatePresence>
+
+        <motion.label key={shake} className="field" data-loading={importing || undefined} data-flash={flash.includes('name') || undefined} animate={shake ? { x: [0, -9, 9, -6, 6, 0] } : undefined} transition={{ duration: 0.4 }}>
+          <span>{t('Name')}</span>
+          <input value={name} onChange={(e) => onName(e.target.value)} placeholder={t('Was soll es sein?')} data-invalid={shake > 0 && !name.trim()} enterKeyHint="next" />
+        </motion.label>
+
+        <AnimatePresence initial={false}>{matches.length > 0 && <MatchWarning key="warn" matches={matches} ownerName={ownerName} />}</AnimatePresence>
+
+        <label className="field" data-loading={importing || undefined} data-flash={flash.includes('price') || undefined}>
+          <span>{t('Preis')}</span>
+          <div className="field__row">
+            <PriceInput value={price} onChange={(v) => { priceFrom.current = null; setPrice(v) }} placeholder="0,00" />
+            <CurrencyButton value={cur} open={curOpen} onToggle={() => setCurOpen((o) => !o)} />
+          </div>
+          <CurrencyPanel open={curOpen} value={cur} onPick={changeCur} onClose={() => setCurOpen(false)} />
+          {price.trim() && cur !== ui.settings.currency && (!hasRate(cur) || !hasRate(ui.settings.currency)) && (
+            <small className="hint hint--warn">{t('Für {cur} fehlt ein Kurs. Trag ihn unter „Mehr“ → „Währung und Format“ ein, bis dahin zählt der Betrag ohne Umrechnung.', { cur })}</small>
+          )}
+        </label>
+
+        {ui.settings.priceSearch && <PriceSearch name={name} />}
+        <Presence show={chooser}>{chooser && <PriceChooser candidates={report?.candidates ?? []} current={parsePriceInput(price) || undefined} spot={spotRef.current ?? stored?.priceSpot} cur={cur} onPick={pickPrice} onClose={() => setChooser(false)} />}</Presence>
+
+        {stored && ui.settings.priceWatch && (
+          <PriceWatch
+            item={stored}
+            link={link}
+            onPrice={(p, c) => {
+              priceFrom.current = null
+              setPrice(priceText(p))
+              setCur(c)
+            }}
+          />
+        )}
+
+        {stored && !!link.trim() && (
+          <ShopList
+            item={stored}
+            link={link}
+            onPromoted={(l, p, c) => {
+              priceFrom.current = null
+              setLink(l)
+              setPrice(priceText(p))
+              setCur(c)
+            }}
+          />
+        )}
+      </section>
+
+      <section className="fsec">
+        <label className="field" data-flash={flash.includes('kind') || undefined}>
+          <span>
+            {t('Art')} {!kindTouched && kind.trim() !== '' && <em>· {t('erkannt, änderbar')}</em>}
+            {kindTouched && ui.settings.kindAuto && (
+              <button type="button" className="linkbtn" onClick={() => setKindTouched(false)}>
+                {t('Neu erkennen')}
+              </button>
+            )}
+          </span>
+          <input
+            value={kind}
+            onChange={(e) => {
+              setKind(e.target.value)
+              setKindTouched(true)
+            }}
+            placeholder={t('z. B. Grafikkarte')}
+          />
+          {kindChips.length > 0 && (
+            <div className="kindchips" role="listbox" aria-label={t('Arten')}>
+              {kindChips.map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  role="option"
+                  aria-selected={false}
+                  className="chip chip--button"
+                  onClick={() => {
+                    setKind(k)
+                    setKindTouched(true)
+                  }}
+                >
+                  {k}
+                </button>
+              ))}
+            </div>
+          )}
+        </label>
+
+        <div className="field">
+          <span>
+            {forMe ? t('Wie wichtig?') : t('Wie gut passt es?')} <em>· {t('optional')}</em>
+          </span>
+          <PrioPicker
+            value={prio}
+            onChange={(v) => {
+              setPrio(v)
+              ui.haptic(10)
+            }}
+            labels={forMe ? [t('Wie wichtig?'), t('Wäre schön'), t('Wünsche ich mir sehr'), t('Am allerliebsten')] : [t('Wie gut passt es?'), t('Gute Idee'), t('Sehr gute Idee'), t('Volltreffer')]}
+          />
+        </div>
+
+        {ownerLists.length > 1 && (
+          <div className="field">
+            <span>{t('Liste')}</span>
+            <div className="listbar listbar--form" role="radiogroup" aria-label={t('Liste')}>
+              {ownerLists.map((l) => (
+                <button key={l.id} type="button" role="radio" aria-checked={l.id === listId} className="listchip" data-active={l.id === listId} onClick={() => setListId(l.id)}>
+                  <span aria-hidden>{l.emoji}</span> {listTitle(l, t)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <label className="field">
+          <span>
+            {t('Notiz')}
+            {forMe && <em> · {t('optional beim Teilen')}</em>}
+          </span>
+          <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder={t('Größe, Farbe, Details …')} />
+        </label>
+
+        {forMe && <p className="hint">{t('Notizen bleiben privat, du entscheidest beim Teilen, ob sie mitgehen.')}</p>}
+      </section>
     </Sheet>
   )
 }

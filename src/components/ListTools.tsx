@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { ArrowDownUp, Check, ChevronDown, Search, Shapes, X } from 'lucide-react'
-import { FILTS, countFor, isActive, kindsOf, type Filt, type ListQuery } from '../lib/listQuery'
+import { ArrowDownUp, Check, ChevronDown, ListFilter, Search, Shapes, X } from 'lucide-react'
+import { BANDS, EMPTY_QUERY, countFor, filterCount, isActive, kindsOf, matches, type Filt, type ListQuery, type PriceBand } from '../lib/listQuery'
 import type { Item, SortMode } from '../lib/types'
 import { useT } from '../state/ui'
 import { Presence } from './Presence'
@@ -21,12 +21,26 @@ const SORTS: SortMode[] = ['new', 'old', 'name', 'priceUp', 'priceDown', 'prio',
 
 const FILT_LABELS: Record<Filt, string> = {
   prio: 'Wichtig',
+  fav: 'Favoriten',
   drop: 'Preis gesunken',
   target: 'Wunschpreis erreicht',
   link: 'Mit Link',
+  nolink: 'Ohne Link',
   noprice: 'Ohne Preis',
   note: 'Mit Notiz',
+  img: 'Mit Bild',
+  noimg: 'Ohne Bild',
+  recent: 'Neu in 7 Tagen',
 }
+
+const GROUPS: Array<{ title: string; filters: Filt[]; bands?: boolean }> = [
+  { title: 'Wichtigkeit', filters: ['prio', 'fav'] },
+  { title: 'Preis', filters: ['drop', 'target', 'noprice'], bands: true },
+  { title: 'Angaben', filters: ['link', 'nolink', 'note', 'img', 'noimg'] },
+  { title: 'Zeit', filters: ['recent'] },
+]
+
+const BAND_LABELS: Record<PriceBand, string> = { low: 'bis 25', mid: '25 bis 100', high: 'ab 100' }
 
 interface Props {
   /** Einträge des aktuellen Reiters, ungefiltert (für die Zahlen). */
@@ -40,12 +54,13 @@ interface Props {
   sortable: boolean
 }
 
-/** Suche, Sortierung, Filter-Chips und Art-Auswahl über einer Liste. */
+/** Suche, Sortierung, Art und Filter über einer Liste. Alles bricht um, nichts scrollt zur Seite. */
 export function ListTools({ items, shown, query, onQuery, sort, onSort, sortable }: Props) {
   const t = useT()
   const [search, setSearch] = useState(!!query.q)
   const [sortOpen, setSortOpen] = useState(false)
   const [kindOpen, setKindOpen] = useState(false)
+  const [filterOpen, setFilterOpen] = useState(false)
   const input = useRef<HTMLInputElement>(null)
   const kinds = kindsOf(items)
   const active = isActive(query)
@@ -54,7 +69,8 @@ export function ListTools({ items, shown, query, onQuery, sort, onSort, sortable
   }, [search])
 
   const toggle = (f: Filt) => onQuery({ ...query, f: query.f.includes(f) ? query.f.filter((x) => x !== f) : [...query.f, f] })
-  const chips = FILTS.map((f) => ({ f, n: countFor(items, f) })).filter((c) => c.n > 0 || query.f.includes(c.f))
+  const nFilters = filterCount(query)
+  const live = filterOpen ? items.filter((i) => matches(i, query)).length : 0
 
   return (
     <div className="ltools" data-testid="ltools">
@@ -72,12 +88,10 @@ export function ListTools({ items, shown, query, onQuery, sort, onSort, sortable
             <Shapes size={14} /> {query.kind ?? t('Art')} <ChevronDown size={13} />
           </button>
         )}
-        {chips.map(({ f, n }) => (
-          <button key={f} type="button" className="lchip" data-on={query.f.includes(f)} aria-pressed={query.f.includes(f)} data-testid={`lt-f-${f}`} onClick={() => toggle(f)}>
-            {query.f.includes(f) && <Check size={13} strokeWidth={3} />}
-            {t(FILT_LABELS[f])} <span className="lchip__n">{n}</span>
-          </button>
-        ))}
+        <button type="button" className="lchip" data-on={nFilters > 0} data-testid="lt-filter" onClick={() => setFilterOpen(true)}>
+          <ListFilter size={14} /> {t('Filter')}
+          {nFilters > 0 && <span className="lchip__n">{nFilters}</span>}
+        </button>
       </div>
 
       <AnimatePresence initial={false}>
@@ -110,12 +124,56 @@ export function ListTools({ items, shown, query, onQuery, sort, onSort, sortable
       {active && (
         <p className="ltools__res" data-testid="lt-res">
           {t('{n} von {m}', { n: shown, m: items.length })}
-          <button type="button" className="linkbtn" data-testid="lt-reset" onClick={() => { onQuery({ q: '', f: [], kind: null }); setSearch(false) }}>
+          <button type="button" className="linkbtn" data-testid="lt-reset" onClick={() => { onQuery(EMPTY_QUERY); setSearch(false) }}>
             {t('Filter zurücksetzen')}
           </button>
         </p>
       )}
 
+      <Presence show={filterOpen}>
+        {filterOpen && (
+          <Sheet
+            title={t('Filter')}
+            subtitle={t.n(items.length, 'Eintrag in dieser Ansicht', 'Einträge in dieser Ansicht')}
+            onClose={() => setFilterOpen(false)}
+            footer={
+              <div className="row row--gap">
+                <button type="button" className="btn btn--ghost" data-testid="lt-f-reset" disabled={nFilters === 0 && query.kind === null} onClick={() => onQuery({ ...EMPTY_QUERY, q: query.q })}>
+                  {t('Zurücksetzen')}
+                </button>
+                <button type="button" className="btn btn--primary btn--grow" data-testid="lt-f-done" onClick={() => setFilterOpen(false)}>
+                  {live === 0 && isActive(query) ? t('Nichts gefunden') : t.n(live, 'Eintrag zeigen', 'Einträge zeigen')}
+                </button>
+              </div>
+            }
+          >
+            {GROUPS.map((g) => {
+              const shown = g.filters.map((f) => ({ f, n: countFor(items, f) })).filter((c) => c.n > 0 || query.f.includes(c.f))
+              if (!shown.length && !g.bands) return null
+              return (
+                <section key={g.title} className="fgroup">
+                  <h3>{t(g.title)}</h3>
+                  <div className="fgroup__chips">
+                    {g.bands &&
+                      (Object.keys(BANDS) as PriceBand[]).map((b) => (
+                        <button key={b} type="button" className="lchip" data-on={query.band === b} aria-pressed={query.band === b} data-testid={`lt-band-${b}`} onClick={() => onQuery({ ...query, band: query.band === b ? null : b })}>
+                          {query.band === b && <Check size={13} strokeWidth={3} />}
+                          {t(BAND_LABELS[b])} €
+                        </button>
+                      ))}
+                    {shown.map(({ f, n }) => (
+                      <button key={f} type="button" className="lchip" data-on={query.f.includes(f)} aria-pressed={query.f.includes(f)} data-testid={`lt-f-${f}`} onClick={() => toggle(f)}>
+                        {query.f.includes(f) && <Check size={13} strokeWidth={3} />}
+                        {t(FILT_LABELS[f])} <span className="lchip__n">{n}</span>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )
+            })}
+          </Sheet>
+        )}
+      </Presence>
       <Presence show={sortOpen}>
         {sortOpen && (
           <Sheet title={t('Sortieren')} onClose={() => setSortOpen(false)}>

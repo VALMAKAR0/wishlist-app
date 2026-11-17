@@ -522,11 +522,8 @@ export function ReceivedDetailScreen({ id, listId }: { id: string; listId?: stri
 function LinkSheet({ pkg, onClose }: { pkg: ReceivedList; onClose: () => void }) {
   const t = useT()
   const { persons, dispatch } = useStore()
-  const ui = useUI()
   const set = (personId?: string) => {
     dispatch({ type: 'updateReceived', id: pkg.id, patch: { personId } })
-    const p = persons.find((x) => x.id === personId)
-    ui.toast({ message: p ? t('Verknüpft mit Ideen für {name}', { name: p.name }) : t('Verknüpfung gelöst'), emoji: '🔗' })
     onClose()
   }
   return (

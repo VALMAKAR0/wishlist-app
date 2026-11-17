@@ -1,6 +1,6 @@
 {
-  "name": "Wunschliste",
-  "short_name": "Wunschliste",
+  "name": "Wishlist",
+  "short_name": "Wishlist",
   "description": "Eigene Wünsche und Geschenkideen für andere, nur auf deinem Gerät.",
   "lang": "de",
   "start_url": "./",

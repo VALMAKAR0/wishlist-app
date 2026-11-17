@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { AlignLeft, Check, ChevronDown, Copy, EyeOff, FileText, FolderDown, ImageIcon, Lock, Package, Send } from 'lucide-react'
+import { AlignLeft, Check, ChevronDown, Copy, EyeOff, FileText, FolderDown, ImageIcon, Lock, Package, Send, type LucideIcon } from 'lucide-react'
 import { APP_VERSION } from '../lib/brand'
 import { exportFiles, isNative, saveFile, saveFiles, shareFile, type OutFile } from '../lib/backupFiles'
 import { makePdf, makePngs } from '../lib/exportList'
@@ -10,12 +10,18 @@ import { buildShare, estimateBytes, exportFileName, pickShared, type ShareOption
 import { loadImages } from '../lib/backup'
 import type { ShareBought } from '../lib/types'
 import { useStore } from '../state/store'
-import { cap } from '../lib/i18n'
 import { useT, useUI } from '../state/ui'
-import { Cover, CountUp, Segmented, Switch } from './Primitives'
+import { Cover, Segmented } from './Primitives'
 import { Sheet } from './Sheet'
 
 type Fmt = 'file' | 'pdf' | 'png' | 'text'
+
+const FMTS: Array<{ value: Fmt; label: string; icon: LucideIcon }> = [
+  { value: 'file', label: 'App-Datei', icon: Package },
+  { value: 'pdf', label: 'PDF', icon: FileText },
+  { value: 'png', label: 'Bild', icon: ImageIcon },
+  { value: 'text', label: 'Text', icon: AlignLeft },
+]
 
 export function ShareSheet({ onClose, initialList }: { onClose: () => void; initialList?: string }) {
   const t = useT()
@@ -125,7 +131,7 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
       let r
       if (fmt === 'file') {
         const out = await buildShare({ items, lists }, opts, t, APP_VERSION)
-        const text = t('{name} schickt dir die Wunschliste. Öffne die Datei in der App „Wunschliste“ unter „Erhalten“ → „Import“.', { name: name.trim() })
+        const text = t('{name} schickt dir die Wunschliste. Öffne die Datei in der App „Wishlist“ unter „Erhalten“ → „Import“.', { name: name.trim() })
         r = save ? await saveFile(out.bytes, out.name) : await shareFile(out.bytes, out.name, text)
       } else {
         const { collections } = pickShared({ items, lists }, opts, t)
@@ -142,7 +148,7 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
       }
       if (r.where === 'cancelled') return
       ui.haptic(18)
-      ui.toast({ emoji: '📤', message: r.where === 'download' ? t('Datei heruntergeladen. Schick sie z. B. per WhatsApp.') : r.where === 'documents' ? t('Gespeichert unter Dokumente/Wunschliste. Hänge sie in WhatsApp als Dokument an.') : t('Wunschliste geteilt') })
+      if (r.where !== 'shared') ui.toast({ emoji: '📤', message: r.where === 'download' ? t('Datei heruntergeladen. Schick sie z. B. per WhatsApp.') : t('Gespeichert unter Dokumente/Wunschliste. Hänge sie in WhatsApp als Dokument an.') })
       onClose()
     } catch {
       ui.toast({ message: t('Teilen hat nicht geklappt.'), emoji: '⚠️' })
@@ -153,6 +159,9 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
 
   const mb = bytes === null ? '' : bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`
   const big = bytes !== null && bytes > 8 * 1024 * 1024
+
+  const sent = [price && t('Preise'), images && t('Bilder'), notes && t('Notizen'), listDate && t('Datum')].filter(Boolean).join(' · ')
+  const facts = [hidden.length ? `${hidden.length} ${t('unauffällig')}` : '', noteCount ? `${noteCount} ${t('Notizen')}` : '', fmt === 'file' && mb ? t('ca. {size}', { size: mb }) : ''].filter(Boolean)
 
   return (
     <Sheet
@@ -173,55 +182,42 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
               )}
             </>
           ) : (
-          <>
-          <button className="btn btn--primary btn--block" disabled={nothing || busy} onClick={() => void send()}>
-            {busy ? <Package size={17} /> : <Send size={17} />} {busy ? t('Wird erstellt …') : fmt === 'pdf' ? t('PDF teilen') : fmt === 'png' ? t('Bild teilen') : t('Datei teilen')}
-          </button>
-          {isNative() && (
-            <button className="btn btn--ghost btn--block" style={{ marginTop: 8 }} disabled={nothing || busy} onClick={() => void send(true)}>
-              <FolderDown size={17} /> {fmt === 'pdf' ? t('Als PDF speichern') : fmt === 'png' ? t('Als Bild speichern') : t('Als Datei speichern')}
-            </button>
-          )}
-          </>
+            <>
+              <button className="btn btn--primary btn--block" disabled={nothing || busy} onClick={() => void send()}>
+                {busy ? <Package size={17} /> : <Send size={17} />} {busy ? t('Wird erstellt …') : fmt === 'pdf' ? t('PDF teilen') : fmt === 'png' ? t('Bild teilen') : t('Datei teilen')}
+              </button>
+              {isNative() && (
+                <button className="btn btn--ghost btn--block" style={{ marginTop: 8 }} disabled={nothing || busy} onClick={() => void send(true)}>
+                  <FolderDown size={17} /> {fmt === 'pdf' ? t('Als PDF speichern') : fmt === 'png' ? t('Als Bild speichern') : t('Als Datei speichern')}
+                </button>
+              )}
+            </>
           )}
         </>
       }
     >
-      <div className="field">
-        <Segmented
-          id="share-fmt"
-          value={fmt}
-          onChange={setFmt}
-          options={[
-            { value: 'file', label: t('App-Datei') },
-            { value: 'pdf', label: 'PDF' },
-            { value: 'png', label: cap(t('Bild')) },
-            { value: 'text', label: t('Text') },
-          ]}
-        />
-        <p className="hint hint--tight">
-          {fmt === 'file' ? <Package size={13} /> : fmt === 'pdf' ? <FileText size={13} /> : fmt === 'text' ? <AlignLeft size={13} /> : <ImageIcon size={13} />}{' '}
-          {fmt === 'file'
-            ? t('Für Leute mit der App. Sie können die Liste importieren und Dinge abhaken.')
-            : fmt === 'pdf'
-              ? t('Zum Lesen und Drucken, auch ohne App. Wünsche mit Link lassen sich antippen und öffnen den Shop.')
-              : fmt === 'text'
-                ? t('Die Liste als Text, z. B. für WhatsApp oder Notizen. Links stehen direkt beim Wunsch.')
-                : t('Ein Bild zum Speichern oder Verschicken, auch ohne App. Bilder haben keine antippbaren Links.')}
-        </p>
+      <div className="fmtgrid" role="tablist" aria-label={t('Format')}>
+        {FMTS.map(({ value, label, icon: Icon }) => (
+          <button key={value} type="button" role="tab" aria-selected={fmt === value} aria-label={t(label)} className="fmt" data-on={fmt === value} onClick={() => setFmt(value)}>
+            <Icon size={20} aria-hidden />
+            <span>{t(label)}</span>
+          </button>
+        ))}
       </div>
+      <p className="fmthint">
+        {fmt === 'file'
+          ? t('Für Leute mit der App. Sie können die Liste importieren und Dinge abhaken.')
+          : fmt === 'pdf'
+            ? t('Zum Lesen und Drucken, auch ohne App. Wünsche mit Link lassen sich antippen und öffnen den Shop.')
+            : fmt === 'text'
+              ? t('Die Liste als Text, z. B. für WhatsApp oder Notizen. Links stehen direkt beim Wunsch.')
+              : t('Ein Bild zum Speichern oder Verschicken, auch ohne App. Bilder haben keine antippbaren Links.')}
+      </p>
 
       <motion.label key={`n${shake}`} className="field" animate={shake ? { x: [0, -9, 9, -6, 6, 0] } : undefined} transition={{ duration: 0.4 }}>
         <span>{t('Dein Name')}</span>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('So steht es beim Empfänger')} maxLength={40} data-invalid={shake > 0 && !name.trim()} />
       </motion.label>
-
-      {fmt === 'text' && !nothing && (
-        <div className="field">
-          <span>{t('Vorschau')}</span>
-          <pre className="textprev" data-testid="text-preview">{textOut}</pre>
-        </div>
-      )}
 
       <div className="field">
         <span>{t('Welche Listen?')}</span>
@@ -241,105 +237,79 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
         </div>
       </div>
 
-      <div className="parcel">
-        <div className="parcel__strip">
+      <div className="sumcard" data-testid="share-sum">
+        <div className="sumcard__strip">
           <AnimatePresence initial={false}>
             {strip.map((w, i) => (
-              <motion.div key={w.id} initial={{ opacity: 0, y: 14, scale: 0.8 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.7, width: 0, marginLeft: 0, pointerEvents: 'none' }} transition={{ type: 'spring', stiffness: 380, damping: 26, delay: i * 0.03 }} style={{ marginLeft: i ? -10 : 0, zIndex: 9 - i }}>
-                <Cover emoji={w.emoji} hue={w.hue} size={40} imageId={w.imageId} />
+              <motion.div key={w.id} initial={{ opacity: 0, y: 12, scale: 0.8 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.7, width: 0, marginLeft: 0, pointerEvents: 'none' }} transition={{ type: 'spring', stiffness: 380, damping: 26, delay: i * 0.03 }} style={{ marginLeft: i ? -12 : 0, zIndex: 9 - i }}>
+                <Cover emoji={w.emoji} hue={w.hue} size={38} imageId={w.imageId} />
               </motion.div>
             ))}
           </AnimatePresence>
-          {strip.length === 0 && <span className="parcel__empty">{t('Noch nichts zum Teilen')}</span>}
         </div>
-        <div className="stats">
-          <div className="stat">
-            <b>
-              <CountUp value={visible.length} duration={0.5} />
-            </b>
-            <span>{t('sichtbar')}</span>
-          </div>
-          <div className="stat">
-            <b>
-              <CountUp value={hidden.length} duration={0.5} />
-            </b>
-            <span>{t('unauffällig')}</span>
-          </div>
-          <div className="stat">
-            <b>
-              <CountUp value={noteCount} duration={0.5} />
-            </b>
-            <span>{t('Notizen')}</span>
-          </div>
+        <div className="sumcard__txt">
+          <strong>{nothing ? t('Noch nichts zum Teilen') : mode === 'only' ? t.n(hidden.length, 'gekaufter Artikel', 'gekaufte Artikel') : t.n(visible.length, 'Wunsch sichtbar', 'Wünsche sichtbar')}</strong>
+          {facts.length > 0 && <small>{facts.join(' · ')}</small>}
         </div>
       </div>
+      {big && <p className="hint" data-warn>{t('Discord erlaubt ohne Abo nur 10 MB. Schalte unter „Erweiterte Einstellungen“ die Bilder aus.')}</p>}
 
-      {fmt === 'file' && mb && (
-        <p className="hint" data-warn={big}>
-          {t('Dateigröße ca. {size}', { size: mb })}
-          {big ? ` · ${t('Discord erlaubt ohne Abo nur 10 MB. Schalte unter „Erweiterte Einstellungen“ die Bilder aus.')}` : ''}
-        </p>
+      {fmt === 'text' && !nothing && (
+        <div className="field">
+          <span>{t('Vorschau')}</span>
+          <pre className="textprev" data-testid="text-preview">{textOut}</pre>
+        </div>
       )}
 
-      <button className="reveal reveal--block" onClick={() => setAdv((a) => !a)} aria-expanded={adv}>
-        <ChevronDown size={15} style={{ transform: adv ? 'rotate(180deg)' : undefined, transition: 'transform .2s' }} /> {t('Erweiterte Einstellungen')}
+      <button className="reveal reveal--block optsbtn" onClick={() => setAdv((a) => !a)} aria-expanded={adv}>
+        <span className="optsbtn__t">{t('Erweiterte Einstellungen')}</span>
+        <small>{sent || t('Nichts extra')}</small>
+        <ChevronDown size={15} style={{ transform: adv ? 'rotate(180deg)' : undefined, transition: 'transform .2s' }} />
       </button>
 
       <AnimatePresence initial={false}>
         {adv && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 32 }} style={{ overflow: 'hidden' }}>
-            <div className="setting">
-              <div>
-                <strong>{t('Preise mitsenden')}</strong>
-                <p>{t('Der Empfänger sieht, was die Wünsche ungefähr kosten.')}</p>
+            <div className="field optsbox">
+              <span>{t('Mitsenden')}</span>
+              <div className="optchips">
+                {([
+                  [t('Preise'), t('Preise mitsenden'), price, setPrice],
+                  [t('Bilder'), t('Bilder mitsenden'), images, setImages],
+                  [t('Notizen'), t('Notizen mitsenden'), notes, setNotes],
+                  [t('Datum'), t('Datum der Liste mitsenden'), listDate, setListDate],
+                ] as Array<[string, string, boolean, (v: boolean) => void]>).map(([label, aria, on, set]) => (
+                  <button key={aria} type="button" role="switch" aria-checked={on} aria-label={aria} className="optchip" data-on={on} onClick={() => set(!on)}>
+                    {on && <Check size={13} strokeWidth={3.2} />} {label}
+                  </button>
+                ))}
               </div>
-              <Switch checked={price} onChange={setPrice} label={t('Preise mitsenden')} />
-            </div>
-            <div className="setting">
-              <div>
-                <strong>{t('Bilder mitsenden')}</strong>
-                <p>{t('Macht die Datei größer. Ohne Bilder zeigt die Liste Symbol und Farbe.')}</p>
-              </div>
-              <Switch checked={images} onChange={setImages} label={t('Bilder mitsenden')} />
-            </div>
-            <div className="setting">
-              <div>
-                <strong>{t('Notizen mitsenden')}</strong>
-                <p>{t('Standardmäßig bleiben sie bei dir.')}</p>
-              </div>
-              <Switch checked={notes} onChange={setNotes} label={t('Notizen mitsenden')} />
-            </div>
-            <div className="setting">
-              <div>
-                <strong>{t('Datum der Liste mitsenden')}</strong>
-                <p>{t('Zum Beispiel der Geburtstag, mit Tagen bis dahin.')}</p>
-              </div>
-              <Switch checked={listDate} onChange={setListDate} label={t('Datum der Liste mitsenden')} />
+              <small className="hint">{t('Bilder machen die Datei größer, ohne sie zeigt die Liste Symbol und Farbe. Notizen bleiben standardmäßig bei dir.')}</small>
             </div>
 
             {fmt === 'file' && (
-            <div className="field">
-              <span>{t('Gekaufte Artikel')}</span>
-              <Segmented
-                id="share-bought"
-                value={pick}
-                onChange={setMode}
-                options={[
-                  { value: 'hidden', label: t('Unauffällig') },
-                  { value: 'only', label: t('Nur gekauft') },
-                  { value: 'exclude', label: t('Ohne') },
-                ]}
-              />
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div key={pick} className="explain" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}>
-                  <EyeOff size={18} />
-                  <div>
-                    <strong>{MODE_TEXT[pick].title}</strong>
-                    <p>{MODE_TEXT[pick].text}</p>
-                  </div>
-                </motion.div>
-              </AnimatePresence>
-            </div>
+              <div className="field optsbox">
+                <span>{t('Gekaufte Artikel')}</span>
+                <Segmented
+                  id="share-bought"
+                  value={pick}
+                  onChange={setMode}
+                  options={[
+                    { value: 'hidden', label: t('Unauffällig') },
+                    { value: 'only', label: t('Nur gekauft') },
+                    { value: 'exclude', label: t('Ohne') },
+                  ]}
+                />
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.div key={pick} className="explain" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}>
+                    <EyeOff size={18} />
+                    <div>
+                      <strong>{MODE_TEXT[pick].title}</strong>
+                      <p>{MODE_TEXT[pick].text}</p>
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
             )}
           </motion.div>
         )}

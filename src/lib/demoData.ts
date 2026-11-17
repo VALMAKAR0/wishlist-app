@@ -77,33 +77,33 @@ export function demoPersons(): Person[] {
 export function demoItems(): Item[] {
   return [
     // Eigene Wünsche, Standardliste
-    item('w1', 'me', 'l-me-1', 'Over-Ear-Kopfhörer', '🎧', 265, { kind: 'Kopfhörer', price: 399, link: 'https://example.com/kopfhoerer', note: 'Schwarz, mit Noise-Cancelling. Die Ohrpolster sollten austauschbar sein.', prio: 3, priceState: 'sure', priceBase: 449, priceTarget: 350, priceLog: demoLog([[80, 449], [62, 429], [48, 449], [30, 419], [21, 379], [14, 409], [6, 399], [0, 399]]) }),
-    item('w2', 'me', 'l-me-1', 'Sofortbildkamera', '📷', 15, { kind: 'Kamera', prio: 2, price: 89, link: 'https://example.com/kamera', note: 'Gern in Mint.' }),
-    item('w3', 'me', 'l-me-1', 'Monstera Deliciosa', '🪴', 150, { kind: 'Pflanze', price: 39 }),
-    item('w7', 'me', 'l-me-1', 'Espresso-Tassen im Set', '☕', 35, { kind: 'Küche', price: 28, bought: true, boughtAt: dayAgoTs(5) }),
+    item('w1', 'me', 'l-me-1', 'Over-Ear-Kopfhörer', 'ic:head', 265, { kind: 'Kopfhörer', price: 399, link: 'https://example.com/kopfhoerer', note: 'Schwarz, mit Noise-Cancelling. Die Ohrpolster sollten austauschbar sein.', prio: 3, priceState: 'sure', priceBase: 449, priceTarget: 350, priceLog: demoLog([[80, 449], [62, 429], [48, 449], [30, 419], [21, 379], [14, 409], [6, 399], [0, 399]]) }),
+    item('w2', 'me', 'l-me-1', 'Sofortbildkamera', 'ic:cam', 15, { kind: 'Kamera', prio: 2, price: 89, link: 'https://example.com/kamera', note: 'Gern in Mint.' }),
+    item('w3', 'me', 'l-me-1', 'Monstera Deliciosa', 'ic:plant', 150, { kind: 'Pflanze', price: 39 }),
+    item('w7', 'me', 'l-me-1', 'Espresso-Tassen im Set', 'ic:mug', 35, { kind: 'Küche', price: 28, bought: true, boughtAt: dayAgoTs(5) }),
     item('w10', 'me', 'l-me-1', 'Fahrradlicht', '🔦', 60, { kind: 'Fahrrad', price: 25, bought: true, boughtAt: dayAgoTs(38) }),
     item('w11', 'me', 'l-me-1', 'Powerbank', '🔋', 120, { price: 34, bought: true, boughtAt: dayAgoTs(70) }),
     // Weihnachten
-    item('w4', 'me', 'l-me-2', 'Mechanische Armbanduhr', '⌚', 45, { kind: 'Uhr', price: 240, link: 'https://example.com/uhr', priceState: 'sure', priceBase: 265, priceTarget: 250, priceLog: demoLog([[20, 265], [9, 255], [1, 240]]) }),
-    item('w5', 'me', 'l-me-2', 'Dune-Trilogie als Box', '📚', 28, { kind: 'Buch', price: 36 }),
+    item('w4', 'me', 'l-me-2', 'Mechanische Armbanduhr', 'ic:watch', 45, { kind: 'Uhr', price: 240, link: 'https://example.com/uhr', priceState: 'sure', priceBase: 265, priceTarget: 250, priceLog: demoLog([[20, 265], [9, 255], [1, 240]]) }),
+    item('w5', 'me', 'l-me-2', 'Dune-Trilogie als Box', 'ic:book', 28, { kind: 'Buch', price: 36 }),
     // Geburtstag
-    item('w6', 'me', 'l-me-3', 'Handgepäck-Koffer', '🧳', 200, { kind: 'Tasche', price: 159, note: 'Hartschale, mindestens 4 Rollen.' }),
+    item('w6', 'me', 'l-me-3', 'Handgepäck-Koffer', 'ic:case', 200, { kind: 'Tasche', price: 159, note: 'Hartschale, mindestens 4 Rollen.' }),
     item('w12', 'me', 'l-me-3', 'Gewürzset', '🧂', 20, { price: 24, bought: true, boughtAt: dayAgoTs(112) }),
     // Papierkorb
-    item('w8', 'me', 'l-me-1', 'Sonnenbrille', '🕶️', 320, { price: 120, deletedAt: dayAgoTs(4) }),
-    item('w9', 'me', 'l-me-1', 'Brettspiel für Zwei', '🎲', 90, { kind: 'Brettspiel', price: 32, deletedAt: dayAgoTs(27) }),
+    item('w8', 'me', 'l-me-1', 'Sonnenbrille', 'ic:specs', 320, { price: 120, deletedAt: dayAgoTs(4) }),
+    item('w9', 'me', 'l-me-1', 'Brettspiel für Zwei', 'ic:brick', 90, { kind: 'Brettspiel', price: 32, deletedAt: dayAgoTs(27) }),
 
     // Geschenkideen
-    item('i1', 'p-lena', 'l-lena-1', 'Kindle Paperwhite', '📖', 220, { kind: 'E-Reader', price: 159, link: 'https://example.com/kindle' }),
-    item('i2', 'p-lena', 'l-lena-1', 'Duftkerzen-Set', '🕯️', 40, { kind: 'Kerzen', price: 34.9, bought: true, boughtAt: dayAgoTs(2) }),
-    item('i3', 'p-lena', 'l-lena-2', 'Kaschmir-Schal', '🧣', 350, { kind: 'Kleidung', price: 69, note: 'Lieblingsfarbe: Senfgelb.' }),
-    item('i4', 'p-jonas', 'l-jonas-1', 'Switch-Spiel', '🎮', 275, { kind: 'Spiel', price: 59.99, link: 'https://example.com/spiel' }),
-    item('i5', 'p-jonas', 'l-jonas-1', 'Kaffeemühle', '☕', 30, { kind: 'Küche', price: 45 }),
+    item('i1', 'p-lena', 'l-lena-1', 'Kindle Paperwhite', 'ic:tab', 220, { kind: 'E-Reader', price: 159, link: 'https://example.com/kindle' }),
+    item('i2', 'p-lena', 'l-lena-1', 'Duftkerzen-Set', 'ic:cand', 40, { kind: 'Kerzen', price: 34.9, bought: true, boughtAt: dayAgoTs(2) }),
+    item('i3', 'p-lena', 'l-lena-2', 'Kaschmir-Schal', 'ic:cap', 350, { kind: 'Kleidung', price: 69, note: 'Lieblingsfarbe: Senfgelb.' }),
+    item('i4', 'p-jonas', 'l-jonas-1', 'Switch-Spiel', 'ic:pad', 275, { kind: 'Spiel', price: 59.99, link: 'https://example.com/spiel' }),
+    item('i5', 'p-jonas', 'l-jonas-1', 'Kaffeemühle', 'ic:mug', 30, { kind: 'Küche', price: 45 }),
     item('i6', 'p-papa', 'l-papa-1', 'Angelset', '🎣', 195, { kind: 'Angeln', price: 89 }),
-    item('i7', 'p-papa', 'l-papa-1', 'Weinkühler', '🍷', 355, { kind: 'Getränke', price: 45, bought: true, boughtAt: dayAgoTs(9) }),
+    item('i7', 'p-papa', 'l-papa-1', 'Weinkühler', 'ic:wine', 355, { kind: 'Getränke', price: 45, bought: true, boughtAt: dayAgoTs(9) }),
     item('i8', 'p-oma', 'l-oma-1', 'Wolle-Set', '🧶', 130, { kind: 'Handarbeit', price: 25, note: 'Dicke Nadel Stärke 6.' }),
     item('i9', 'p-papa', 'l-papa-1', 'Wollsocken', '🧦', 190, { kind: 'Kleidung', price: 18, bought: true, boughtAt: dayAgoTs(63) }),
-    item('i10', 'p-oma', 'l-oma-1', 'Pralinen', '🍫', 30, { price: 22, bought: true, boughtAt: dayAgoTs(95) }),
+    item('i10', 'p-oma', 'l-oma-1', 'Pralinen', 'ic:sweet', 30, { price: 22, bought: true, boughtAt: dayAgoTs(95) }),
   ]
 }
 

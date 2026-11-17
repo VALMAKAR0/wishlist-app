@@ -10,7 +10,7 @@ import { ItemFormSheet } from './ItemFormSheet'
 import { Presence } from './Presence'
 import { Sheet } from './Sheet'
 
-/** Android: Link aus Browser oder Shop über „Teilen → Wunschliste“. Erst wählen, für wen, dann öffnet sich das Formular mit dem Link. */
+/** Android: Link aus Browser oder Shop über „Teilen → Wishlist“. Erst wählen, für wen, dann öffnet sich das Formular mit dem Link. */
 export function IncomingLink() {
   const t = useT()
   const ui = useUI()

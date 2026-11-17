@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { ListChecks, Share2, ShieldAlert, X } from 'lucide-react'
 import { ListSheetHost, ListStatsCard } from '../components/Lists'
+import { LayoutToggle } from '../components/LayoutToggle'
 import { ListTiles } from '../components/ListTiles'
 import { AddButton, Page, Section } from '../components/Page'
 import { Presence } from '../components/Presence'
@@ -86,9 +87,12 @@ export function WishesScreen() {
           collapseId="wishes-lists"
           summary={t.n(rows.length, 'Liste', 'Listen')}
           aside={
-            <button className="chip chip--button" onClick={() => open({ type: 'list', id: 'all' })}>
-              <ListChecks size={14} /> {t('Alle Einträge')}
-            </button>
+            <span className="section__tools">
+              <LayoutToggle />
+              <button className="chip chip--button" onClick={() => open({ type: 'list', id: 'all' })}>
+                <ListChecks size={14} /> {t('Alle Einträge')}
+              </button>
+            </span>
           }
         >
           <ListTiles rows={rows} onOpen={(id) => open({ type: 'list', id })} onNew={() => setNewList(true)} />

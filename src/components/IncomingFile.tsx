@@ -23,7 +23,7 @@ async function readUri(url: string): Promise<Uint8Array> {
 
 let launchChecked = false
 
-/** Android: "Öffnen mit Wunschliste" aus WhatsApp, Dateien usw. führt in den Import. */
+/** Android: "Öffnen mit Wishlist" aus WhatsApp, Dateien usw. führt in den Import. */
 export function IncomingFile() {
   const t = useT()
   const ui = useUI()

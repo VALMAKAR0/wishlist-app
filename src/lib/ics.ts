@@ -1,3 +1,4 @@
+import { APP_NAME } from './brand'
 import type { TFn } from './i18n'
 import { occasionEmoji, presetOf } from './occasions'
 import { leadsOf, occurrences } from './reminders'
@@ -45,7 +46,7 @@ export interface IcsResult {
 
 /** Kalenderdatei mit allen Anlässen: jährlich wiederkehrend, je Vorlauf ein Alarm. Anlässe ohne Vorlauf fehlen. */
 export function buildIcs(persons: Person[], items: Item[], fallback: number[], time: string, t: TFn, now = new Date()): IcsResult {
-  const out: string[] = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Wunschliste//DE', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', `X-WR-CALNAME:${esc(t('Wunschliste'))}`]
+  const out: string[] = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Wishlist//DE', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', `X-WR-CALNAME:${esc(APP_NAME)}`]
   let count = 0
   for (const p of persons) {
     const open = items.filter((i) => i.owner === p.id && !i.deletedAt && !i.bought).length

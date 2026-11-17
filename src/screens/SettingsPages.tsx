@@ -27,7 +27,7 @@ import { applyResults, bgCheckNow, bgCollect, bgStatus, bgSync } from '../lib/bg
 import { checkable, checkAll } from '../lib/priceCheck'
 import { notifyState } from '../lib/reminders'
 import { fetchRates } from '../lib/rates'
-import type { DateFmt, FontScale, FxSetting, Lang, SortMode, StartTab, ThemeSetting } from '../lib/types'
+import type { DateFmt, FontScale, FxSetting, Lang, ListLayout, SortMode, StartTab, ThemeSetting } from '../lib/types'
 import { useBackup } from '../state/backup'
 import { useUpdate } from '../state/update'
 import { useNav, type SettingsPageId } from '../state/nav'
@@ -288,6 +288,13 @@ function LookPage() {
               options={[{ value: 'wishes', label: t('Wünsche') }, { value: 'ideas', label: t('Ideen') }, { value: 'received', label: t('Erhalten') }, { value: 'stats', label: t('Statistik') }, { value: 'last', label: t('Zuletzt benutzt') }]}
             />
           </Choice>
+          <div className="setting setting--col">
+            <div>
+              <strong>{t('Listen')}</strong>
+              <p>{t('Wie Listen in den Übersichten stehen. Lässt sich auch direkt bei den Listen umschalten.')}</p>
+            </div>
+            <Segmented<ListLayout> id="list-layout" value={settings.listLayout} onChange={(listLayout) => setSettings({ listLayout })} options={[{ value: 'rows', label: t('Untereinander') }, { value: 'grid', label: t('Kacheln') }]} />
+          </div>
           <Choice title={t('Sortierung')} text={t('Reihenfolge in Listen. Lässt sich auch direkt über der Liste ändern.')}>
             <ChipChoice<SortMode>
               label={t('Sortierung')}
@@ -345,7 +352,6 @@ function MoneyPage() {
     try {
       const rates = await fetchRates()
       setSettings({ rates, ratesAt: Date.now() })
-      ui.toast({ message: t('Kurse aktualisiert'), emoji: '💱' })
     } catch (e) {
       const raw = e instanceof Error ? e.message : ''
       const why = netReason(raw)
@@ -593,7 +599,6 @@ function AppPage() {
     const apply = () => {
       void bk.safetyBefore('demo')
       dispatch({ type: 'loadDemo' })
-      ui.toast({ message: t('Demo-Daten geladen'), emoji: '🎁' })
     }
     if (!items.length && !persons.length) return apply()
     ui.confirm({
@@ -618,7 +623,7 @@ function AppPage() {
               onClick={inst.installed ? undefined : () => (inst.canPrompt ? void promptInstall() : setHowTo(true))}
             />
           )}
-          <Row icon={<Share2 size={18} />} title={t('Links aus dem Browser teilen')} text={upd.native ? t('Im Browser oder Shop: Teilen → Wunschliste') : t('Nur in der Android-App')} />
+          <Row icon={<Share2 size={18} />} title={t('Links aus dem Browser teilen')} text={upd.native ? t('Im Browser oder Shop: Teilen → Wishlist') : t('Nur in der Android-App')} />
           {upd.enabled ? (
             <>
               {upd.available && (

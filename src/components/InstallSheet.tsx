@@ -7,7 +7,7 @@ const steps = (p: Platform): string[] =>
     ? ['Öffne die Seite in Safari.', 'Tippe unten auf das Teilen-Symbol (Quadrat mit Pfeil).', 'Wähle „Zum Home-Bildschirm“, dann „Hinzufügen“.', 'Öffne die App ab jetzt über das Symbol auf dem Home-Bildschirm.']
     : p === 'android'
       ? ['Öffne das Browser-Menü (drei Punkte).', 'Wähle „App installieren“ oder „Zum Startbildschirm hinzufügen“.', 'Bestätige und öffne die App über das neue Symbol.']
-      : ['Klicke in der Adressleiste auf das Installieren-Symbol.', 'Oder öffne das Browser-Menü und wähle „Wunschliste installieren“.']
+      : ['Klicke in der Adressleiste auf das Installieren-Symbol.', 'Oder öffne das Browser-Menü und wähle „Wishlist installieren“.']
 
 export function InstallSheet({ onClose }: { onClose: () => void }) {
   const t = useT()

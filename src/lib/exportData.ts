@@ -1,3 +1,4 @@
+import { APP_NAME } from './brand'
 import { curOf, convert, hasRate, mainCurrency, money } from './format'
 import type { TFn } from './i18n'
 import { listTitle } from './lists'
@@ -63,7 +64,7 @@ export function buildCsv(src: ExportInput, scope: ExportScope, withBought: boole
 
 export function buildText(src: ExportInput, scope: ExportScope, withBought: boolean, t: TFn): string {
   const rows = rowsOf(src, scope, withBought, t)
-  const out: string[] = [`${t('Wunschliste')} · ${day(Date.now())}`]
+  const out: string[] = [`${APP_NAME} · ${day(Date.now())}`]
   let lastOwner = ''
   let lastList = ''
   for (const { owner, list, item: i } of rows) {

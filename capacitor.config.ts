@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
   appId: 'app.wunschliste.local',
-  appName: 'Wunschliste',
+  appName: 'Wishlist',
   webDir: 'dist',
   plugins: {
     LocalNotifications: { smallIcon: 'ic_stat_wunsch', iconColor: '#E8546A' },

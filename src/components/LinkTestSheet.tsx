@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ClipboardPaste, Copy, ExternalLink, Loader2, Search } from 'lucide-react'
 import { describeResult, fetchProduct, idealoSearch, knownCurrency, linkFailExtra, linkFailText, LinkError, tidyName, type Diagnostics, type Product } from '../lib/linkImport'
 import { money } from '../lib/format'
+import { lastUrl, readClipboard } from '../lib/clipboard'
 import { useT, useUI } from '../state/ui'
 import { Sheet } from './Sheet'
 
@@ -17,8 +18,8 @@ export function LinkTestSheet({ onClose }: { onClose: () => void }) {
 
   const paste = async () => {
     try {
-      const text = await navigator.clipboard.readText()
-      if (text) setUrl(text.trim())
+      const text = await readClipboard()
+      if (text) setUrl(lastUrl(text) ?? text.trim())
     } catch {
       ui.toast({ message: t('Einfügen nicht erlaubt. Halte das Feld gedrückt und wähle „Einfügen“.'), emoji: '📋' })
     }

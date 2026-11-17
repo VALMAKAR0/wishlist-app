@@ -217,6 +217,8 @@ export interface UiSettings {
   autoKeep: number
   startTab: StartTab
   sort: SortMode
+  /** Listen untereinander (eine pro Zeile) oder als Kacheln nebeneinander. */
+  listLayout: ListLayout
   shareDefaults: ShareDefaults
   /** PIN-Sperre: gesalzener Hash, leer = aus. Bleibt auf diesem Gerät. */
   lockHash: string
@@ -237,5 +239,7 @@ export interface UiSettings {
   priceBg: boolean
   kindAuto: boolean
 }
+
+export type ListLayout = 'rows' | 'grid'
 
 export type ShareBought = 'hidden' | 'only' | 'exclude'

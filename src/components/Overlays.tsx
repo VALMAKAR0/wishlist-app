@@ -93,13 +93,14 @@ function Toast({ t: toast, onClose }: { t: ToastOpts & { id: number }; onClose: 
     return () => clearTimeout(timer)
   }, [toast.id])
 
+  const dy = toast.top ? -1 : 1
   return (
     <motion.div
       className="toast"
       role="status"
       data-closing={closing}
-      initial={{ y: -40, opacity: 0, scale: 0.92 }}
-      animate={closing ? { y: -24, opacity: 0, scale: 0.96 } : { y: 0, opacity: 1, scale: 1 }}
+      initial={{ y: 40 * dy, opacity: 0, scale: 0.92 }}
+      animate={closing ? { y: 24 * dy, opacity: 0, scale: 0.96 } : { y: 0, opacity: 1, scale: 1 }}
       transition={closing ? { duration: 0.18 } : { type: 'spring', stiffness: 420, damping: 30 }}
     >
       <span className="toast__check">{toast.emoji ?? <Check size={14} />}</span>
@@ -183,7 +184,7 @@ export function Overlays(p: OverlaysProps) {
     <>
       <Presence show={!!p.plannedId}>{p.plannedId && <PlannedDialog id={p.plannedId} onClose={p.onClosePlanned} />}</Presence>
       <Presence show={!!p.confirm}>{p.confirm && <ConfirmDialog c={p.confirm} onClose={p.onCloseConfirm} />}</Presence>
-      <div className="toast-host">
+      <div className="toast-host" data-top={!!p.toast?.top}>
         <Presence show={!!p.toast} exitMs={260} portal={false}>
           {p.toast && <Toast key={p.toast.id} t={p.toast} onClose={p.onCloseToast} />}
         </Presence>

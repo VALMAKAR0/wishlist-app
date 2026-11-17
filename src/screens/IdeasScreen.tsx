@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { ArrowRight, ChevronRight, Plus, Sparkles } from 'lucide-react'
 import { ListSheetHost, ListStatsCard } from '../components/Lists'
+import { LayoutToggle } from '../components/LayoutToggle'
 import { ListTiles } from '../components/ListTiles'
 import { AddButton, Page } from '../components/Page'
 import { Presence } from '../components/Presence'
@@ -105,6 +106,7 @@ export function IdeasScreen() {
                 { value: 'lists', label: t('Listen'), count: tiles.length },
               ]}
             />
+            {view === 'lists' && <LayoutToggle />}
           </div>
         )}
 

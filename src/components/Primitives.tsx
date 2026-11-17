@@ -3,6 +3,8 @@ import { animate, motion, useMotionValue, useTransform } from 'motion/react'
 import { Check, Heart } from 'lucide-react'
 import { initial, priceText } from '../lib/format'
 import { useImageUrl } from '../lib/images'
+import { iconOf } from '../lib/icons'
+import { Glyph } from './Glyph'
 
 type HueStyle = CSSProperties & { '--h'?: number }
 
@@ -45,7 +47,7 @@ export function Cover({ emoji, hue, size = 56, radius, imageId, src }: { emoji: 
   const waiting = url === undefined
   const seen = !!url && loadedUrls.has(url)
   return (
-    <div className="cover" data-img={!!url} data-wait={waiting || undefined} style={style} aria-hidden>
+    <div className="cover" data-img={!!url} data-ic={!!iconOf(emoji) || undefined} data-wait={waiting || undefined} style={style} aria-hidden>
       {url ? (
         <img
           src={url}
@@ -62,7 +64,7 @@ export function Cover({ emoji, hue, size = 56, radius, imageId, src }: { emoji: 
           }}
         />
       ) : waiting ? null : (
-        <span>{emoji}</span>
+        <span>{iconOf(emoji) ? <Glyph value={emoji} size={size * 0.64} /> : emoji}</span>
       )}
     </div>
   )

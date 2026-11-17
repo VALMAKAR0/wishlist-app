@@ -1,20 +1,28 @@
-import { hostOf } from './format'
+import { hostOf, priceOf } from './format'
 import { priceDelta } from './priceCheck'
 import type { Item, SortMode } from './types'
 
-export type Filt = 'link' | 'noprice' | 'drop' | 'target' | 'prio' | 'note'
+export type Filt = 'link' | 'nolink' | 'noprice' | 'drop' | 'target' | 'prio' | 'fav' | 'note' | 'img' | 'noimg' | 'recent'
+export type PriceBand = 'low' | 'mid' | 'high'
 
-export const FILTS: Filt[] = ['prio', 'drop', 'target', 'link', 'noprice', 'note']
+/** Preisgrenzen in der Hauptwährung. */
+export const BANDS: Record<PriceBand, [number, number]> = { low: [0, 25], mid: [25, 100], high: [100, Infinity] }
+
+export const FILTS: Filt[] = ['prio', 'fav', 'drop', 'target', 'link', 'nolink', 'noprice', 'note', 'img', 'noimg', 'recent']
 
 export interface ListQuery {
   q: string
   f: Filt[]
   kind: string | null
+  band: PriceBand | null
 }
 
-export const EMPTY_QUERY: ListQuery = { q: '', f: [], kind: null }
+export const EMPTY_QUERY: ListQuery = { q: '', f: [], kind: null, band: null }
 
-export const isActive = (q: ListQuery) => !!q.q.trim() || q.f.length > 0 || q.kind !== null
+export const isActive = (q: ListQuery) => !!q.q.trim() || q.f.length > 0 || q.kind !== null || q.band !== null
+
+/** Anzahl der gesetzten Filter ohne Suchtext (für das Zählzeichen am Filterknopf). */
+export const filterCount = (q: ListQuery) => q.f.length + (q.band ? 1 : 0)
 
 const norm = (s: string) =>
   s
@@ -57,8 +65,18 @@ const has = (i: Item, f: Filt): boolean => {
       return targetHit(i)
     case 'prio':
       return !!i.prio
+    case 'fav':
+      return (i.prio ?? 0) >= 3
+    case 'nolink':
+      return !i.link
     case 'note':
       return !!i.note
+    case 'img':
+      return !!i.imageId
+    case 'noimg':
+      return !i.imageId
+    case 'recent':
+      return Date.now() - i.createdAt < 7 * 86_400_000
   }
 }
 
@@ -66,6 +84,12 @@ const has = (i: Item, f: Filt): boolean => {
 export function matches(i: Item, q: ListQuery): boolean {
   if (q.kind !== null && (i.kind ?? '').trim().toLowerCase() !== q.kind.toLowerCase()) return false
   for (const f of q.f) if (!has(i, f)) return false
+  if (q.band) {
+    if (i.price === undefined) return false
+    const [lo, hi] = BANDS[q.band]
+    const p = priceOf(i)
+    if (p < lo || p >= hi) return false
+  }
   const words = norm(q.q).split(/\s+/).filter(Boolean)
   if (!words.length) return true
   const hay = norm([i.name, i.kind ?? '', i.note ?? '', i.link ? hostOf(i.link) : ''].join(' '))

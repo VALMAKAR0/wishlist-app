@@ -75,7 +75,7 @@ export function buildPdf(pages: PdfPage[], title: string, size: { w: number; h: 
   add(2, `<< /Type /Pages /Count ${kids.length} /Kids [${kids.map((n) => `${n} 0 R`).join(' ')}] >>`)
   const d = now
   const stamp = `D:${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}${String(d.getUTCDate()).padStart(2, '0')}${String(d.getUTCHours()).padStart(2, '0')}${String(d.getUTCMinutes()).padStart(2, '0')}${String(d.getUTCSeconds()).padStart(2, '0')}Z`
-  add(3, `<< /Title ${hex16(title)} /Producer (Wunschliste) /CreationDate (${stamp}) >>`)
+  add(3, `<< /Title ${hex16(title)} /Producer (Wishlist) /CreationDate (${stamp}) >>`)
 
   const header = enc.encode('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n')
   const parts: Uint8Array[] = [header]

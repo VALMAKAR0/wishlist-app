@@ -12,6 +12,8 @@ export interface ToastOpts {
   emoji?: string
   actionLabel?: string
   onAction?: () => void
+  /** Wird beim Anzeigen gesetzt: oben statt unten, wenn ein Fenster offen ist. */
+  top?: boolean
 }
 
 export interface ConfirmOpts {
@@ -121,7 +123,7 @@ export function UIProvider({ children }: { children: ReactNode }) {
       setSettings,
       haptic,
       planned: (id) => setPlannedId(id),
-      toast: (t) => setToast({ ...t, id: ++seq.current }),
+      toast: (t) => setToast({ ...t, id: ++seq.current, top: !!document.querySelector('.overlay--sheet:not([data-closing="true"])') }),
       confirm: (c) => setConfirm(c),
       confetti: (x, y) => {
         if (settings.fx === 'off') return

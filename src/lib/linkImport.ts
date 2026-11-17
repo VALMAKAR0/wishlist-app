@@ -1,3 +1,4 @@
+import { lastUrl } from './clipboard'
 import { isNative } from './backupFiles'
 import { CURRENCIES, normalize } from './format'
 import { httpBytes, httpGet } from './http'
@@ -665,9 +666,7 @@ const IMAGE_LIMIT = 8_000_000
 
 /** Erste Webadresse aus einem Text, zum Beispiel aus „Schau mal: https://…“. */
 export function extractUrl(text: string): string | null {
-  const m = text.match(/https?:\/\/[^\s<>"'„“”]+/i)
-  if (!m) return null
-  return m[0].replace(/[).,;!?]+$/, '')
+  return lastUrl(text)
 }
 
 /** Lädt das Produktbild als Rohdaten. Gibt null zurück, wenn es nicht klappt, das Bild ist nie Pflicht. */

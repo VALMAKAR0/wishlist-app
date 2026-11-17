@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 16.11.2026 · Status: V0.15.1 (Teilen als PDF, Bild und Text; V0.14: Feinschliff: Preisdiagramm immer sichtbar; V0.13: Sortieren, Filter, Suche, Wichtigkeit, Wunschpreis, neues Preisdiagramm, Budget, kurze Namen, bessere Art-Erkennung; V0.12: Weitere Shops, Update-Download über den Android-Downloader; Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
+Stand: 16.11.2026 · Status: V0.16.0 (Umbenennung in Wishlist, eigene Symbole, neues Eintragsfenster, vier Wisch-Stufen, Filter-Fenster, aufgeräumtes Teilen; V0.15: Teilen als PDF, Bild und Text; V0.14: Feinschliff: Preisdiagramm immer sichtbar; V0.13: Sortieren, Filter, Suche, Wichtigkeit, Wunschpreis, neues Preisdiagramm, Budget, kurze Namen, bessere Art-Erkennung; V0.12: Weitere Shops, Update-Download über den Android-Downloader; Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -631,3 +631,16 @@ Jeden Punkt abhaken oder mit einem Satz melden, was hakt.
 - **Wo:** Teilen-Fenster, vierter Reiter "Text". Zeigt eine Vorschau und kopiert die Liste mit "Text kopieren" in die Zwischenablage. Wo das Gerät es kann, gibt es "Text teilen" über das Teilen-Menü.
 - **Aufbau:** Kopfzeile mit Name, Anzahl und Datum, je Liste ein Abschnitt (Symbol, Name, Datum, Anzahl), je Wunsch eine nummerierte Zeile mit Preis und Herzen, darunter Art/Notiz und der ausgeschriebene Link mit 🔗. Wichtigste zuerst, Gekauftes und Ideen für andere nie dabei.
 - **Test:** `v0151.cjs`.
+
+## 43. Wishlist (V0.16.0)
+- **Name:** Die App heißt jetzt "Wishlist" (Anzeigename, Manifest, Titel, Export-Kopfzeile, Kalender). Aus Kompatibilitätsgründen unverändert: Paket-ID `app.wunschliste.local`, Dateikennungen (`wunschliste-backup`, `wunschliste-teilen`), Sicherungsordner `Documents/Wunschliste`, Dateinamen der Exporte.
+- **Hinweise:** Nur noch Rückgängig-Hinweise, Fehler, Warnungen, Update-/Installationstipps, Kopier-Bestätigungen und Preisprüf-Ergebnisse. Bestätigungen wie "Gespeichert" oder "Liste angelegt" entfallen. Die Hinweise sitzen unten über der Tab-Leiste, bei offenem Fenster oben.
+- **Statistik der Listen:** Kein Durchschnittspreis mehr. Vier Felder: Offen (von n), Gekauft mit Wert, Teuerster Wunsch mit Name und ein wechselnder Tipp (Gespart, Wunschpreis erreicht, Am liebsten, Wartet am längsten, Mit Link).
+- **Listen untereinander:** Einstellung `listLayout` (Standard: untereinander), Umschalter in Wünsche, Ideen, Person und unter Einstellungen → Aussehen.
+- **Eigene Symbole** (`src/lib/icons.ts`, `Glyph.tsx`): 46 gezeichnete Symbole auf einem 48er Raster, gespeichert als `ic:<id>` im Feld `emoji` (höchstens 8 Zeichen, damit der Austausch-Check es durchlässt). Zeichnen als SVG in der App und per Path2D im PDF/Bild-Export. Zu Name und Art wird automatisch das passende Symbol gewählt (Regeln `RULES`), bis man selbst eins wählt ("Automatisch wählen" nimmt es zurück). Neue Einträge starten mit wechselnden Geschenk-Varianten. Alte Emoji-Einträge bleiben, wie sie sind. Reine Text-Ausgaben nutzen das Ersatzzeichen (`char`).
+- **Eintragsfenster:** Link zuerst mit "Einfügen", dann Name und Preis; Art, Wichtigkeit, Liste und Notiz darunter. Symbol und Farbe in einem aufklappbaren Raster ohne Seitwärts-Scrollen, Arten brechen um. Kein automatisches Öffnen der Tastatur. Vollbild-Knopf im Kopf (merkt sich die Wahl pro Gerät, `Sheet expandable`).
+- **Einfügen:** In der Android-App liest `@capacitor/clipboard` die Zwischenablage (ohne den Browser-Dialog), aus dem Text zählt der letzte Link (`lastUrl`), das gilt auch für `extractUrl` überall.
+- **Liste:** Auswahl-Knopf oben entfällt; Langdruck startet die Auswahl, Zurück-Geste (oder X in der Leiste) beendet sie. Wischen in vier Stufen: rechts kurz = gekauft, rechts weit = verschieben, links kurz = Favorit (3 Herzen an/aus), links weit = Papierkorb. Die Schwellen sind `SWIPE` und `SWIPE_FAR` in `ItemCard.tsx`. Sortieren/Art bleiben als Knöpfe, alles andere steckt im neuen Filter-Fenster (Wichtigkeit, Preisbereich, Angaben, Zeit) mit Live-Zählung. Nichts scrollt mehr zur Seite.
+- **Teilen:** Format als vier Kacheln, eine Zusammenfassung statt Paket und Zählern, Erweiterte Einstellungen zeigen in der Zeile, was mitgeht.
+- **Weniger Leuchten:** Knöpfe flach in der Akzentfarbe, ohne farbigen Schatten.
+- **Test:** `v0160.cjs`.

@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { CheckSquare, FolderInput, Link2, Plus, Share2, X } from 'lucide-react'
+import { FolderInput, Link2, Plus, Share2, X } from 'lucide-react'
 import { ListSheetHost, ListStatsCard } from '../components/Lists'
 import { AddButton, Page } from '../components/Page'
 import { Presence } from '../components/Presence'
@@ -14,6 +14,7 @@ import { occasionEmoji } from '../lib/occasions'
 import { EMPTY_QUERY, isActive, matches, sortList, type ListQuery } from '../lib/listQuery'
 import { listStats } from '../lib/stats'
 import type { Item, Owner } from '../lib/types'
+import { pushBack } from '../state/back'
 import { useNav } from '../state/nav'
 import { useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
@@ -49,6 +50,7 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) 
   const [listSheet, setListSheet] = useState(false)
   const [sel, setSel] = useState<Set<string> | null>(null)
   const [moving, setMoving] = useState(false)
+  const [moveOne, setMoveOne] = useState<Item | null>(null)
   const [query, setQuery] = useState<ListQuery>(EMPTY_QUERY)
   // Tippen bleibt flüssig: Die Liste filtert mit dem zuletzt fertig gerenderten Suchtext nach.
   const q = useDeferredValue(query)
@@ -58,6 +60,12 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) 
   }, [missing, back])
   // Beim Wechsel des Reiters oder der Liste endet die Auswahl.
   useEffect(() => setSel(null), [seg, listId])
+  // Die Zurück-Geste beendet zuerst die Auswahl.
+  const selecting = sel !== null
+  useEffect(() => {
+    if (!selecting) return
+    return pushBack(() => setSel(null))
+  }, [selecting])
   useEffect(() => setQuery(EMPTY_QUERY), [listId, owner])
   if (missing) return null
 
@@ -112,11 +120,6 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) 
         onBack={onBack}
         actions={
           <>
-            {scoped.length > 0 && (
-              <button className="icon-btn" data-testid="select-toggle" data-active={!!sel} onClick={() => (sel ? setSel(null) : startSelect())} aria-label={sel ? t('Auswahl beenden') : t('Auswählen')}>
-                {sel ? <X size={17} /> : <CheckSquare size={17} />}
-              </button>
-            )}
             {forMe && !sel && (
               <button className="icon-btn" onClick={() => setShare(true)} aria-label={t('Wunschlisten teilen')}>
                 <Share2 size={17} />
@@ -204,6 +207,7 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) 
             onOpen={(item) => (sel ? flip(item.id) : setForm({ item }))}
             selected={sel}
             onLongPress={(item) => startSelect(item.id)}
+            onMove={(item) => setMoveOne(item)}
             badgeFor={forMe ? undefined : (item) => (alreadyOwned(item) ? t('Schon vorhanden') : undefined)}
             listLabelFor={listLabelFor}
           />
@@ -260,6 +264,9 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) 
 
       {sel && (
         <div className="selbar" role="toolbar" aria-label={t('Auswahl')} data-testid="selbar">
+          <button className="selbar__btn selbar__btn--icon" data-testid="sel-cancel" onClick={() => setSel(null)} aria-label={t('Auswahl beenden')}>
+            <X size={16} />
+          </button>
           <span className="selbar__n" data-testid="sel-count">{t.n(sel.size, 'ausgewählt', 'ausgewählt')}</span>
           <button className="selbar__btn" data-testid="sel-all" onClick={() => setSel(sel.size === shown.length ? new Set() : new Set(shown.map((i) => i.id)))}>
             {sel.size === shown.length ? t('Keine') : t('Alle')}
@@ -269,14 +276,18 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) 
           </button>
         </div>
       )}
-      <Presence show={moving && pickedItems.length > 0}>
-        {moving && pickedItems.length > 0 && (
+      <Presence show={!!moveOne || (moving && pickedItems.length > 0)}>
+        {(moveOne || (moving && pickedItems.length > 0)) && (
           <MoveSheet
             owner={owner}
-            picked={pickedItems}
-            onClose={() => setMoving(false)}
+            picked={moveOne ? [moveOne] : pickedItems}
+            onClose={() => {
+              setMoving(false)
+              setMoveOne(null)
+            }}
             onDone={() => {
               setMoving(false)
+              setMoveOne(null)
               setSel(null)
             }}
           />

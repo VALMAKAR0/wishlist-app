@@ -5,7 +5,7 @@ import { listDate, listOccasion, listTitle } from '../lib/lists'
 import type { ListStats } from '../lib/stats'
 import type { Wishlist } from '../lib/types'
 import { useStore } from '../state/store'
-import { useT } from '../state/ui'
+import { useT, useUI } from '../state/ui'
 
 export interface TileRow {
   list: Wishlist
@@ -37,8 +37,9 @@ type HueStyle = React.CSSProperties & { '--h': number }
 export function ListTiles({ rows, onOpen, onNew }: Props) {
   const t = useT()
   const { persons } = useStore()
+  const { settings } = useUI()
   return (
-    <div className="ltiles">
+    <div className="ltiles" data-layout={settings.listLayout}>
       {rows.map(({ list, stats, owner }, i) => {
         const done = stats.count ? stats.bought / stats.count : 0
         const style: HueStyle = { '--h': list.hue }

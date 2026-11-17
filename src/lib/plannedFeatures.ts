@@ -72,5 +72,6 @@ export const roadmap: RoadmapStep[] = [
   { version: 'V0.13', title: 'Ordnung und Preise', text: 'Sortieren, Filter und Suche in Listen, Wichtigkeit, Wunschpreis mit Meldung, besseres Preisdiagramm, Budget für Ideenlisten, kürzere Namen, bessere Art-Erkennung.' },
   { version: 'V0.14', title: 'Feinschliff', text: 'Preisdiagramm immer sichtbar und pixelgenau, ruhigere Preis-Ansicht, weiches Umsortieren, breiteres Tablet-Layout.' },
   { version: 'V0.15', title: 'PDF und Bild', text: 'Listen als PDF, Bild oder Text teilen, auch für Leute ohne die App.' },
+  { version: 'V0.16', title: 'Wishlist', text: 'Neuer Name, weniger Hinweise, eigene Symbole zu Name und Art, neues Eintragsfenster mit Vollbild, vier Wisch-Stufen, Filter-Fenster und aufgeräumtes Teilen.' },
   { version: 'V1.0', title: 'Release', text: 'Test auf echten Geräten.' },
 ]

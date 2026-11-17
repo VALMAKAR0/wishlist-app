@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'motion/react'
 import { CalendarPlus, ChevronRight, ListChecks, Pencil, Plus } from 'lucide-react'
 import { ListSheetHost } from '../components/Lists'
+import { LayoutToggle } from '../components/LayoutToggle'
 import { ListTiles } from '../components/ListTiles'
 import { AddButton, Page, Section } from '../components/Page'
 import { Presence } from '../components/Presence'
@@ -101,9 +102,12 @@ export function PersonScreen({ id }: { id: string }) {
           collapseId="person-lists"
           summary={t.n(lists.length, 'Liste', 'Listen')}
           aside={
-            <button className="chip chip--button" onClick={() => open({ type: 'list', id: `all:${id}` })}>
-              <ListChecks size={14} /> {t('Alle Ideen')}
-            </button>
+            <span className="section__tools">
+              <LayoutToggle />
+              <button className="chip chip--button" onClick={() => open({ type: 'list', id: `all:${id}` })}>
+                <ListChecks size={14} /> {t('Alle Ideen')}
+              </button>
+            </span>
           }
         >
           <ListTiles rows={rows} onOpen={(lid) => open({ type: 'list', id: lid })} onNew={() => setNewList(true)} />

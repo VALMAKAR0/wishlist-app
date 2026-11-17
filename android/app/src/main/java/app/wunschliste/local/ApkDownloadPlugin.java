@@ -26,7 +26,7 @@ public class ApkDownloadPlugin extends Plugin {
             DownloadManager dm = (DownloadManager) getContext().getSystemService(Context.DOWNLOAD_SERVICE);
             DownloadManager.Request req = new DownloadManager.Request(Uri.parse(url));
             req.setTitle(name);
-            req.setDescription("Wunschliste Update");
+            req.setDescription("Wishlist Update");
             req.setMimeType("application/vnd.android.package-archive");
             req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
             req.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name);

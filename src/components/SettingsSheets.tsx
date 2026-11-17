@@ -37,11 +37,9 @@ export function PinSheet({ mode, onClose }: { mode: PinMode; onClose: () => void
       }
       if (mode === 'remove') {
         ui.setSettings({ lockHash: '', lockSalt: '' })
-        ui.toast({ message: t('App-Sperre ist aus'), emoji: '🔓' })
       } else {
         const salt = newSalt()
         ui.setSettings({ lockSalt: salt, lockHash: await hashPin(a, salt) })
-        ui.toast({ message: mode === 'set' ? t('App-Sperre ist an') : t('PIN geändert'), emoji: '🔒' })
       }
       onClose()
     } catch {

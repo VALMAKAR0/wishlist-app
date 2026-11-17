@@ -12,6 +12,15 @@ export interface ListStats {
   /** Durchschnittspreis über alle Einträge mit Preis. */
   avg: number
   priciest?: Item
+  /** Summe der Preissenkungen seit dem Hinzufügen (Hauptwährung) und Anzahl der gesunkenen Preise. */
+  saved: number
+  down: number
+  /** Offene Einträge, die ihren Wunschpreis erreicht haben. */
+  hits: number
+  /** Offene Einträge mit höchster Wichtigkeit. */
+  top: number
+  withLink: number
+  oldest?: Item
 }
 
 const sum = (items: Item[]) => items.reduce((s, i) => s + priceOf(i), 0)
@@ -21,7 +30,23 @@ export function listStats(items: Item[]): ListStats {
   const bought = items.filter((i) => i.bought)
   const priced = items.filter((i) => i.price !== undefined)
   const priciest = priced.reduce<Item | undefined>((m, i) => (!m || priceOf(i) > priceOf(m) ? i : m), undefined)
+  let saved = 0
+  let down = 0
+  for (const i of items) {
+    if (i.price !== undefined && i.priceBase !== undefined && i.price < i.priceBase - 0.005) {
+      saved += priceOf({ price: i.priceBase - i.price, currency: i.currency })
+      down += 1
+    }
+  }
+  const hits = open.filter((i) => i.price !== undefined && i.priceTarget !== undefined && i.price <= i.priceTarget + 0.005).length
+  const oldest = open.reduce<Item | undefined>((m, i) => (!m || i.createdAt < m.createdAt ? i : m), undefined)
   return {
+    saved,
+    down,
+    hits,
+    top: open.filter((i) => i.prio === 3).length,
+    withLink: items.filter((i) => !!i.link?.trim()).length,
+    oldest,
     count: items.length,
     open: open.length,
     bought: bought.length,

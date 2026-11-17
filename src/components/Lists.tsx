@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { dateLabel, mainCurrency, money } from '../lib/format'
+import { dateLabel, daysAgo, mainCurrency, money, priceOf } from '../lib/format'
+import type { TFn } from '../lib/i18n'
 import { parsePriceInput, priceText } from '../lib/priceInput'
 import { PriceInput } from './PriceInput'
 import { listTitle } from '../lib/lists'
@@ -56,10 +57,34 @@ interface StatsCardProps {
   budget?: number
 }
 
-/** Kleine Kennzahlen zu einer Liste: Anzahl, Gesamtwert, offen, gekauft und Durchschnitt. */
+interface Cell {
+  label: string
+  value: string
+  sub?: string
+}
+
+/** Vier Kennzahlen: offen, gekauft, teuerster Wunsch und eine, die gerade etwas zu sagen hat. */
+function statCells(s: ListStats, t: TFn): Cell[] {
+  const top = s.priciest
+  let tip: Cell
+  if (s.saved > 0.005) tip = { label: t('Gespart'), value: money(s.saved), sub: t.n(s.down, 'Preis gesunken', 'Preise gesunken') }
+  else if (s.hits > 0) tip = { label: t('Wunschpreis erreicht'), value: String(s.hits), sub: t('Zeit zum Zuschlagen') }
+  else if (s.top > 0) tip = { label: t('Am liebsten'), value: String(s.top), sub: t('mit drei Herzen') }
+  else if (s.oldest && s.open > 1) tip = { label: t('Wartet am längsten'), value: t.n(Math.max(1, daysAgo(s.oldest.createdAt)), 'Tag', 'Tage'), sub: s.oldest.name }
+  else tip = { label: t('Mit Link'), value: `${s.withLink}`, sub: t('von {n}', { n: s.count }) }
+  return [
+    { label: t('Offen'), value: String(s.open), sub: t('von {n}', { n: s.count }) },
+    { label: t('Gekauft'), value: String(s.bought), sub: s.bought ? money(s.boughtValue) : undefined },
+    { label: t('Teuerster Wunsch'), value: top ? money(priceOf(top)) : '–', sub: top?.name },
+    tip,
+  ]
+}
+
+/** Kleine Kennzahlen zu einer Liste. */
 export function ListStatsCard({ title, emoji, stats, onEdit, budget }: StatsCardProps) {
   const t = useT()
   const done = stats.count ? stats.bought / stats.count : 0
+  const cells = statCells(stats, t)
   return (
     <section className="lstats spot">
       <div className="lstats__head">
@@ -81,22 +106,13 @@ export function ListStatsCard({ title, emoji, stats, onEdit, budget }: StatsCard
       </div>
       {budget !== undefined && budget > 0 && <BudgetBar budget={budget} spent={stats.boughtValue} planned={stats.openValue} />}
       <dl className="lstats__grid">
-        <div>
-          <dt>{t('Einträge')}</dt>
-          <dd>{stats.count}</dd>
-        </div>
-        <div>
-          <dt>{t('Offen')}</dt>
-          <dd>{money(stats.openValue)}</dd>
-        </div>
-        <div>
-          <dt>{t('Gekauft')}</dt>
-          <dd>{money(stats.boughtValue)}</dd>
-        </div>
-        <div>
-          <dt>{t('Ø Preis')}</dt>
-          <dd>{stats.avg ? money(stats.avg) : '–'}</dd>
-        </div>
+        {cells.map((c) => (
+          <div key={c.label}>
+            <dt>{c.label}</dt>
+            <dd>{c.value}</dd>
+            <small>{c.sub ?? '\u00a0'}</small>
+          </div>
+        ))}
       </dl>
     </section>
   )
@@ -173,11 +189,9 @@ export function ListSheet({ owner: baseOwner, ownerChoices, list, onClose, onCre
     if (list) {
       // Ein Standardname bleibt "Allgemein", sonst wird die Liste zu einer eigenen.
       dispatch({ type: 'updateList', id: list.id, patch: { name: finalName, emoji, hue, occasionId: linked?.id, date: linked ? list.date : date || undefined, isDefault: finalName ? undefined : list.isDefault, budget: owner === 'me' ? undefined : budgetVal } })
-      ui.toast({ message: t('Liste aktualisiert'), emoji: '✨' })
     } else {
       const id = uid()
       dispatch({ type: 'addList', list: { id, owner, name: finalName, emoji, hue, occasionId: linked?.id, date: linked ? undefined : date || undefined, budget: owner === 'me' ? undefined : budgetVal, createdAt: Date.now() } })
-      ui.toast({ message: t('Liste „{name}“ angelegt', { name: finalName }), emoji })
       onCreated?.(id)
     }
     ui.haptic(18)
@@ -194,7 +208,6 @@ export function ListSheet({ owner: baseOwner, ownerChoices, list, onClose, onCre
       tone: 'danger',
       onConfirm: () => {
         dispatch({ type: 'deleteList', id: list.id })
-        ui.toast({ message: t('Liste gelöscht') })
         onClose()
         onDeleted?.()
       },

@@ -1,6 +1,6 @@
 import { CURRENCIES } from './format'
 import { detectLang } from './i18n'
-import type { DateFmt, FontScale, ShareBought, ShareDefaults, SortMode, StartTab, UiSettings } from './types'
+import type { DateFmt, FontScale, ListLayout, ShareBought, ShareDefaults, SortMode, StartTab, UiSettings } from './types'
 
 export const TRASH_CHOICES = [7, 14, 30, 60, 90]
 export const KEEP_CHOICES = [3, 5, 10, 20]
@@ -36,6 +36,7 @@ export const defaults = (): UiSettings => ({
   autoKeep: 5,
   startTab: 'wishes',
   sort: 'new',
+  listLayout: 'rows',
   shareDefaults: defaultShare(),
   lockHash: '',
   lockSalt: '',
@@ -56,7 +57,7 @@ export const defaults = (): UiSettings => ({
 /** Einstellungen, die ins Backup wandern. Gerätegebundenes (Kennung, Update-Stand, PIN, Erinnerungs-Schalter) bleibt draußen. */
 export const SYNC_KEYS = [
   'theme', 'fx', 'lang', 'hue', 'remindDays', 'remindTime', 'updateCheck', 'showPlanned', 'autoBackup', 'shareName',
-  'currency', 'rates', 'ratesAt', 'dateFmt', 'fontScale', 'haptics', 'trashDays', 'autoKeep', 'startTab', 'sort', 'shareDefaults', 'linkImport', 'linkImages', 'linkAuto', 'linkPrice', 'linkOverwrite', 'linkKeepName', 'linkShortName', 'priceWatch', 'priceSearch', 'priceBg', 'kindAuto',
+  'currency', 'rates', 'ratesAt', 'dateFmt', 'fontScale', 'haptics', 'trashDays', 'autoKeep', 'startTab', 'sort', 'listLayout', 'shareDefaults', 'linkImport', 'linkImages', 'linkAuto', 'linkPrice', 'linkOverwrite', 'linkKeepName', 'linkShortName', 'priceWatch', 'priceSearch', 'priceBg', 'kindAuto',
 ] as const satisfies readonly (keyof UiSettings)[]
 
 export type SyncSettings = Pick<UiSettings, (typeof SYNC_KEYS)[number]>
@@ -128,6 +129,7 @@ export function normalize(raw: unknown, base: UiSettings = defaults()): UiSettin
     autoKeep: num(r.autoKeep, KEEP_CHOICES) ?? base.autoKeep,
     startTab: oneOf<StartTab>(r.startTab, ['wishes', 'ideas', 'received', 'stats', 'last']) ?? base.startTab,
     sort: oneOf<SortMode>(r.sort, ['new', 'old', 'name', 'priceDown', 'priceUp', 'prio', 'drop']) ?? base.sort,
+    listLayout: oneOf<ListLayout>(r.listLayout, ['rows', 'grid']) ?? base.listLayout,
     shareDefaults: cleanShare(r.shareDefaults) ?? base.shareDefaults,
     lockHash: /^[0-9a-f]{64}$/.test(str(r.lockHash, '')) ? (r.lockHash as string) : '',
     lockSalt: /^[0-9a-f]{32}$/.test(str(r.lockSalt, '')) ? (r.lockSalt as string) : '',

@@ -24,6 +24,18 @@ export function useItemActions() {
         })
       }
     },
+    favorite(item: Item) {
+      const was = item.prio
+      const on = (was ?? 0) < 3
+      dispatch({ type: 'updateItem', id: item.id, patch: { prio: on ? 3 : undefined } })
+      ui.haptic(14)
+      ui.toast({
+        message: on ? t('„{name}“ ist jetzt Favorit', { name: item.name }) : t('„{name}“ ist kein Favorit mehr', { name: item.name }),
+        emoji: on ? '💗' : undefined,
+        actionLabel: t('Rückgängig'),
+        onAction: () => dispatch({ type: 'updateItem', id: item.id, patch: { prio: was } }),
+      })
+    },
     trash(item: Item) {
       dispatch({ type: 'trashItem', id: item.id })
       ui.haptic(14)
@@ -43,9 +55,10 @@ interface ItemListProps {
   listLabelFor?: (item: Item) => string | undefined
   selected?: Set<string> | null
   onLongPress?: (item: Item) => void
+  onMove?: (item: Item) => void
 }
 
-export function ItemList({ items, onOpen, badgeFor, listLabelFor, selected, onLongPress }: ItemListProps) {
+export function ItemList({ items, onOpen, badgeFor, listLabelFor, selected, onLongPress, onMove }: ItemListProps) {
   const actions = useItemActions()
   return (
     <ul className="group">
@@ -64,6 +77,8 @@ export function ItemList({ items, onOpen, badgeFor, listLabelFor, selected, onLo
             onOpen={() => onOpen(item)}
             onToggle={(origin) => actions.toggle(item, origin)}
             onTrash={() => actions.trash(item)}
+            onMove={onMove ? () => onMove(item) : undefined}
+            onFavorite={() => actions.favorite(item)}
           />
         ))}
       </AnimatePresence>

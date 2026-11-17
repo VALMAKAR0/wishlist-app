@@ -66,11 +66,9 @@ export function PersonFormSheet({ person, onClose, onDeleted }: Props) {
     const data = { name: name.trim(), hue, budget: parsePriceInput(budget) || 0, occasions }
     if (person) {
       dispatch({ type: 'updatePerson', id: person.id, patch: data })
-      ui.toast({ message: t('Person aktualisiert'), emoji: '✨' })
     } else {
       const id = uid()
       dispatch({ type: 'addPerson', person: { id, ...data }, list: { ...defaultList(id, uid()), hue } })
-      ui.toast({ message: t('{name} wurde hinzugefügt', { name: data.name }), emoji: '🎉' })
     }
     ui.haptic(18)
     onClose()
@@ -85,7 +83,6 @@ export function PersonFormSheet({ person, onClose, onDeleted }: Props) {
       tone: 'danger',
       onConfirm: () => {
         dispatch({ type: 'deletePerson', id: person.id })
-        ui.toast({ message: t('{name} gelöscht', { name: person.name }) })
         onClose()
         onDeleted?.()
       },
