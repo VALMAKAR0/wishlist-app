@@ -704,7 +704,7 @@ function AppPage() {
           />
           <SwitchRow title={t('Preise vergleichen')} text={t('Zeigt im Formular unter dem Preis Links zu Idealo, Google Shopping und Geizhals. Die Suche öffnet im Browser.')} checked={settings.priceSearch} onChange={(priceSearch) => setSettings({ priceSearch })} />
           {upd.native && settings.priceWatch && (
-            <SwitchRow title={t('Tägliche Prüfung im Hintergrund')} text={t('Prüft die Preise jeden Morgen gegen 8 Uhr und meldet nur eine Preissenkung. Auf manchen Handys (z. B. Samsung) darf die App dafür nicht im Akku eingeschränkt sein.')} checked={settings.priceBg} onChange={(v) => void toggleBg(v)} />
+            <SwitchRow title={t('Prüfung im Hintergrund')} text={t('Versucht, die Preise morgens gegen 8 Uhr zu prüfen, und meldet nur eine Preissenkung. Android bestimmt den genauen Zeitpunkt, daher nicht garantiert jeden Tag. Auf manchen Handys (z. B. Samsung) darf die App dafür nicht im Akku eingeschränkt sein.')} checked={settings.priceBg} onChange={(v) => void toggleBg(v)} />
           )}
           {upd.native && settings.priceWatch && settings.priceBg && (
             <Row

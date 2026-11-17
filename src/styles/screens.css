@@ -485,6 +485,10 @@ button.row-item:active {
   padding: 10px 12px;
 }
 
+.setting > .btn {
+  flex: none;
+}
+
 .setting--col {
   flex-direction: column;
   align-items: stretch;

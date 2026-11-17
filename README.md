@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 16.11.2026 · Status: V0.16.0 (Umbenennung in Wishlist, eigene Symbole, neues Eintragsfenster, vier Wisch-Stufen, Filter-Fenster, aufgeräumtes Teilen; V0.15: Teilen als PDF, Bild und Text; V0.14: Feinschliff: Preisdiagramm immer sichtbar; V0.13: Sortieren, Filter, Suche, Wichtigkeit, Wunschpreis, neues Preisdiagramm, Budget, kurze Namen, bessere Art-Erkennung; V0.12: Weitere Shops, Update-Download über den Android-Downloader; Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
+Stand: 17.11.2026 · Status: V0.16.1 (Update-Knopf nicht mehr abgeschnitten, ehrliche Texte zur Preisprüfung; V0.16.0: Umbenennung in Wishlist, eigene Symbole, neues Eintragsfenster, vier Wisch-Stufen, Filter-Fenster, aufgeräumtes Teilen; V0.15: Teilen als PDF, Bild und Text; V0.14: Feinschliff: Preisdiagramm immer sichtbar; V0.13: Sortieren, Filter, Suche, Wichtigkeit, Wunschpreis, neues Preisdiagramm, Budget, kurze Namen, bessere Art-Erkennung; V0.12: Weitere Shops, Update-Download über den Android-Downloader; Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -644,3 +644,8 @@ Jeden Punkt abhaken oder mit einem Satz melden, was hakt.
 - **Teilen:** Format als vier Kacheln, eine Zusammenfassung statt Paket und Zählern, Erweiterte Einstellungen zeigen in der Zeile, was mitgeht.
 - **Weniger Leuchten:** Knöpfe flach in der Akzentfarbe, ohne farbigen Schatten.
 - **Test:** `v0160.cjs`.
+
+## 44. V0.16.1 Korrekturen
+
+- Mehr → App und Updates: Der Knopf „Herunterladen“ in der Update-Karte wird nicht mehr schmal gedrückt, der Text ist komplett sichtbar (`.setting > .btn` schrumpft nicht mehr).
+- Preisverlauf: Der Hinweis „ein Punkt pro Tag“ war falsch. Die App prüft nur auf Tipp („Preis jetzt prüfen“, „Alle Preise prüfen“) und, wenn eingeschaltet, per Hintergrund-Prüfung; Android bestimmt, ob und wann sie läuft. Texte im Preis-Kasten und in den Einstellungen sagen das jetzt so. Der Schalter heißt „Prüfung im Hintergrund“.

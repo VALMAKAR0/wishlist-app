@@ -194,7 +194,7 @@ export function PriceWatch({ item, link, onPrice }: { item: Item; link: string; 
           )}
           {more && (
             <p className="pw__more">
-              {stateLong} {t('Die App prüft den Preis auf Wunsch und, wenn eingeschaltet, einmal täglich im Hintergrund. Aus jeder Messung entsteht ein Punkt im Verlauf.')}
+              {stateLong} {t('Die App prüft den Preis nur, wenn du „Preis jetzt prüfen“ oder „Alle Preise prüfen“ tippst. Ist unter Mehr → App die Hintergrund-Prüfung an, versucht sie es zusätzlich morgens; Android entscheidet, ob und wann sie läuft. Aus jeder Messung entsteht ein Punkt im Verlauf.')}
             </p>
           )}
           {item.price !== undefined && (item.priceGuessOk || item.priceSpot) && (
@@ -254,7 +254,7 @@ export function PriceWatch({ item, link, onPrice }: { item: Item; link: string; 
             )}
             {log.length < 2 && (
               <p className="pw__hint pw__hint--c">
-                {chart ? t('Erst ein Messpunkt. Mit jeder Prüfung wächst der Verlauf, ein Punkt pro Tag.') : t('Noch kein Preis. Trag einen ein oder prüfe den Link, dann beginnt hier der Verlauf.')}
+                {chart ? t('Erst ein Messpunkt. Jede Prüfung fügt einen weiteren hinzu.') : t('Noch kein Preis. Trag einen ein oder prüfe den Link, dann beginnt hier der Verlauf.')}
               </p>
             )}
           </div>
