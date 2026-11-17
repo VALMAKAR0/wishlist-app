@@ -37,13 +37,13 @@ export interface Applied {
 }
 
 /** Übernimmt Ergebnisse des Hintergrund-Laufs in die Einträge, in der Reihenfolge ihrer Entstehung. */
-export function applyResults(items: Item[], results: Result[], update: (id: string, patch: Partial<Item>) => void): Applied {
+export function applyResults(items: Item[], results: Result[], update: (id: string, patch: Partial<Item>) => void, minPct = 0): Applied {
   const cur = new Map(items.map((i) => [i.id, i]))
   const sum: Applied = { total: 0, down: 0, up: 0, suggest: 0 }
   for (const r of [...results].sort((a, b) => a.at - b.at)) {
     const it = cur.get(r.id)
     if (!it || it.deletedAt) continue
-    const { patch, outcome } = applyCheck(it, r.found, r.at)
+    const { patch, outcome } = applyCheck(it, r.found, r.at, minPct)
     update(r.id, patch)
     cur.set(r.id, { ...it, ...patch })
     sum.total += 1

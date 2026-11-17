@@ -200,6 +200,13 @@ select {
   box-shadow: 0 0 0 2px var(--bg);
 }
 
+.tabbar[data-none] .tabbar__ind { opacity: 0; }
+
+@media (max-width: 899px) {
+  .tabbar[data-labels='false'] .tab__label { display: none; }
+  .tabbar[data-labels='false'] .tab { gap: 0; }
+}
+
 @media (min-width: 900px) {
   .stage {
     left: var(--rail-w);

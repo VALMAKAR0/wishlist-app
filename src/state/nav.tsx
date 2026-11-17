@@ -7,7 +7,7 @@ import type { StartTab } from '../lib/types'
 export type Tab = 'wishes' | 'ideas' | 'received' | 'stats' | 'more'
 export const TAB_ORDER: Tab[] = ['wishes', 'ideas', 'received', 'stats', 'more']
 
-export type SettingsPageId = 'data' | 'look' | 'money' | 'remind' | 'privacy' | 'app'
+export type SettingsPageId = 'data' | 'look' | 'cards' | 'nav' | 'money' | 'remind' | 'privacy' | 'app'
 
 export type View =
   | { type: 'settings'; page: SettingsPageId }
@@ -27,11 +27,11 @@ function writeLastTab(t: Tab) {
 }
 
 /** Reiter beim Öffnen: festgelegt oder der zuletzt benutzte (ohne "Mehr"). */
-function startTabOf(s: StartTab): Tab {
-  if (s !== 'last') return s
+function startTabOf(s: StartTab, hidden: string[]): Tab {
+  if (s !== 'last') return hidden.includes(s) ? 'wishes' : s
   try {
     const v = localStorage.getItem(LAST_KEY)
-    return v && (TAB_ORDER as string[]).includes(v) && v !== 'more' ? (v as Tab) : 'wishes'
+    return v && (TAB_ORDER as string[]).includes(v) && v !== 'more' && !hidden.includes(v) ? (v as Tab) : 'wishes'
   } catch {
     return 'wishes'
   }
@@ -54,12 +54,14 @@ const Ctx = createContext<Nav | null>(null)
 // Ansichten können sich stapeln (Person -> Liste), Zurück geht immer eine Stufe.
 export function NavProvider({ children }: { children: ReactNode }) {
   const { settings } = useUI()
-  const [tab, setTabState] = useState<Tab>(() => startTabOf(settings.startTab))
+  const [tab, setTabState] = useState<Tab>(() => startTabOf(settings.startTab, settings.tabsHidden))
   const [stack, setStack] = useState<View[]>([])
   const [dir, setDir] = useState<1 | -1>(1)
   const depth = useRef(0)
   const tabRef = useRef(tab)
   tabRef.current = tab
+  const orderRef = useRef<string[]>([])
+  orderRef.current = [...settings.tabOrder, 'more']
   useEffect(() => {
     if (tab !== 'more') writeLastTab(tab)
   }, [tab])
@@ -85,7 +87,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const setTab = useCallback((t: Tab) => {
     const n = depth.current
     if (t === tabRef.current && !n) return
-    setDir(t === tabRef.current ? -1 : TAB_ORDER.indexOf(t) > TAB_ORDER.indexOf(tabRef.current) ? 1 : -1)
+    setDir(t === tabRef.current ? -1 : orderRef.current.indexOf(t) > orderRef.current.indexOf(tabRef.current) ? 1 : -1)
     setTabState(t)
     if (n) {
       // Zustand sofort umschalten und alle History-Einträge der Ansichten still zurücknehmen.

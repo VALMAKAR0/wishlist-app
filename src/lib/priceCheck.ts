@@ -47,7 +47,7 @@ export function priceDelta(i: Pick<Item, 'price' | 'priceBase' | 'priceTrack'>):
 }
 
 /** Entscheidet, was ein gefundener Preis mit dem Eintrag macht. Rein, ohne Netz. */
-export function applyCheck(item: Item, found: Found | null | 'lost', now: number): { patch: Partial<Item>; outcome: Outcome } {
+export function applyCheck(item: Item, found: Found | null | 'lost', now: number, minPct = 0): { patch: Partial<Item>; outcome: Outcome } {
   const patch: Partial<Item> = { priceCheckedAt: now }
   if (found === 'lost') return { patch, outcome: { kind: 'lost' } }
   if (!found) return { patch, outcome: { kind: 'none' } }
@@ -59,7 +59,7 @@ export function applyCheck(item: Item, found: Found | null | 'lost', now: number
       outcome: { kind: 'set', price: found.price },
     }
   }
-  if (same(found.price, item.price)) {
+  if (same(found.price, item.price) || (minPct > 0 && item.price > 0 && (Math.abs(found.price - item.price) / item.price) * 100 < minPct)) {
     return { patch: { ...patch, priceLog: pushLog(item.priceLog, { t: now, p: item.price, k: item.priceState ?? k }), priceSuggest: undefined }, outcome: { kind: 'same' } }
   }
   if (item.priceNo !== undefined && same(found.price, item.priceNo)) return { patch, outcome: { kind: 'ignored' } }
@@ -129,8 +129,8 @@ export async function readFound(link: string, spot?: PriceSpot): Promise<Read> {
 }
 
 /** Prüft einen Eintrag online. */
-export async function checkItem(item: Item, now = Date.now()): Promise<{ patch: Partial<Item>; outcome: Outcome }> {
-  return applyCheck(item, (await readFound(item.link ?? '', item.priceSpot)).found, now)
+export async function checkItem(item: Item, now = Date.now(), minPct = 0): Promise<{ patch: Partial<Item>; outcome: Outcome }> {
+  return applyCheck(item, (await readFound(item.link ?? '', item.priceSpot)).found, now, minPct)
 }
 
 /** Preisfelder, wenn der Nutzer einen Kandidaten als richtige Stelle wählt: Der Preis gilt als sicher, die Stelle wird gemerkt. */
@@ -164,13 +164,13 @@ export interface Summary {
 export const checkable = (i: Item): boolean => !i.deletedAt && !i.bought && !!i.link?.trim() && i.priceTrack !== false
 
 /** Prüft alle beobachteten Einträge nacheinander (mit kleiner Pause, um Shops zu schonen). */
-export async function checkAll(items: Item[], apply: (id: string, patch: Partial<Item>) => void, onProgress?: (done: number, total: number) => void, gap = 600): Promise<Summary> {
+export async function checkAll(items: Item[], apply: (id: string, patch: Partial<Item>) => void, onProgress?: (done: number, total: number) => void, gap = 600, minPct = 0): Promise<Summary> {
   const todo = items.filter(checkable)
   const sum: Summary = { total: todo.length, down: 0, up: 0, set: 0, suggest: 0, same: 0, none: 0, lost: 0, failed: 0 }
   let done = 0
   for (const it of todo) {
     try {
-      const r = await checkItem(it)
+      const r = await checkItem(it, Date.now(), minPct)
       apply(it.id, r.patch)
       const o = r.outcome
       if (o.kind === 'changed') (o.to < o.from ? (sum.down += 1) : (sum.up += 1))

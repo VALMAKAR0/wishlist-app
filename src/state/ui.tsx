@@ -3,7 +3,7 @@ import { MotionConfig } from 'motion/react'
 import type { PlannedId } from '../lib/plannedFeatures'
 import { makeT, type TFn } from '../lib/i18n'
 import { setDateFmt, setLocale, setMoney, uid } from '../lib/format'
-import { normalize, SCALES } from '../lib/settings'
+import { DENSITY_PAD, HAPTIC_K, normalize, RADIUS_K, SCALES, TONE_K } from '../lib/settings'
 import type { UiSettings } from '../lib/types'
 import { Overlays } from '../components/Overlays'
 
@@ -83,16 +83,25 @@ export function UIProvider({ children }: { children: ReactNode }) {
     const root = document.documentElement
     const mq = matchMedia('(prefers-color-scheme: dark)')
     const apply = () => {
-      const dark = settings.theme === 'dark' || (settings.theme === 'system' && mq.matches)
+      const dark = settings.theme === 'dark' || settings.theme === 'black' || (settings.theme === 'system' && mq.matches)
       root.dataset.theme = dark ? 'dark' : 'light'
+      if (settings.theme === 'black') root.dataset.black = 'true'
+      else delete root.dataset.black
       const meta = document.querySelector('meta[name="theme-color"]')
-      meta?.setAttribute('content', dark ? '#0b0e13' : '#edf0f4')
+      meta?.setAttribute('content', dark ? (settings.theme === 'black' ? '#000000' : '#0b0e13') : '#edf0f4')
     }
     apply()
     root.dataset.fx = settings.fx
     root.lang = settings.lang
     root.style.setProperty('--hue', String(settings.hue))
     root.style.setProperty('--fs', String(SCALES[settings.fontScale]))
+    root.dataset.style = settings.style
+    root.dataset.font = settings.fontFamily
+    root.dataset.density = settings.density
+    root.style.setProperty('--rk', String(RADIUS_K[settings.radius]))
+    root.style.setProperty('--tone', String(TONE_K[settings.tone]))
+    root.style.setProperty('--ipad', `${DENSITY_PAD[settings.density]}px`)
+    root.style.setProperty('--name-lines', String(settings.nameLines))
     mq.addEventListener('change', apply)
     return () => mq.removeEventListener('change', apply)
   }, [settings])
@@ -111,9 +120,9 @@ export function UIProvider({ children }: { children: ReactNode }) {
 
   const haptic = useCallback(
     (ms = 12) => {
-      if (settings.fx !== 'off' && settings.haptics) navigator.vibrate?.(ms)
+      if (settings.fx !== 'off' && settings.haptics) navigator.vibrate?.(Math.max(4, Math.round(ms * HAPTIC_K[settings.hapticLevel])))
     },
-    [settings.fx, settings.haptics],
+    [settings.fx, settings.haptics, settings.hapticLevel],
   )
 
   const value = useMemo<UI>(

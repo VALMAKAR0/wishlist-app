@@ -1,11 +1,21 @@
 import { CURRENCIES } from './format'
 import { detectLang } from './i18n'
-import type { DateFmt, FontScale, ListLayout, ShareBought, ShareDefaults, SortMode, StartTab, UiSettings } from './types'
+import type { DateFmt, Density, FontFamily, FontScale, HapticLevel, ImgSize, ListLayout, RadiusSetting, ShareBought, ShareDefaults, SortMode, StartTab, StyleName, SwipeAct, SwipeDist, TabId, Tone, UiSettings } from './types'
 
 export const TRASH_CHOICES = [7, 14, 30, 60, 90]
 export const KEEP_CHOICES = [3, 5, 10, 20]
 export const LOCK_CHOICES = [0, 60, 300, 900]
 export const SCALES: Record<FontScale, number> = { small: 0.92, normal: 1, large: 1.12, xl: 1.26 }
+
+export const PRICE_MIN_CHOICES = [0, 2, 5, 10]
+export const TAB_IDS: TabId[] = ['wishes', 'ideas', 'received', 'stats']
+export const SWIPE_ACTS: SwipeAct[] = ['bought', 'favorite', 'move', 'trash', 'none']
+export const SWIPE_PX: Record<SwipeDist, number> = { short: 68, normal: 88, long: 116 }
+export const RADIUS_K: Record<RadiusSetting, number> = { sharp: 0.35, normal: 1, round: 1.55 }
+export const DENSITY_PAD: Record<Density, number> = { compact: 5, normal: 10, airy: 15 }
+export const TONE_K: Record<Tone, number> = { soft: 0.6, normal: 1, vivid: 1.3 }
+export const IMG_PX: Record<ImgSize, number> = { off: 0, small: 36, normal: 44, large: 58 }
+export const HAPTIC_K: Record<HapticLevel, number> = { light: 0.6, normal: 1, strong: 1.8 }
 
 export const defaultShare = (): ShareDefaults => ({ notes: false, price: true, images: true, listDate: true, bought: 'hidden' })
 
@@ -53,12 +63,36 @@ export const defaults = (): UiSettings => ({
   priceSearch: false,
   priceBg: false,
   kindAuto: true,
+  style: 'tag',
+  radius: 'normal',
+  density: 'normal',
+  tone: 'normal',
+  fontFamily: 'default',
+  hapticLevel: 'normal',
+  imgSize: 'normal',
+  nameLines: 2,
+  cardPrice: true,
+  cardLink: true,
+  cardNote: true,
+  cardPrio: true,
+  cardTags: true,
+  swipeOn: true,
+  swipeDist: 'normal',
+  swipeR1: 'bought',
+  swipeR2: 'move',
+  swipeL1: 'favorite',
+  swipeL2: 'trash',
+  tabOrder: [...TAB_IDS],
+  tabsHidden: [],
+  tabLabels: true,
+  priceMinPct: 0,
 })
 
 /** Einstellungen, die ins Backup wandern. Gerätegebundenes (Kennung, Update-Stand, PIN, Erinnerungs-Schalter) bleibt draußen. */
 export const SYNC_KEYS = [
   'theme', 'fx', 'lang', 'hue', 'remindDays', 'remindTime', 'updateCheck', 'showPlanned', 'autoBackup', 'shareName',
   'currency', 'rates', 'ratesAt', 'ratesAuto', 'dateFmt', 'fontScale', 'haptics', 'trashDays', 'autoKeep', 'startTab', 'sort', 'listLayout', 'shareDefaults', 'linkImport', 'linkImages', 'linkAuto', 'linkPrice', 'linkOverwrite', 'linkKeepName', 'linkShortName', 'priceWatch', 'priceSearch', 'priceBg', 'kindAuto',
+  'style', 'radius', 'density', 'tone', 'fontFamily', 'hapticLevel', 'imgSize', 'nameLines', 'cardPrice', 'cardLink', 'cardNote', 'cardPrio', 'cardTags', 'swipeOn', 'swipeDist', 'swipeR1', 'swipeR2', 'swipeL1', 'swipeL2', 'tabOrder', 'tabsHidden', 'tabLabels', 'priceMinPct',
 ] as const satisfies readonly (keyof UiSettings)[]
 
 export type SyncSettings = Pick<UiSettings, (typeof SYNC_KEYS)[number]>
@@ -84,6 +118,19 @@ function cleanRates(v: unknown): Record<string, number> | undefined {
   return out
 }
 
+function cleanTabOrder(v: unknown): TabId[] | undefined {
+  if (!Array.isArray(v)) return undefined
+  const seen = TAB_IDS.filter((id) => (v as unknown[]).includes(id))
+  if (!seen.length) return undefined
+  const ordered = (v as unknown[]).filter((x): x is TabId => (TAB_IDS as unknown[]).includes(x))
+  return [...new Set([...ordered, ...TAB_IDS])] as TabId[]
+}
+
+function cleanTabsHidden(v: unknown): TabId[] | undefined {
+  if (!Array.isArray(v)) return undefined
+  return [...new Set((v as unknown[]).filter((x): x is TabId => (TAB_IDS as unknown[]).includes(x) && x !== 'wishes'))]
+}
+
 function cleanShare(v: unknown): ShareDefaults | undefined {
   if (typeof v !== 'object' || v === null) return undefined
   const r = v as Record<string, unknown>
@@ -104,7 +151,7 @@ export function normalize(raw: unknown, base: UiSettings = defaults()): UiSettin
   const time = typeof r.remindTime === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(r.remindTime) ? r.remindTime : base.remindTime
   const cur = typeof r.currency === 'string' && CURRENCIES.includes(r.currency) ? r.currency : base.currency
   return {
-    theme: oneOf(r.theme, ['system', 'dark', 'light'] as const) ?? base.theme,
+    theme: oneOf(r.theme, ['system', 'dark', 'light', 'black'] as const) ?? base.theme,
     fx: oneOf(r.fx, ['full', 'calm', 'off'] as const) ?? base.fx,
     lang: oneOf(r.lang, ['de', 'en'] as const) ?? base.lang,
     hue: typeof r.hue === 'number' && r.hue >= 0 && r.hue <= 360 ? r.hue : base.hue,
@@ -147,6 +194,29 @@ export function normalize(raw: unknown, base: UiSettings = defaults()): UiSettin
     priceSearch: bool(r.priceSearch) ?? base.priceSearch,
     priceBg: bool(r.priceBg) ?? base.priceBg,
     kindAuto: bool(r.kindAuto) ?? base.kindAuto,
+    style: oneOf<StyleName>(r.style, ['tag', 'calm', 'bold']) ?? base.style,
+    radius: oneOf<RadiusSetting>(r.radius, ['sharp', 'normal', 'round']) ?? base.radius,
+    density: oneOf<Density>(r.density, ['compact', 'normal', 'airy']) ?? base.density,
+    tone: oneOf<Tone>(r.tone, ['soft', 'normal', 'vivid']) ?? base.tone,
+    fontFamily: oneOf<FontFamily>(r.fontFamily, ['default', 'system']) ?? base.fontFamily,
+    hapticLevel: oneOf<HapticLevel>(r.hapticLevel, ['light', 'normal', 'strong']) ?? base.hapticLevel,
+    imgSize: oneOf<ImgSize>(r.imgSize, ['off', 'small', 'normal', 'large']) ?? base.imgSize,
+    nameLines: r.nameLines === 1 || r.nameLines === 2 ? r.nameLines : base.nameLines,
+    cardPrice: bool(r.cardPrice) ?? base.cardPrice,
+    cardLink: bool(r.cardLink) ?? base.cardLink,
+    cardNote: bool(r.cardNote) ?? base.cardNote,
+    cardPrio: bool(r.cardPrio) ?? base.cardPrio,
+    cardTags: bool(r.cardTags) ?? base.cardTags,
+    swipeOn: bool(r.swipeOn) ?? base.swipeOn,
+    swipeDist: oneOf<SwipeDist>(r.swipeDist, ['short', 'normal', 'long']) ?? base.swipeDist,
+    swipeR1: oneOf<SwipeAct>(r.swipeR1, SWIPE_ACTS) ?? base.swipeR1,
+    swipeR2: oneOf<SwipeAct>(r.swipeR2, SWIPE_ACTS) ?? base.swipeR2,
+    swipeL1: oneOf<SwipeAct>(r.swipeL1, SWIPE_ACTS) ?? base.swipeL1,
+    swipeL2: oneOf<SwipeAct>(r.swipeL2, SWIPE_ACTS) ?? base.swipeL2,
+    tabOrder: cleanTabOrder(r.tabOrder) ?? base.tabOrder,
+    tabsHidden: cleanTabsHidden(r.tabsHidden) ?? base.tabsHidden,
+    tabLabels: bool(r.tabLabels) ?? base.tabLabels,
+    priceMinPct: num(r.priceMinPct, PRICE_MIN_CHOICES) ?? base.priceMinPct,
   }
 }
 

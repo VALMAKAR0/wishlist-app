@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import {
-  Archive, Bell, Check, DatabaseBackup, Flame, HardDriveDownload, Lock, Map, Palette, Search, SlidersHorizontal, Trash2, Undo2, Wallet, X,
+  Archive, Bell, Check, DatabaseBackup, Flame, HardDriveDownload, Hand, Lock, Map, PanelBottom, Palette, Search, SlidersHorizontal, Trash2, Undo2, Wallet, X,
 } from 'lucide-react'
 import { Page, Section } from '../components/Page'
+import { TAB_INFO } from '../components/Chrome'
 import { Chip, Cover, EmptyState, Ring } from '../components/Primitives'
 import { Row } from '../components/SettingsUi'
 import { APP_VERSION, BACKUP_NUDGE_DAYS } from '../lib/brand'
@@ -19,13 +20,15 @@ import { useT, useUI } from '../state/ui'
 const PAGE_ICONS: Record<SettingsPageId, typeof Bell> = {
   data: DatabaseBackup,
   look: Palette,
+  cards: Hand,
+  nav: PanelBottom,
   money: Wallet,
   remind: Bell,
   privacy: Lock,
   app: SlidersHorizontal,
 }
 
-const PAGE_ORDER: SettingsPageId[] = ['data', 'look', 'money', 'remind', 'privacy', 'app']
+const PAGE_ORDER: SettingsPageId[] = ['data', 'look', 'cards', 'nav', 'money', 'remind', 'privacy', 'app']
 
 let lastQuery = ''
 
@@ -49,7 +52,9 @@ export function MoreScreen() {
   const dateExample = settings.dateFmt === 'auto' ? t('Automatisch') : longDate(Date.now())
   const summary: Record<SettingsPageId, string> = {
     data: days === null ? t('Noch kein Backup') : days === 0 ? t('Heute gesichert') : t('Backup vor {n} Tagen', { n: days }),
-    look: `${settings.theme === 'system' ? t('Auto') : settings.theme === 'dark' ? t('Dunkel') : t('Hell')} · ${settings.lang === 'de' ? 'Deutsch' : 'English'}`,
+    look: `${settings.style === 'tag' ? t('Anhänger') : settings.style === 'calm' ? t('Ruhig') : t('Kontrast')} · ${settings.theme === 'system' ? t('Auto') : settings.theme === 'dark' ? t('Dunkel') : settings.theme === 'black' ? t('Schwarz') : t('Hell')}`,
+    cards: `${settings.density === 'compact' ? t('Kompakt') : settings.density === 'airy' ? t('Luftig') : t('Normal')} · ${t('Wischen')}`,
+    nav: settings.tabsHidden.length ? t('{n} ausgeblendet', { n: settings.tabsHidden.length }) : t('Alle Reiter'),
     money: `${settings.currency} · ${dateExample}`,
     remind: settings.remindOn ? t('An · {n} Vorlauf', { n: settings.remindDays.length }) : t('Aus'),
     privacy: settings.lockHash ? t('Sperre an') : t('Keine Sperre'),
@@ -115,6 +120,17 @@ export function MoreScreen() {
               )
             })}
           </div>
+
+          {settings.tabsHidden.length > 0 && (
+            <Section title={t('Ausgeblendete Reiter')}>
+              <div className="card">
+                {settings.tabsHidden.map((id) => {
+                  const Icon = TAB_INFO[id].icon
+                  return <Row key={id} icon={<Icon size={18} />} title={t(TAB_INFO[id].label)} text={t('Öffnen')} onClick={() => setTab(id)} />
+                })}
+              </div>
+            </Section>
+          )}
 
           <Section title={t('Aufbewahrung')}>
             <div className="card">

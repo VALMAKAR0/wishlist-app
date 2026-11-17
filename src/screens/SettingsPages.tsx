@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import {
-  AlertTriangle, Archive, Bell, CalendarClock, Check, Clock, DatabaseBackup, FileDown, HardDriveDownload, Link2, Loader2, Lock, Map, Palette, RefreshCw, RotateCcw, Share2, ShieldCheck, Smartphone, Trash2,
+  AlertTriangle, Archive, Bell, CalendarClock, Check, ChevronDown, ChevronUp, Clock, DatabaseBackup, FileDown, HardDriveDownload, Link2, Loader2, Lock, Map, Palette, RefreshCw, RotateCcw, Share2, ShieldCheck, Smartphone, Trash2,
 } from 'lucide-react'
 import { Page, Section } from '../components/Page'
 import { Presence } from '../components/Presence'
@@ -21,13 +21,14 @@ import { BACKUP_DIR } from '../lib/backupFiles'
 import { CURRENCIES, agoLabel, daysAgo, longDate, timeLabel } from '../lib/format'
 import { lockAvailable } from '../lib/lock'
 import { checkPersist, usePersist } from '../lib/persist'
-import { KEEP_CHOICES, LOCK_CHOICES, TRASH_CHOICES } from '../lib/settings'
+import { HAPTIC_K, KEEP_CHOICES, LOCK_CHOICES, PRICE_MIN_CHOICES, SWIPE_ACTS, TRASH_CHOICES } from '../lib/settings'
 import { downloadApk } from '../lib/apkDownload'
 import { applyResults, bgCheckNow, bgCollect, bgStatus, bgSync } from '../lib/bgRunner'
 import { checkable, checkAll } from '../lib/priceCheck'
 import { notifyState } from '../lib/reminders'
 import { fetchRates, usedCurrencies } from '../lib/rates'
-import type { DateFmt, FontScale, FxSetting, Lang, ListLayout, SortMode, StartTab, ThemeSetting } from '../lib/types'
+import type { DateFmt, Density, FontFamily, FontScale, FxSetting, HapticLevel, ImgSize, Lang, ListLayout, RadiusSetting, SortMode, StartTab, StyleName, SwipeAct, SwipeDist, TabId, ThemeSetting, Tone } from '../lib/types'
+import { TAB_INFO } from '../components/Chrome'
 import { useBackup } from '../state/backup'
 import { useUpdate } from '../state/update'
 import { useNav, type SettingsPageId } from '../state/nav'
@@ -37,7 +38,7 @@ import { useT, useUI } from '../state/ui'
 const HUES = [14, 45, 150, 200, 265, 330]
 
 export function SettingsPage({ page }: { page: SettingsPageId }) {
-  return page === 'data' ? <DataPage /> : page === 'look' ? <LookPage /> : page === 'money' ? <MoneyPage /> : page === 'remind' ? <RemindPage /> : page === 'privacy' ? <PrivacyPage /> : <AppPage />
+  return page === 'data' ? <DataPage /> : page === 'look' ? <LookPage /> : page === 'cards' ? <CardsPage /> : page === 'nav' ? <NavPage /> : page === 'money' ? <MoneyPage /> : page === 'remind' ? <RemindPage /> : page === 'privacy' ? <PrivacyPage /> : <AppPage />
 }
 
 function SubPage({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
@@ -227,12 +228,34 @@ function DataPage() {
   )
 }
 
-// ---- Aussehen und Anzeige
+// ---- Aussehen
+const STYLES: { id: StyleName; name: string; text: string }[] = [
+  { id: 'tag', name: 'Anhänger', text: 'Standard: Lochung, Stanzlinien, Stempel' },
+  { id: 'calm', name: 'Ruhig', text: 'Flach, weich, ohne Zierlinien' },
+  { id: 'bold', name: 'Kontrast', text: 'Kräftige Linien, gut bei Sonne' },
+]
+
 function LookPage() {
   const t = useT()
   const { settings, setSettings } = useUI()
   return (
-    <SubPage title={t('Aussehen und Anzeige')} subtitle={t('Sprache, Farben, Schrift und Verhalten')}>
+    <SubPage title={t('Aussehen und Anzeige')} subtitle={t('Sprache, Stil, Farben und Schrift')}>
+      <Section title={t('Stil')}>
+        <div className="stylepick" role="radiogroup" aria-label={t('Stil')}>
+          {STYLES.map((o) => (
+            <button key={o.id} role="radio" aria-checked={settings.style === o.id} data-active={settings.style === o.id} className="stylepick__opt" data-testid={`style-${o.id}`} onClick={() => setSettings({ style: o.id })}>
+              <span className="stylepick__prev" data-s={o.id} aria-hidden>
+                <i />
+                <b />
+                <b />
+              </span>
+              <strong>{t(o.name)}</strong>
+              <small>{t(o.text)}</small>
+            </button>
+          ))}
+        </div>
+      </Section>
+
       <Section title={t('Aussehen')}>
         <div className="card">
           <div className="setting setting--col">
@@ -241,12 +264,9 @@ function LookPage() {
             </div>
             <Segmented<Lang> id="lang" value={settings.lang} onChange={(lang) => setSettings({ lang })} options={[{ value: 'de', label: 'Deutsch' }, { value: 'en', label: 'English' }]} />
           </div>
-          <div className="setting setting--col">
-            <div>
-              <strong>{t('Darstellung')}</strong>
-            </div>
-            <Segmented<ThemeSetting> id="theme" value={settings.theme} onChange={(theme) => setSettings({ theme })} options={[{ value: 'system', label: t('Auto') }, { value: 'dark', label: t('Dunkel') }, { value: 'light', label: t('Hell') }]} />
-          </div>
+          <Choice title={t('Darstellung')} text={t('„Schwarz“ spart bei OLED-Displays Akku.')}>
+            <ChipChoice<ThemeSetting> label={t('Darstellung')} value={settings.theme} onChange={(theme) => setSettings({ theme })} options={[{ value: 'system', label: t('Auto') }, { value: 'dark', label: t('Dunkel') }, { value: 'black', label: t('Schwarz') }, { value: 'light', label: t('Hell') }]} />
+          </Choice>
           <div className="setting setting--col">
             <div>
               <strong>{t('Akzentfarbe')}</strong>
@@ -259,11 +279,29 @@ function LookPage() {
           </div>
           <div className="setting setting--col">
             <div>
+              <strong>{t('Farbton')}</strong>
+              <p>{t('Beliebiger Ton statt der festen Farben.')}</p>
+            </div>
+            <input className="huerange" type="range" min={0} max={360} step={1} value={settings.hue} onChange={(e) => setSettings({ hue: Number(e.target.value) })} aria-label={t('Farbton')} data-testid="hue-range" />
+          </div>
+          <Choice title={t('Farbintensität')}>
+            <ChipChoice<Tone> label={t('Farbintensität')} value={settings.tone} onChange={(tone) => setSettings({ tone })} options={[{ value: 'soft', label: t('Dezent') }, { value: 'normal', label: t('Normal') }, { value: 'vivid', label: t('Kräftig') }]} />
+          </Choice>
+          <Choice title={t('Ecken')} text={t('Wie rund Karten, Felder und Knöpfe sind.')}>
+            <ChipChoice<RadiusSetting> label={t('Ecken')} value={settings.radius} onChange={(radius) => setSettings({ radius })} options={[{ value: 'sharp', label: t('Eckig') }, { value: 'normal', label: t('Normal') }, { value: 'round', label: t('Rund') }]} />
+          </Choice>
+          <div className="setting setting--col">
+            <div>
               <strong>{t('Effekte')}</strong>
               <p>{t('Weniger Bewegung spart Akku und ist ruhiger.')}</p>
             </div>
             <Segmented<FxSetting> id="fx" value={settings.fx} onChange={(fx) => setSettings({ fx })} options={[{ value: 'full', label: t('Voll') }, { value: 'calm', label: t('Dezent') }, { value: 'off', label: t('Aus') }]} />
           </div>
+        </div>
+      </Section>
+
+      <Section title={t('Schrift')}>
+        <div className="card">
           <Choice title={t('Schriftgröße')} text={t('Gilt für alle Texte in der App.')}>
             <ChipChoice<FontScale>
               label={t('Schriftgröße')}
@@ -272,21 +310,154 @@ function LookPage() {
               options={[{ value: 'small', label: t('Klein') }, { value: 'normal', label: t('Normal') }, { value: 'large', label: t('Groß') }, { value: 'xl', label: t('Sehr groß') }]}
             />
           </Choice>
-          <SwitchRow title={t('Vibration')} text={t('Kurzes Feedback bei Aktionen. Bei „Effekte: Aus“ bleibt es immer still.')} checked={settings.haptics} onChange={(haptics) => setSettings({ haptics })} />
+          <Choice title={t('Schriftart')} text={t('„System“ nutzt die Schrift deines Geräts.')}>
+            <ChipChoice<FontFamily> label={t('Schriftart')} value={settings.fontFamily} onChange={(fontFamily) => setSettings({ fontFamily })} options={[{ value: 'default', label: t('Standard') }, { value: 'system', label: t('System') }]} />
+          </Choice>
         </div>
       </Section>
 
-      <Section title={t('Anzeige')}>
+      <Section title={t('Rückmeldung')}>
         <div className="card">
-          <SwitchRow title={t('Offene Ideen im Budget zeigen')} text={t('Blendet in der Budget-Leiste einen hellen Balken mit der Summe der noch offenen Ideen ein.')} checked={settings.showPlanned} onChange={(showPlanned) => setSettings({ showPlanned })} />
+          <SwitchRow title={t('Vibration')} text={t('Kurzes Feedback bei Aktionen. Bei „Effekte: Aus“ bleibt es immer still.')} checked={settings.haptics} onChange={(haptics) => setSettings({ haptics })} />
+          {settings.haptics && (
+            <Choice title={t('Vibrationsstärke')}>
+              <ChipChoice<HapticLevel> label={t('Vibrationsstärke')} value={settings.hapticLevel} onChange={(hapticLevel) => { setSettings({ hapticLevel }); navigator.vibrate?.(Math.round(20 * HAPTIC_K[hapticLevel])) }} options={[{ value: 'light', label: t('Leicht') }, { value: 'normal', label: t('Normal') }, { value: 'strong', label: t('Stark') }]} />
+            </Choice>
+          )}
+        </div>
+      </Section>
+    </SubPage>
+  )
+}
+
+// ---- Karten und Wischen
+const ACT_LABEL: Record<SwipeAct, string> = { bought: 'Gekauft', favorite: 'Favorit', move: 'Verschieben', trash: 'Löschen', none: 'Nichts' }
+
+function CardsPage() {
+  const t = useT()
+  const { settings, setSettings } = useUI()
+  const acts = SWIPE_ACTS.map((a) => ({ value: a, label: t(ACT_LABEL[a]) }))
+  return (
+    <SubPage title={t('Karten und Wischen')} subtitle={t('Wie Einträge aussehen und sich bedienen lassen')}>
+      <Section title={t('Karten')}>
+        <div className="card">
+          <Choice title={t('Dichte')} text={t('Abstand zwischen den Zeilen.')}>
+            <ChipChoice<Density> label={t('Dichte')} value={settings.density} onChange={(density) => setSettings({ density })} options={[{ value: 'compact', label: t('Kompakt') }, { value: 'normal', label: t('Normal') }, { value: 'airy', label: t('Luftig') }]} />
+          </Choice>
+          <Choice title={t('Bildgröße')}>
+            <ChipChoice<ImgSize> label={t('Bildgröße')} value={settings.imgSize} onChange={(imgSize) => setSettings({ imgSize })} options={[{ value: 'off', label: t('Aus') }, { value: 'small', label: t('Klein') }, { value: 'normal', label: t('Normal') }, { value: 'large', label: t('Groß') }]} />
+          </Choice>
+          <Choice title={t('Namen auf Karten')} text={t('Lange Namen kürzen oder auf zwei Zeilen umbrechen.')}>
+            <ChipChoice<1 | 2> label={t('Namen auf Karten')} value={settings.nameLines} onChange={(nameLines) => setSettings({ nameLines })} options={[{ value: 1, label: t('Eine Zeile') }, { value: 2, label: t('Zwei Zeilen') }]} />
+          </Choice>
+        </div>
+      </Section>
+
+      <Section title={t('Infos auf Karten')}>
+        <div className="card">
+          <SwitchRow title={t('Preis')} checked={settings.cardPrice} onChange={(cardPrice) => setSettings({ cardPrice })} />
+          <SwitchRow title={t('Wichtigkeit')} text={t('Die Herzen hinter dem Namen.')} checked={settings.cardPrio} onChange={(cardPrio) => setSettings({ cardPrio })} />
+          <SwitchRow title={t('Link')} checked={settings.cardLink} onChange={(cardLink) => setSettings({ cardLink })} />
+          <SwitchRow title={t('Notiz-Symbol')} checked={settings.cardNote} onChange={(cardNote) => setSettings({ cardNote })} />
+          <SwitchRow title={t('Preis-Hinweise')} text={t('Gesunken, Wunschpreis, Tiefstpreis und offene Preisfragen.')} checked={settings.cardTags} onChange={(cardTags) => setSettings({ cardTags })} />
+        </div>
+      </Section>
+
+      <Section title={t('Wischgesten')}>
+        <div className="card">
+          <SwitchRow title={t('Wischen auf Karten')} text={t('Aus = Karten lassen sich nur antippen.')} checked={settings.swipeOn} onChange={(swipeOn) => setSettings({ swipeOn })} />
+          {settings.swipeOn && (
+            <>
+              <Choice title={t('Wischweite')} text={t('Wie weit du ziehen musst, bis eine Aktion greift.')}>
+                <ChipChoice<SwipeDist> label={t('Wischweite')} value={settings.swipeDist} onChange={(swipeDist) => setSettings({ swipeDist })} options={[{ value: 'short', label: t('Kurz') }, { value: 'normal', label: t('Normal') }, { value: 'long', label: t('Lang') }]} />
+              </Choice>
+              <Choice title={t('Nach rechts, kurz')}>
+                <ChipChoice<SwipeAct> label={t('Nach rechts, kurz')} value={settings.swipeR1} onChange={(swipeR1) => setSettings({ swipeR1 })} options={acts} />
+              </Choice>
+              <Choice title={t('Nach rechts, weit')}>
+                <ChipChoice<SwipeAct> label={t('Nach rechts, weit')} value={settings.swipeR2} onChange={(swipeR2) => setSettings({ swipeR2 })} options={acts} />
+              </Choice>
+              <Choice title={t('Nach links, kurz')}>
+                <ChipChoice<SwipeAct> label={t('Nach links, kurz')} value={settings.swipeL1} onChange={(swipeL1) => setSettings({ swipeL1 })} options={acts} />
+              </Choice>
+              <Choice title={t('Nach links, weit')}>
+                <ChipChoice<SwipeAct> label={t('Nach links, weit')} value={settings.swipeL2} onChange={(swipeL2) => setSettings({ swipeL2 })} options={acts} />
+              </Choice>
+              <div className="setting">
+                <div>
+                  <p>{t('„Verschieben“ gibt es nur in Listen, in denen sich Einträge verschieben lassen.')}</p>
+                </div>
+                <button className="btn btn--small" onClick={() => setSettings({ swipeR1: 'bought', swipeR2: 'move', swipeL1: 'favorite', swipeL2: 'trash' })}>
+                  {t('Zurücksetzen')}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </Section>
+    </SubPage>
+  )
+}
+
+// ---- Navigation
+function NavPage() {
+  const t = useT()
+  const { settings, setSettings } = useUI()
+  const order = settings.tabOrder
+  const hidden = settings.tabsHidden
+  const move = (i: number, d: -1 | 1) => {
+    const next = [...order]
+    const j = i + d
+    if (j < 0 || j >= next.length) return
+    ;[next[i], next[j]] = [next[j], next[i]]
+    setSettings({ tabOrder: next })
+  }
+  const toggle = (id: TabId, on: boolean) => setSettings({ tabsHidden: on ? hidden.filter((x) => x !== id) : [...hidden, id] })
+  return (
+    <SubPage title={t('Navigation und Reiter')} subtitle={t('Leiste, Startseite und Listen')}>
+      <Section title={t('Reiter')}>
+        <div className="card" data-testid="tab-editor">
+          {order.map((id, i) => {
+            const Icon = TAB_INFO[id].icon
+            const on = !hidden.includes(id)
+            return (
+              <div className="setting tabrow" key={id} data-testid={`tabrow-${id}`}>
+                <span className="tabrow__icon">
+                  <Icon size={18} />
+                </span>
+                <div>
+                  <strong>{t(TAB_INFO[id].label)}</strong>
+                </div>
+                <span className="tabrow__move">
+                  <button className="icon-btn" onClick={() => move(i, -1)} disabled={i === 0} aria-label={`${t(TAB_INFO[id].label)} ${t('nach vorn')}`}>
+                    <ChevronUp size={16} />
+                  </button>
+                  <button className="icon-btn" onClick={() => move(i, 1)} disabled={i === order.length - 1} aria-label={`${t(TAB_INFO[id].label)} ${t('nach hinten')}`}>
+                    <ChevronDown size={16} />
+                  </button>
+                </span>
+                {id === 'wishes' ? <span className="tabrow__lock" aria-hidden><Switch checked onChange={() => {}} label={t(TAB_INFO[id].label)} /></span> : <Switch checked={on} onChange={(v) => toggle(id, v)} label={t(TAB_INFO[id].label)} />}
+              </div>
+            )
+          })}
+          <p className="hint hint--pad">{t('„Wünsche“ und „Mehr“ bleiben immer da. Ausgeblendete Reiter findest du unter „Mehr“.')}</p>
+        </div>
+        <div className="card">
+          <SwitchRow title={t('Beschriftung der Reiter')} text={t('Aus = nur Symbole (Handy).')} checked={settings.tabLabels} onChange={(tabLabels) => setSettings({ tabLabels })} />
+        </div>
+      </Section>
+
+      <Section title={t('Start und Listen')}>
+        <div className="card">
           <Choice title={t('Start-Reiter')} text={t('Was beim Öffnen der App zuerst erscheint.')}>
             <ChipChoice<StartTab>
               label={t('Start-Reiter')}
               value={settings.startTab}
               onChange={(startTab) => setSettings({ startTab })}
-              options={[{ value: 'wishes', label: t('Wünsche') }, { value: 'ideas', label: t('Ideen') }, { value: 'received', label: t('Erhalten') }, { value: 'stats', label: t('Statistik') }, { value: 'last', label: t('Zuletzt benutzt') }]}
+              options={[{ value: 'wishes', label: t('Wünsche') }, ...(['ideas', 'received', 'stats'] as TabId[]).filter((id) => !hidden.includes(id)).map((id) => ({ value: id as StartTab, label: t(TAB_INFO[id].label) })), { value: 'last', label: t('Zuletzt benutzt') }]}
             />
           </Choice>
+          <SwitchRow title={t('Offene Ideen im Budget zeigen')} text={t('Blendet in der Budget-Leiste einen hellen Balken mit der Summe der noch offenen Ideen ein.')} checked={settings.showPlanned} onChange={(showPlanned) => setSettings({ showPlanned })} />
           <div className="setting setting--col">
             <div>
               <strong>{t('Listen')}</strong>
@@ -600,7 +771,7 @@ function AppPage() {
       return
     }
     setPriceAll({ done: 0, total })
-    const s = await checkAll(items, (id, patch) => dispatch({ type: 'updateItem', id, patch }), (done) => setPriceAll({ done, total }))
+    const s = await checkAll(items, (id, patch) => dispatch({ type: 'updateItem', id, patch }), (done) => setPriceAll({ done, total }), undefined, settings.priceMinPct)
     setPriceAll(null)
     const parts = [s.down && t('{n} gesunken', { n: s.down }), s.up && t('{n} gestiegen', { n: s.up }), s.suggest && t('{n} Vorschläge', { n: s.suggest }), s.set && t('{n} neu eingetragen', { n: s.set }), s.none && t('{n} ohne Preis', { n: s.none }), s.lost && t('{n} Stelle nicht gefunden', { n: s.lost }), s.failed && t('{n} nicht erreichbar', { n: s.failed })].filter(Boolean)
     ui.toast({ message: `${t('{n} Preise geprüft', { n: s.total })}${parts.length ? ': ' + parts.join(', ') : ': ' + t('nichts Neues')}`, emoji: s.down ? '📉' : '🔎' })
@@ -715,6 +886,11 @@ function AppPage() {
             onChange={(priceWatch) => setSettings({ priceWatch })}
           />
           <SwitchRow title={t('Preise vergleichen')} text={t('Zeigt im Formular unter dem Preis Links zu Idealo, Google Shopping und Geizhals. Die Suche öffnet im Browser.')} checked={settings.priceSearch} onChange={(priceSearch) => setSettings({ priceSearch })} />
+          {settings.priceWatch && (
+            <Choice title={t('Kleine Preisänderungen ignorieren')} text={t('Änderungen darunter gelten als gleicher Preis und werden nicht gemeldet. Gilt für „Alle Preise prüfen“ und die Hintergrund-Prüfung.')}>
+              <ChipChoice<number> label={t('Kleine Preisänderungen ignorieren')} value={settings.priceMinPct} onChange={(priceMinPct) => setSettings({ priceMinPct })} options={PRICE_MIN_CHOICES.map((n) => ({ value: n, label: n ? `< ${n} %` : t('Nie') }))} />
+            </Choice>
+          )}
           {upd.native && settings.priceWatch && (
             <SwitchRow title={t('Prüfung im Hintergrund')} text={t('Versucht, die Preise morgens gegen 8 Uhr zu prüfen, und meldet nur eine Preissenkung. Android bestimmt den genauen Zeitpunkt, daher nicht garantiert jeden Tag. Auf manchen Handys (z. B. Samsung) darf die App dafür nicht im Akku eingeschränkt sein.')} checked={settings.priceBg} onChange={(v) => void toggleBg(v)} />
           )}

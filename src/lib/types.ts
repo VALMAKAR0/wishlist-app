@@ -160,12 +160,22 @@ export interface ReceivedList {
   lists: ReceivedCollection[]
 }
 
-export type ThemeSetting = 'system' | 'dark' | 'light'
+export type ThemeSetting = 'system' | 'dark' | 'light' | 'black'
 export type FxSetting = 'full' | 'calm' | 'off'
 export type Lang = 'de' | 'en'
 export type DateFmt = 'auto' | 'dmy' | 'mdy' | 'iso'
 export type FontScale = 'small' | 'normal' | 'large' | 'xl'
 export type SortMode = 'new' | 'old' | 'name' | 'priceDown' | 'priceUp' | 'prio' | 'drop'
+export type StyleName = 'tag' | 'calm' | 'bold'
+export type RadiusSetting = 'sharp' | 'normal' | 'round'
+export type Density = 'compact' | 'normal' | 'airy'
+export type Tone = 'soft' | 'normal' | 'vivid'
+export type FontFamily = 'default' | 'system'
+export type HapticLevel = 'light' | 'normal' | 'strong'
+export type ImgSize = 'off' | 'small' | 'normal' | 'large'
+export type SwipeAct = 'bought' | 'favorite' | 'move' | 'trash' | 'none'
+export type SwipeDist = 'short' | 'normal' | 'long'
+export type TabId = 'wishes' | 'ideas' | 'received' | 'stats'
 export type StartTab = 'wishes' | 'ideas' | 'received' | 'stats' | 'last'
 
 export interface ShareDefaults {
@@ -240,6 +250,33 @@ export interface UiSettings {
   priceSearch: boolean
   priceBg: boolean
   kindAuto: boolean
+  /** Stilvariante des Designs, Standard ist der Geschenkanhänger. */
+  style: StyleName
+  radius: RadiusSetting
+  density: Density
+  tone: Tone
+  fontFamily: FontFamily
+  hapticLevel: HapticLevel
+  imgSize: ImgSize
+  nameLines: 1 | 2
+  cardPrice: boolean
+  cardLink: boolean
+  cardNote: boolean
+  cardPrio: boolean
+  cardTags: boolean
+  swipeOn: boolean
+  swipeDist: SwipeDist
+  swipeR1: SwipeAct
+  swipeR2: SwipeAct
+  swipeL1: SwipeAct
+  swipeL2: SwipeAct
+  /** Reihenfolge der Reiter in der Leiste (ohne "Mehr", das bleibt rechts). */
+  tabOrder: TabId[]
+  /** Ausgeblendete Reiter. "Wünsche" bleibt immer sichtbar. */
+  tabsHidden: TabId[]
+  tabLabels: boolean
+  /** Preisänderungen unter diesem Prozentwert werden nicht gemeldet. */
+  priceMinPct: number
 }
 
 export type ListLayout = 'rows' | 'grid'

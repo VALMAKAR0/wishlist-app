@@ -6,6 +6,8 @@ import { atLowest, targetHit } from '../lib/listQuery'
 import { priceDelta } from '../lib/priceCheck'
 import type { Item } from '../lib/types'
 import { useT, useUI } from '../state/ui'
+import { IMG_PX, SWIPE_PX } from '../lib/settings'
+import type { SwipeAct } from '../lib/types'
 import { Cover, ListMark, PriceTag, PrioMark } from './Primitives'
 
 interface ItemCardProps {
@@ -31,12 +33,11 @@ interface ItemCardProps {
   ref?: Ref<HTMLLIElement>
 }
 
-const SWIPE = 88
-const SWIPE_FAR = 200
+const FAR = 200 / 88
 /** So viel von der Fingerbewegung folgt die Zeile, darüber hinaus gibt sie federnd nach. */
 const PULL = 0.85
 
-/** Zeile mit vier Wisch-Stufen: rechts kurz = gekauft, rechts weit = verschieben, links kurz = Favorit, links weit = Papierkorb. */
+/** Zeile mit vier Wisch-Stufen. Standard: rechts kurz = gekauft, rechts weit = verschieben, links kurz = Favorit, links weit = Papierkorb. Die Belegung ist einstellbar. */
 export function ItemCard({ item, index, onOpen, onToggle, onTrash, onMove, onFavorite, badge, listLabel, selectMode, selected, onLongPress, flow, ref }: ItemCardProps) {
   const t = useT()
   const ui = useUI()
@@ -56,13 +57,38 @@ export function ItemCard({ item, index, onOpen, onToggle, onTrash, onMove, onFav
     hold.current = undefined
   }
   useEffect(() => stopHold, [])
+  const fav = (item.prio ?? 0) >= 3
+  const s = ui.settings
+  const SWIPE = SWIPE_PX[s.swipeDist]
+  const SWIPE_FAR = SWIPE * FAR
+  const usable = (a: SwipeAct): SwipeAct => (a === 'move' && !onMove ? 'none' : a)
+  const acts = { r1: usable(s.swipeR1), r2: usable(s.swipeR2), l1: usable(s.swipeL1), l2: usable(s.swipeL2) }
+  const stageOf = (v: number) => (v > SWIPE_FAR && acts.r2 !== 'none' ? 2 : v > SWIPE ? 1 : v < -SWIPE_FAR && acts.l2 !== 'none' ? -2 : v < -SWIPE ? -1 : 0)
+  const run = (a: SwipeAct, origin: { x: number; y: number }) => {
+    if (a === 'bought') onToggle(origin)
+    else if (a === 'favorite') onFavorite?.()
+    else if (a === 'move') onMove?.()
+    else if (a === 'trash') onTrash()
+  }
+  const meta = (a: SwipeAct) =>
+    a === 'bought'
+      ? { icon: item.bought ? <Undo2 size={22} /> : <Check size={22} />, label: item.bought ? t('Zurück') : t('Gekauft') }
+      : a === 'favorite'
+        ? { icon: fav ? <HeartOff size={22} /> : <Heart size={22} />, label: fav ? t('Kein Favorit') : t('Favorit') }
+        : a === 'move'
+          ? { icon: <FolderInput size={22} />, label: t('Verschieben') }
+          : a === 'trash'
+            ? { icon: <Trash2 size={22} />, label: t('Löschen') }
+            : { icon: null, label: '' }
+  const [stage, setStage] = useState(0)
   const rightBg = useTransform(x, [0, SWIPE * PULL * 0.6], [0, 1])
   const leftBg = useTransform(x, [-SWIPE * PULL * 0.6, 0], [1, 0])
   const rightScale = useTransform(x, [0, SWIPE * PULL], [0.6, 1])
   const leftScale = useTransform(x, [-SWIPE * PULL, 0], [1, 0.6])
-  const canMove = !!onMove
-  const stageOf = (v: number) => (v > SWIPE_FAR && canMove ? 2 : v > SWIPE ? 1 : v < -SWIPE_FAR ? -2 : v < -SWIPE ? -1 : 0)
-  const [stage, setStage] = useState(0)
+  const rAct = stage === 2 ? acts.r2 : acts.r1
+  const lAct = stage === -2 ? acts.l2 : acts.l1
+  const rMeta = meta(rAct)
+  const lMeta = meta(lAct)
   const follow = (offset: number) => {
     const next = stageOf(offset)
     if (next !== stage) {
@@ -70,7 +96,6 @@ export function ItemCard({ item, index, onOpen, onToggle, onTrash, onMove, onFav
       if (next !== 0) ui.haptic(10)
     }
   }
-  const fav = (item.prio ?? 0) >= 3
 
   const center = (el: Element | null) => {
     const r = (el ?? document.body).getBoundingClientRect()
@@ -101,14 +126,18 @@ export function ItemCard({ item, index, onOpen, onToggle, onTrash, onMove, onFav
       transition={{ type: 'spring', stiffness: 300, damping: 28, delay: Math.min(index, 7) * 0.05 }}
     >
       <div className="swipe__bg" aria-hidden>
-        <motion.span className="swipe__act swipe__act--good" data-stage={stage > 0 ? stage : undefined} style={{ opacity: rightBg }}>
-          <motion.span style={{ scale: rightScale }}>{stage === 2 ? <FolderInput size={22} /> : item.bought ? <Undo2 size={22} /> : <Check size={22} />}</motion.span>
-          {stage === 2 ? t('Verschieben') : item.bought ? t('Zurück') : t('Gekauft')}
-        </motion.span>
-        <motion.span className="swipe__act swipe__act--bad" data-stage={stage < 0 ? -stage : undefined} style={{ opacity: leftBg }}>
-          {stage === -2 ? t('Löschen') : fav ? t('Kein Favorit') : t('Favorit')}
-          <motion.span style={{ scale: leftScale }}>{stage === -2 ? <Trash2 size={22} /> : fav ? <HeartOff size={22} /> : <Heart size={22} />}</motion.span>
-        </motion.span>
+        {rAct !== 'none' && (
+          <motion.span className="swipe__act swipe__act--good" data-act={rAct} data-stage={stage > 0 ? stage : undefined} style={{ opacity: rightBg }}>
+            <motion.span style={{ scale: rightScale }}>{rMeta.icon}</motion.span>
+            {rMeta.label}
+          </motion.span>
+        )}
+        {lAct !== 'none' && (
+          <motion.span className="swipe__act swipe__act--bad" data-act={lAct} data-stage={stage < 0 ? -stage : undefined} style={{ opacity: leftBg }}>
+            {lMeta.label}
+            <motion.span style={{ scale: leftScale }}>{lMeta.icon}</motion.span>
+          </motion.span>
+        )}
       </div>
 
       <motion.div
@@ -117,7 +146,7 @@ export function ItemCard({ item, index, onOpen, onToggle, onTrash, onMove, onFav
         data-done={item.bought}
         data-selected={selectMode ? !!selected : undefined}
         style={{ x }}
-        drag={selectMode ? false : 'x'}
+        drag={selectMode || !s.swipeOn ? false : 'x'}
         dragDirectionLock
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={PULL}
@@ -126,20 +155,18 @@ export function ItemCard({ item, index, onOpen, onToggle, onTrash, onMove, onFav
         onDrag={(_, info) => follow(info.offset.x)}
         onDragEnd={(_, info) => {
           const st = stageOf(info.offset.x)
-          if (st === 2) {
+          const act = st === 2 ? acts.r2 : st === 1 ? acts.r1 : st === -1 ? acts.l1 : st === -2 ? acts.l2 : 'none'
+          if (st === 0 || act === 'none') {
             snapBack()
-            onMove?.()
-          } else if (st === 1) {
+          } else if (act === 'trash') {
+            animate(x, st > 0 ? window.innerWidth : -window.innerWidth, { duration: 0.22, ease: 'easeIn' }).then(onTrash)
+          } else if (act === 'bought') {
             const origin = center(cardRef.current)
             snapBack()
-            onToggle(origin)
-          } else if (st === -1) {
-            snapBack()
-            onFavorite?.()
-          } else if (st === -2) {
-            animate(x, -window.innerWidth, { duration: 0.22, ease: 'easeIn' }).then(onTrash)
+            run(act, origin)
           } else {
             snapBack()
+            run(act, { x: 0, y: 0 })
           }
           setStage(0)
         }}
@@ -180,40 +207,40 @@ export function ItemCard({ item, index, onOpen, onToggle, onTrash, onMove, onFav
           }
         }}
       >
-        <Cover emoji={item.emoji} hue={item.hue} size={44} imageId={item.imageId} />
+        {s.imgSize !== 'off' && <Cover emoji={item.emoji} hue={item.hue} size={IMG_PX[s.imgSize]} imageId={item.imageId} />}
         <div className="item__main">
           <div className="item__title">
             <span className="item__name">{item.name}</span>
-            <PrioMark prio={item.prio} label={t('Wichtigkeit {n} von 3', { n: item.prio ?? 0 })} />
+            {s.cardPrio && <PrioMark prio={item.prio} label={t('Wichtigkeit {n} von 3', { n: item.prio ?? 0 })} />}
           </div>
           <div className="item__meta">
-            {item.price !== undefined && <PriceTag price={item.price} cur={item.currency} />}
-            {delta !== null && (
+            {s.cardPrice && item.price !== undefined && <PriceTag price={item.price} cur={item.currency} />}
+            {s.cardTags && delta !== null && (
               <span className="item__delta" data-dir={delta < 0 ? 'down' : 'up'} data-testid="price-delta" aria-label={delta < 0 ? t('Preis gesunken um {p}', { p: money(-delta, curOf(item)) }) : t('Preis gestiegen um {p}', { p: money(delta, curOf(item)) })}>
                 {delta < 0 ? <TrendingDown size={12} /> : <TrendingUp size={12} />} {money(Math.abs(delta), curOf(item))}
               </span>
             )}
-            {hit && (
+            {s.cardTags && hit && (
               <span className="item__hit" data-testid="target-hit">
                 <Target size={12} /> {t('Wunschpreis')}
               </span>
             )}
-            {low && (
+            {s.cardTags && low && (
               <span className="item__low" data-testid="at-lowest">
                 <ArrowDownToLine size={12} /> {t('Tiefstpreis')}
               </span>
             )}
-            {asked && (
+            {s.cardTags && asked && (
               <span className="item__ask" data-testid="price-ask">
                 <CircleHelp size={12} /> {item.priceSuggest && item.price !== undefined && item.priceSuggest.price < item.price ? t('Preis gesunken?') : t('Preis gestiegen?')}
               </span>
             )}
-            {item.link && (
+            {s.cardLink && item.link && (
               <button className="linkbtn" data-no-open onClick={openLink} aria-label={t('Link öffnen: {host}', { host: hostOf(item.link) })}>
                 <ExternalLink size={12} /> {hostOf(item.link)}
               </button>
             )}
-            {item.note && <StickyNote size={13} aria-label={t('Notiz vorhanden')} />}
+            {s.cardNote && item.note && <StickyNote size={13} aria-label={t('Notiz vorhanden')} />}
             {item.bought && item.boughtAt && <span className="item__when">{agoLabel(item.boughtAt, t)}</span>}
             {listLabel && (
               <span className="item__list">

@@ -17,6 +17,8 @@ export function BackgroundPrices() {
   tr.current = t
   const toast = useRef(ui.toast)
   toast.current = ui.toast
+  const pctRef = useRef(ui.settings.priceMinPct)
+  pctRef.current = ui.settings.priceMinPct
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
@@ -25,7 +27,7 @@ export function BackgroundPrices() {
     const pull = async () => {
       const r = await bgCollect()
       if (!alive || !r?.results?.length) return
-      const s = applyResults(itemsRef.current, r.results, (id, patch) => dispatch({ type: 'updateItem', id, patch }))
+      const s = applyResults(itemsRef.current, r.results, (id, patch) => dispatch({ type: 'updateItem', id, patch }), pctRef.current)
       if (s.down) toast.current({ message: tr.current('{n} Preise im Hintergrund gesunken', { n: s.down }), emoji: '📉' })
     }
     void pull().finally(() => alive && setReady(true))

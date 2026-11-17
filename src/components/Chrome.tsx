@@ -17,25 +17,26 @@ export function Aurora() {
   )
 }
 
-const TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
-  { id: 'wishes', label: 'Wünsche', icon: Sparkles },
-  { id: 'ideas', label: 'Ideen', icon: Lightbulb },
-  { id: 'received', label: 'Erhalten', icon: Inbox },
-  { id: 'stats', label: 'Statistik', icon: ChartNoAxesColumn },
-  { id: 'more', label: 'Mehr', icon: SlidersHorizontal },
-]
+export const TAB_INFO: Record<Tab, { label: string; icon: LucideIcon }> = {
+  wishes: { label: 'Wünsche', icon: Sparkles },
+  ideas: { label: 'Ideen', icon: Lightbulb },
+  received: { label: 'Erhalten', icon: Inbox },
+  stats: { label: 'Statistik', icon: ChartNoAxesColumn },
+  more: { label: 'Mehr', icon: SlidersHorizontal },
+}
 
 export function TabBar() {
   const t = useT()
   const { tab, setTab } = useNav()
-  const { haptic } = useUI()
+  const { haptic, settings } = useUI()
   const { received } = useStore()
   const { available: updateReady } = useUpdate()
-  const index = Math.max(0, TABS.findIndex((x) => x.id === tab))
-  const style = { '--n': TABS.length, '--i': index } as CSSProperties
+  const TABS: { id: Tab; label: string; icon: LucideIcon }[] = [...settings.tabOrder.filter((id) => !settings.tabsHidden.includes(id)), 'more' as Tab].map((id) => ({ id, ...TAB_INFO[id] }))
+  const found = TABS.findIndex((x) => x.id === tab)
+  const style = { '--n': TABS.length, '--i': Math.max(0, found) } as CSSProperties
 
   return (
-    <nav className="tabbar" aria-label={t('Hauptnavigation')}>
+    <nav className="tabbar" aria-label={t('Hauptnavigation')} data-labels={settings.tabLabels} data-none={found < 0 || undefined}>
       <div className="tabbar__brand" aria-hidden>
         <Logo size={26} />
         <span>{APP_NAME}</span>

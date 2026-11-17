@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 17.11.2026 · Status: V0.18.0 (Preis-Hinweise mit Richtung und Verlauf, Tageskurse automatisch, Wischen bei erhaltenen Listen, Listen-Symbole statt Emojis; V0.17.0 Geschenkanhänger: neues Erscheinungsbild für die ganze App; V0.16.2: Update-Karte und Statuszeile zusammengeführt; V0.16.1: Update-Knopf nicht mehr abgeschnitten, ehrliche Texte zur Preisprüfung; V0.16.0: Umbenennung in Wishlist, eigene Symbole, neues Eintragsfenster, vier Wisch-Stufen, Filter-Fenster, aufgeräumtes Teilen; V0.15: Teilen als PDF, Bild und Text; V0.14: Feinschliff: Preisdiagramm immer sichtbar; V0.13: Sortieren, Filter, Suche, Wichtigkeit, Wunschpreis, neues Preisdiagramm, Budget, kurze Namen, bessere Art-Erkennung; V0.12: Weitere Shops, Update-Download über den Android-Downloader; Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
+Stand: 17.11.2026 · Status: V0.19.0 (Anpassungen: Stilvarianten, Karten, Wischgesten, Reiter, Preisschwelle; V0.18.0 Preis-Hinweise mit Richtung und Verlauf, Tageskurse automatisch, Wischen bei erhaltenen Listen, Listen-Symbole statt Emojis; V0.17.0 Geschenkanhänger: neues Erscheinungsbild für die ganze App; V0.16.2: Update-Karte und Statuszeile zusammengeführt; V0.16.1: Update-Knopf nicht mehr abgeschnitten, ehrliche Texte zur Preisprüfung; V0.16.0: Umbenennung in Wishlist, eigene Symbole, neues Eintragsfenster, vier Wisch-Stufen, Filter-Fenster, aufgeräumtes Teilen; V0.15: Teilen als PDF, Bild und Text; V0.14: Feinschliff: Preisdiagramm immer sichtbar; V0.13: Sortieren, Filter, Suche, Wichtigkeit, Wunschpreis, neues Preisdiagramm, Budget, kurze Namen, bessere Art-Erkennung; V0.12: Weitere Shops, Update-Download über den Android-Downloader; Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -672,3 +672,13 @@ Jeden Punkt abhaken oder mit einem Satz melden, was hakt.
 - **Fenster:** Personenauswahl („Wünsche übernehmen“, „Verknüpfen mit“) und Übernehmen-Fenster neu gestaltet (`.pchoice`, `.adopt`); die Auswahl im Preis-Fenster heißt jetzt `.pchoices`, damit sich die Klassen nicht mehr überschreiben.
 - **Listen-Symbole:** Sieben neue eigene Symbole (Pinnnadel, Tannenbaum, Torte, Reise, Abschluss, Baby, Einkauf), `LIST_ICONS`, `listIcon()` ordnet alte Emojis zu (keine Datenmigration), `ListMark` zeigt sie überall (Chips, Kacheln, Teilen, Verschieben, Statistik, Export-Kopf). „Liste bearbeiten“: Vorschau neben dem Namen, Symbolraster, Farben.
 - **Test:** `v0180.cjs`.
+
+## 48. V0.19.0 Anpassungen
+
+- **Stil:** Standard bleibt der Geschenkanhänger. Dazu „Ruhig“ (flach, ohne Lochung und Stanzlinien) und „Kontrast“ (kräftige Linien, harte Schatten). Umsetzung über `data-style` am Wurzelelement und Token-Überschreibungen in `tokens.css`.
+- **Aussehen:** Ecken (`--rk` skaliert alle Radien), Farbton-Regler, Farbintensität (`--tone`), Darstellung „Schwarz“ (OLED), Schriftart System, Vibrationsstärke.
+- **Karten und Wischen** (neue Seite): Dichte (`--ipad`), Bildgröße, Namenszeilen, Infos ein-/ausblenden (Preis, Wichtigkeit, Link, Notiz, Preis-Hinweise), Wischen an/aus, Wischweite, alle vier Wischstufen frei belegbar (Gekauft, Favorit, Verschieben, Löschen, Nichts).
+- **Navigation und Reiter** (neue Seite): Reiter ein-/ausblenden und umsortieren („Wünsche“ und „Mehr“ bleiben), Beschriftung aus, Start-Reiter, Budget-Leiste, Listenlayout, Sortierung. Ausgeblendete Reiter stehen unter „Mehr“.
+- **Preise:** „Kleine Preisänderungen ignorieren“ (2, 5, 10 %) für „Alle Preise prüfen“ und die Hintergrund-Prüfung (`applyCheck(…, minPct)`). Die native Hintergrund-Laufzeit (`runner/core.ts`) kennt die Schwelle noch nicht.
+- Alle neuen Werte stehen in `SYNC_KEYS` (Backup) und werden in `normalize()` einzeln geprüft.
+- **Test:** `v0190.cjs`.

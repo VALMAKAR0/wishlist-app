@@ -8,11 +8,11 @@
   --font-display: 'Archivo Variable', 'Archivo', system-ui, sans-serif;
   --font-body: 'Instrument Sans Variable', 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-  --r-s: 8px;
-  --r-m: 11px;
-  --r-l: 14px;
-  --r-xl: 18px;
-  --r-tag: 5px 16px 16px 5px;
+  --r-s: calc(8px * var(--rk, 1));
+  --r-m: calc(11px * var(--rk, 1));
+  --r-l: calc(14px * var(--rk, 1));
+  --r-xl: calc(18px * var(--rk, 1));
+  --r-tag: calc(5px * var(--rk, 1)) calc(16px * var(--rk, 1)) calc(16px * var(--rk, 1)) calc(5px * var(--rk, 1));
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-snap: cubic-bezier(0.3, 1.35, 0.5, 1);
@@ -44,17 +44,17 @@
   --text: oklch(0.965 0.006 85);
   --text-2: oklch(0.79 0.01 255);
   --text-3: oklch(0.62 0.013 255);
-  --accent: oklch(0.74 0.15 var(--hue));
-  --accent-2: oklch(0.84 0.12 calc(var(--hue) + 40));
-  --accent-soft: oklch(0.74 0.15 var(--hue) / 0.14);
-  --accent-line: oklch(0.74 0.15 var(--hue) / 0.34);
-  --accent-text: oklch(0.82 0.12 var(--hue));
+  --accent: oklch(0.74 calc(0.15 * var(--tone, 1)) var(--hue));
+  --accent-2: oklch(0.84 calc(0.12 * var(--tone, 1)) calc(var(--hue) + 40));
+  --accent-soft: oklch(0.74 calc(0.15 * var(--tone, 1)) var(--hue) / 0.14);
+  --accent-line: oklch(0.74 calc(0.15 * var(--tone, 1)) var(--hue) / 0.34);
+  --accent-text: oklch(0.82 calc(0.12 * var(--tone, 1)) var(--hue));
   --accent-ink: oklch(0.19 0.04 var(--hue));
   --good: oklch(0.8 0.15 155);
   --warn: oklch(0.82 0.14 78);
   --bad: oklch(0.72 0.18 25);
   --seg-pill: oklch(0.3 0.016 255);
-  --on-ink: oklch(0.5 0.17 var(--hue));
+  --on-ink: oklch(0.5 calc(0.17 * var(--tone, 1)) var(--hue));
   --shadow-card: 0 1px 0 oklch(1 0 0 / 0.045) inset;
   --shadow-pop: 0 28px 64px -18px oklch(0 0 0 / 0.8);
   --grain: 0.04;
@@ -74,17 +74,17 @@
   --text: oklch(0.2 0.02 255);
   --text-2: oklch(0.4 0.02 255);
   --text-3: oklch(0.55 0.018 255);
-  --accent: oklch(0.64 0.18 var(--hue));
-  --accent-2: oklch(0.76 0.14 calc(var(--hue) + 40));
-  --accent-soft: oklch(0.64 0.18 var(--hue) / 0.1);
-  --accent-line: oklch(0.64 0.18 var(--hue) / 0.32);
-  --accent-text: oklch(0.5 0.17 var(--hue));
+  --accent: oklch(0.64 calc(0.18 * var(--tone, 1)) var(--hue));
+  --accent-2: oklch(0.76 calc(0.14 * var(--tone, 1)) calc(var(--hue) + 40));
+  --accent-soft: oklch(0.64 calc(0.18 * var(--tone, 1)) var(--hue) / 0.1);
+  --accent-line: oklch(0.64 calc(0.18 * var(--tone, 1)) var(--hue) / 0.32);
+  --accent-text: oklch(0.5 calc(0.17 * var(--tone, 1)) var(--hue));
   --accent-ink: oklch(0.99 0.01 var(--hue));
   --good: oklch(0.5 0.14 155);
   --warn: oklch(0.54 0.13 70);
   --bad: oklch(0.52 0.19 25);
   --seg-pill: oklch(1 0 0);
-  --on-ink: oklch(0.8 0.13 var(--hue));
+  --on-ink: oklch(0.8 calc(0.13 * var(--tone, 1)) var(--hue));
   --shadow-card: 0 1px 0 oklch(0.25 0.02 255 / 0.05);
   --shadow-pop: 0 28px 64px -20px oklch(0.25 0.04 255 / 0.5);
   --grain: 0.035;
@@ -104,3 +104,53 @@
     --safe-t: max(env(safe-area-inset-top, 0px), 30px);
   }
 }
+
+
+/* Schrift: Systemschrift statt der mitgelieferten Familien */
+:root[data-font='system'] {
+  --font-display: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Darstellung "Schwarz": echtes Schwarz für OLED-Displays */
+:root[data-black='true'] {
+  --bg: oklch(0 0 0);
+  --card: oklch(0.13 0.008 255);
+  --card-hover: oklch(0.17 0.01 255);
+  --field: oklch(0.19 0.01 255);
+  --glass: oklch(0 0 0 / 0.92);
+  --sheet: oklch(0.1 0.008 255 / 0.99);
+  --hairline: oklch(1 0 0 / 0.1);
+}
+
+/* Stil "Ruhig": flach, ohne Lochung und Stanzlinien, weiche Ecken */
+:root[data-style='calm'] {
+  --perf: transparent;
+  --r-tag: var(--r-l);
+  --shadow-card: none;
+  --hairline: oklch(0.5 0.01 255 / 0.12);
+}
+:root[data-style='calm'] .group > li + li::before { content: none; }
+:root[data-style='calm'] .group > li + li { border-top: 1px solid var(--hairline); }
+:root[data-style='calm'] .spot { border-radius: var(--r-l); }
+:root[data-style='calm'] .stamp,
+:root[data-style='calm'] [class*='__stamp'] { transform: none; }
+
+/* Stil "Kontrast": kräftige Linien und harte Schatten, gut lesbar bei Sonne */
+:root[data-style='bold'] {
+  --hairline: var(--border-strong);
+  --perf: var(--border-strong);
+  --shadow-card: 0 2px 0 var(--border-strong);
+}
+:root[data-style='bold'] .card,
+:root[data-style='bold'] .hero,
+:root[data-style='bold'] .group::after { border-width: 1.5px; }
+:root[data-style='bold'] .group::after { box-shadow: inset 0 0 0 1.5px var(--border-strong); }
+:root[data-style='bold'] .btn,
+:root[data-style='bold'] .listchip,
+:root[data-style='bold'] .field input,
+:root[data-style='bold'] .field textarea { border: 1.5px solid var(--border-strong); }
+:root[data-style='bold'] .item__name { font-weight: 750; }
+:root[data-style='calm'] .spot::before,
+:root[data-style='calm'] .lstats__grid::before,
+:root[data-style='calm'] .lstats__grid::after { content: none; }
