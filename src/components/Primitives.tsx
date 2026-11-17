@@ -121,7 +121,7 @@ export function Ring({ value, size = 64, stroke = 6, hue, children, delay = 0.1 
           fill="none"
           stroke={`url(#${id})`}
           strokeWidth={stroke}
-          strokeLinecap="round"
+          strokeLinecap="butt"
           transform={`rotate(-90 ${c} ${c})`}
           initial={{ pathLength: 0 }}
           animate={{ pathLength: v }}
@@ -224,7 +224,7 @@ export function Logo({ size = 40 }: { size?: number }) {
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="var(--accent)" />
-          <stop offset="1" stopColor="var(--accent-2)" />
+          <stop offset="1" stopColor="var(--accent)" />
         </linearGradient>
       </defs>
       <motion.path

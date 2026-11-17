@@ -41,10 +41,9 @@ export function SettingsPage({ page }: { page: SettingsPageId }) {
 }
 
 function SubPage({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
-  const t = useT()
   const { back } = useNav()
   return (
-    <Page title={title} eyebrow={t('Mehr')} subtitle={subtitle} onBack={back}>
+    <Page title={title} subtitle={subtitle} onBack={back}>
       {children}
     </Page>
   )
@@ -631,6 +630,7 @@ function AppPage() {
                   <div>
                     <strong>{upd.native ? t('Version {v} verfügbar', { v: upd.latest }) : t('Neue Version bereit')}</strong>
                     <p>{upd.native ? t('Lade die APK herunter und installiere sie über die alte. Deine Daten bleiben erhalten.') : t('Lade neu, um sie zu nutzen. Deine Daten bleiben erhalten.')}</p>
+                    {settings.updateAt > 0 && <p className="setting__sub">{`${t('Version {v}', { v: APP_VERSION })} · ${t('geprüft: {when}', { when: agoLabel(settings.updateAt, t) })}`}</p>}
                   </div>
                   {upd.native ? (
                     <button className="btn btn--primary btn--small" data-testid="apk-download" onClick={() => void getUpdate()}>
@@ -643,7 +643,7 @@ function AppPage() {
                   )}
                 </div>
               )}
-              <UpdateRow upd={upd} />
+              {!upd.available && <UpdateRow upd={upd} />}
               {upd.native && (
                 <div className="setting">
                   <div>

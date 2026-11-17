@@ -12,9 +12,6 @@ import { Logo } from './Primitives'
 export function Aurora() {
   return (
     <div className="aurora" aria-hidden>
-      <span className="aurora__blob aurora__blob--a" />
-      <span className="aurora__blob aurora__blob--b" />
-      <span className="aurora__blob aurora__blob--c" />
       <span className="aurora__grain" />
     </div>
   )

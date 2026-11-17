@@ -121,7 +121,7 @@ function Toast({ t: toast, onClose }: { t: ToastOpts & { id: number }; onClose: 
   )
 }
 
-const CONFETTI_HUES = [14, 48, 340, 190, 150, 280]
+const CONFETTI_TONES = ['var(--accent)', 'var(--accent-2)', 'var(--text)', 'oklch(0.78 0.07 80)']
 
 function ConfettiBurst({ b }: { b: Burst }) {
   const parts = useMemo(
@@ -133,9 +133,9 @@ function ConfettiBurst({ b }: { b: Burst }) {
           dx: Math.cos(angle) * power,
           dy: Math.sin(angle) * power - 40,
           rot: (Math.random() - 0.5) * 720,
-          hue: CONFETTI_HUES[i % CONFETTI_HUES.length],
-          w: 5 + Math.random() * 6,
-          h: 8 + Math.random() * 8,
+          tone: CONFETTI_TONES[i % CONFETTI_TONES.length],
+          w: 6 + Math.random() * 4,
+          h: 12 + Math.random() * 8,
           delay: Math.random() * 0.06,
           round: i % 3 === 0,
         }
@@ -149,10 +149,10 @@ function ConfettiBurst({ b }: { b: Burst }) {
           key={i}
           className="confetti__bit"
           style={{
-            width: p.w,
+            width: p.round ? p.w : 3,
             height: p.round ? p.w : p.h,
-            borderRadius: p.round ? '50%' : 2,
-            background: `oklch(0.78 0.17 ${p.hue})`,
+            borderRadius: p.round ? '50%' : 1,
+            background: p.tone,
           }}
           initial={{ x: 0, y: 0, opacity: 1, scale: 0.4, rotate: 0 }}
           animate={{

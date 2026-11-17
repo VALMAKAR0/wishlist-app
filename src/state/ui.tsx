@@ -86,7 +86,7 @@ export function UIProvider({ children }: { children: ReactNode }) {
       const dark = settings.theme === 'dark' || (settings.theme === 'system' && mq.matches)
       root.dataset.theme = dark ? 'dark' : 'light'
       const meta = document.querySelector('meta[name="theme-color"]')
-      meta?.setAttribute('content', dark ? '#0f0e17' : '#f7f2ea')
+      meta?.setAttribute('content', dark ? '#0b0e13' : '#edf0f4')
     }
     apply()
     root.dataset.fx = settings.fx

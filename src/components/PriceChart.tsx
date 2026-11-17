@@ -130,10 +130,9 @@ export function PriceChart({ points, base, target, cur, sketch }: Props) {
         }}
       >
         <defs>
-          <linearGradient id={`pg${gid}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" className="pchart__g0" />
-            <stop offset="100%" className="pchart__g1" />
-          </linearGradient>
+          <pattern id={`pg${gid}`} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="6" className="pchart__hatch" />
+          </pattern>
         </defs>
         {[0.25, 0.5, 0.75].map((f) => (
           <line key={f} className="pchart__grid" x1={PAD.l} x2={W - PAD.r} y1={PAD.t + f * (H - PAD.t - PAD.b)} y2={PAD.t + f * (H - PAD.t - PAD.b)} />

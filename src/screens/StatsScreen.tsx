@@ -49,7 +49,7 @@ export function StatsScreen() {
   const split = o.spentTotal ? o.spentSelf / o.spentTotal : 0
 
   return (
-    <Page title={t('Statistik')} eyebrow={t('Alles im Blick')} subtitle={t('Was du für dich und für andere planst und ausgibst')}>
+    <Page title={t('Statistik')} subtitle={t('Was du für dich und für andere planst und ausgibst')}>
       {empty ? (
         <EmptyState emoji="📊" title={t('Noch keine Daten')} text={t('Sobald du Wünsche und Ideen anlegst und abhakst, siehst du hier Zahlen, Verläufe und Vergleiche.')} />
       ) : (
@@ -79,8 +79,7 @@ export function StatsScreen() {
             <Tile delay={0.11} label={t('Gekauft für mich')} value={String(o.wishes.bought)} sub={money(o.wishes.boughtValue)} />
             <Tile delay={0.14} label={t('Offene Ideen')} value={String(o.gifts.open)} sub={money(o.gifts.openValue)} />
             <Tile delay={0.17} label={t('Geschenke gekauft')} value={String(o.gifts.bought)} sub={money(o.gifts.boughtValue)} />
-            <Tile delay={0.2} label={t('Ø Preis')} value={o.avgPrice ? money(o.avgPrice) : '–'} sub={t('über alle Einträge')} />
-            <Tile delay={0.23} label={t('Erledigt')} value={`${Math.round(o.doneRate * 100)}%`} sub={t('aller Einträge')} />
+            <Tile delay={0.2} label={t('Erledigt')} value={`${Math.round(o.doneRate * 100)}%`} sub={t('aller Einträge')} />
           </div>
 
           <Section title={t('Ausgaben pro Monat')}>

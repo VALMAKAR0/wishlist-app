@@ -46,10 +46,10 @@ export function Page({ title, eyebrow, subtitle, actions, onBack, children }: Pa
 
       <div className="page__inner">
         <motion.header className="page__head" style={{ y: headShift, opacity: headFade }}>
-          {eyebrow && <span className="page__eyebrow">{eyebrow}</span>}
           <motion.h1 initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08, type: 'spring', stiffness: 260, damping: 26 }}>
             {title}
           </motion.h1>
+          {eyebrow && <p className="page__meta">{eyebrow}</p>}
           {subtitle && (
             <motion.p className="page__subtitle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
               {subtitle}

@@ -91,7 +91,6 @@ export function IdeasScreen() {
     <>
       <Page
         title={t('Geschenkideen')}
-        eyebrow={t('Privat')}
         subtitle={persons.length ? t.n(persons.length, 'Person', 'Personen') : t('Nur für dich sichtbar, wird nie geteilt')}
         actions={<AddButton label={t('Person')} onClick={() => setAdding(true)} />}
       >

@@ -45,7 +45,7 @@ export function ListTiles({ rows, onOpen, onNew }: Props) {
         const style: HueStyle = { '--h': list.hue }
         const occ = listOccasion(list, persons)
         const date = listDate(list, persons)
-        const sub = [owner, occ && t(occ.label) !== listTitle(list, t) ? t(occ.label) : ''].filter(Boolean).join(' · ')
+        const sub = [owner, occ && t(occ.label) !== listTitle(list, t) ? t(occ.label) : ''].filter(Boolean).join(', ')
         return (
           <motion.button
             key={list.id}

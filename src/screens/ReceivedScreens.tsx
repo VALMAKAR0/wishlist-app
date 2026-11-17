@@ -29,7 +29,6 @@ export function ReceivedScreen() {
   return (
     <Page
       title={t('Erhaltene Listen')}
-      eyebrow={t('Von anderen')}
       subtitle={received.length ? t.n(received.length, 'Paket', 'Pakete') : t('Wunschlisten, die dir andere geschickt haben')}
       actions={<AddButton label={t('Import')} onClick={pick} />}
     >
@@ -328,7 +327,7 @@ export function ReceivedDetailScreen({ id, listId }: { id: string; listId?: stri
   return (
     <Page
       title={single ? t(single.name) : pkg.from}
-      eyebrow={single ? t('Liste von {name}', { name: pkg.from }) : t('Erhaltene Liste')}
+      eyebrow={single ? t('Liste von {name}', { name: pkg.from }) : undefined}
       subtitle={single ? `${single.emoji} ${t.n(wishesOf(single).length, 'Wunsch', 'Wünsche')}${singleDays !== null ? ` · ${distanceLabel(singleDays, t)}` : ''}` : `${t.n(pkg.lists.length, 'Liste', 'Listen')} · ${t('erhalten {when}', { when: agoLabel(pkg.receivedAt, t) })}`}
       onBack={back}
       actions={

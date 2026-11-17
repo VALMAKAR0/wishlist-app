@@ -69,7 +69,6 @@ export function WishesScreen() {
     <>
       <Page
         title={t('Meine Wünsche')}
-        eyebrow={t('Zum Teilen')}
         subtitle={mine.length ? t.n(mine.filter((i) => !i.bought).length, 'offener Wunsch', 'offene Wünsche') : t('Deine Liste ist noch leer')}
         actions={
           <>

@@ -6,7 +6,7 @@ import {
 import { Page, Section } from '../components/Page'
 import { Chip, Cover, EmptyState, Ring } from '../components/Primitives'
 import { Row } from '../components/SettingsUi'
-import { APP_NAME, APP_VERSION, BACKUP_NUDGE_DAYS } from '../lib/brand'
+import { APP_VERSION, BACKUP_NUDGE_DAYS } from '../lib/brand'
 import { daysAgo, longDate } from '../lib/format'
 import { roadmap } from '../lib/plannedFeatures'
 import { PAGE_TITLES, searchSettings } from '../lib/settingsIndex'
@@ -57,7 +57,7 @@ export function MoreScreen() {
   }
 
   return (
-    <Page title={t('Mehr')} eyebrow={`${APP_NAME} · V${APP_VERSION}`} subtitle={t('Einstellungen und alles andere')}>
+    <Page title={t('Mehr')} subtitle={t('Einstellungen und alles andere')}>
       {storage === 'memory' && (
         <motion.aside className="preview-note" data-warn initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
           <Flame size={18} />
@@ -217,7 +217,7 @@ export function RoadmapScreen() {
   const t = useT()
   const { back } = useNav()
   return (
-    <Page title={t('Roadmap')} eyebrow={t('Vom Design zur App')} subtitle={t('Erst das Gefühl, dann die Logik')} onBack={back}>
+    <Page title={t('Roadmap')} subtitle={t('Erst das Gefühl, dann die Logik')} onBack={back}>
       <ol className="timeline">
         {roadmap.map((s, i) => {
           const current = s.version === `V${APP_VERSION.split('.').slice(0, 2).join('.')}`

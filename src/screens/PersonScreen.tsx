@@ -51,7 +51,7 @@ export function PersonScreen({ id }: { id: string }) {
     <>
       <Page
         title={person.name}
-        eyebrow={next ? `${t(next.o.label)} ${untilLabel(next.days, t)}` : t('Geschenkideen')}
+        eyebrow={next ? `${t(next.o.label)} ${untilLabel(next.days, t)}` : undefined}
         subtitle={t.n(mineAll.filter((i) => !i.bought).length, 'offene Idee', 'offene Ideen')}
         onBack={back}
         actions={

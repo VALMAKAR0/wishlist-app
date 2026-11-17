@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 17.11.2026 · Status: V0.16.1 (Update-Knopf nicht mehr abgeschnitten, ehrliche Texte zur Preisprüfung; V0.16.0: Umbenennung in Wishlist, eigene Symbole, neues Eintragsfenster, vier Wisch-Stufen, Filter-Fenster, aufgeräumtes Teilen; V0.15: Teilen als PDF, Bild und Text; V0.14: Feinschliff: Preisdiagramm immer sichtbar; V0.13: Sortieren, Filter, Suche, Wichtigkeit, Wunschpreis, neues Preisdiagramm, Budget, kurze Namen, bessere Art-Erkennung; V0.12: Weitere Shops, Update-Download über den Android-Downloader; Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
+Stand: 17.11.2026 · Status: V0.17.0 (Geschenkanhänger: neues Erscheinungsbild für die ganze App; V0.16.2: Update-Karte und Statuszeile zusammengeführt; V0.16.1: Update-Knopf nicht mehr abgeschnitten, ehrliche Texte zur Preisprüfung; V0.16.0: Umbenennung in Wishlist, eigene Symbole, neues Eintragsfenster, vier Wisch-Stufen, Filter-Fenster, aufgeräumtes Teilen; V0.15: Teilen als PDF, Bild und Text; V0.14: Feinschliff: Preisdiagramm immer sichtbar; V0.13: Sortieren, Filter, Suche, Wichtigkeit, Wunschpreis, neues Preisdiagramm, Budget, kurze Namen, bessere Art-Erkennung; V0.12: Weitere Shops, Update-Download über den Android-Downloader; Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -649,3 +649,17 @@ Jeden Punkt abhaken oder mit einem Satz melden, was hakt.
 
 - Mehr → App und Updates: Der Knopf „Herunterladen“ in der Update-Karte wird nicht mehr schmal gedrückt, der Text ist komplett sichtbar (`.setting > .btn` schrumpft nicht mehr).
 - Preisverlauf: Der Hinweis „ein Punkt pro Tag“ war falsch. Die App prüft nur auf Tipp („Preis jetzt prüfen“, „Alle Preise prüfen“) und, wenn eingeschaltet, per Hintergrund-Prüfung; Android bestimmt, ob und wann sie läuft. Texte im Preis-Kasten und in den Einstellungen sagen das jetzt so. Der Schalter heißt „Prüfung im Hintergrund“.
+
+## 45. V0.16.2 Update-Ansicht
+
+- Mehr → App und Updates: Gibt es eine neue Version, zeigt nur noch die Update-Karte mit „Herunterladen“ (bzw. „Neu laden“) und der Zeile „Version … · geprüft: …“. Die doppelte Statuszeile erscheint nur noch, wenn kein Update da ist, und dient dann zum manuellen Prüfen.
+- Die Tests v073 und v08 prüfen das neue Verhalten; v08 schreibt keine Probe mehr in die CSS-Datei (die unbenutzte Zeile `.v08-probe` aus V0.16.0/V0.16.1 ist entfernt).
+
+## 46. V0.17.0 Geschenkanhänger (neues Erscheinungsbild)
+
+- **Idee:** Die App sieht aus wie ein Geschenkanhänger: Lochringe, gestrichelte Abreißkanten mit Einkerbungen, Skalen aus Teilstrichen statt Balken, gedrehte Stempel, Knöpfe mit dunklerer Unterkante. Keine Farbverläufe, kein Leuchten, keine Großbuchstaben-Etiketten.
+- **Schrift:** Archivo (schmal, fett) für Titel, Preise und Zahlen, Instrument Sans für Text. Pakete `@fontsource-variable/archivo` und `@fontsource-variable/instrument-sans`; PDF/Bild-Export nutzt dieselben Schriften.
+- **Farben:** Neutralgrau mit leichtem Blaustich (Dunkel `#0b0e13`, Hell `#edf0f4`), Akzent weiter über die Einstellung. Symbole bekommen ihre Zweitfarben über `--g1/--g2/--g3`.
+- **Ecken:** Fenster 18 px, Karten und Felder 14 px (`--r-l`), kleine Elemente 8–11 px, Etiketten mit `--r-tag`.
+- **Umgebaut:** Navigation (Leiste und Tablet-Rail), Listenkacheln, Einträge, Statistik, Einstellungen, Fenster, Auswahllisten, Hinweise, Konfetti, Sperrbildschirm, leere Zustände, Preisdiagramm (Schraffur). Die kleinen Überschriften über den Seitentiteln sind einer Meta-Zeile darunter gewichen; die Kachel „Ø-Preis“ in der Statistik entfällt.
+- **Test:** alle bisherigen Tests laufen weiter.

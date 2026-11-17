@@ -28,13 +28,13 @@ const PNG_WIDTH = 1080
 /** Höchste Teilhöhe beim Bild (in Punkt), damit Handys keine zu großen Flächen zeichnen müssen. */
 const PNG_MAX_H = 4800
 
-const DISPLAY = '"Bricolage Grotesque Variable", "Bricolage Grotesque", Georgia, serif'
-const BODY = '"Manrope Variable", Manrope, system-ui, -apple-system, "Segoe UI", sans-serif'
+const DISPLAY = '"Archivo Variable", Archivo, "Arial Narrow", system-ui, sans-serif'
+const BODY = '"Instrument Sans Variable", "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif'
 
-const INK = '#1e1b26'
-const SOFT = '#6c6879'
-const LINE = '#e8e5ee'
-const CARD = '#faf9fc'
+const INK = '#151a21'
+const SOFT = '#5c6572'
+const LINE = '#dfe4ea'
+const CARD = '#f5f7fa'
 
 type Ctx = CanvasRenderingContext2D
 

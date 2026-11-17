@@ -97,7 +97,7 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) 
   const days = date ? daysUntilIso(date) : null
 
   const heading = title ?? (list ? listTitle(list, t) : forMe ? t('Meine Wünsche') : (person?.name ?? ''))
-  const kicker = eyebrow ?? (forMe ? (list ? t('Meine Wünsche') : t('Zum Teilen')) : (person?.name ?? t('Geschenkideen')))
+  const kicker = eyebrow ?? (!forMe && list ? person?.name : undefined)
   const doneLabel = forMe ? t('Archiv') : t('Gekauft')
 
   const listLabelFor =
@@ -167,7 +167,7 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) 
         {(mineAll.length > 0 || list) && (
           <ListStatsCard
             key={list?.id ?? 'all'}
-            title={list ? listTitle(list, t) : t('Alle Listen')}
+            title={list ? '' : t('Alle Listen')}
             emoji={list?.emoji}
             stats={stats}
             onEdit={list ? () => setListSheet(true) : undefined}
