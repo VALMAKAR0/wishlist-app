@@ -154,3 +154,127 @@
 :root[data-style='calm'] .spot::before,
 :root[data-style='calm'] .lstats__grid::before,
 :root[data-style='calm'] .lstats__grid::after { content: none; }
+
+/* Stil "Glas": durchscheinende Flächen mit Unschärfe über einem Farbverlauf */
+:root[data-style='glass'] {
+  --perf: transparent;
+  --r-tag: var(--r-xl);
+  --r-m: calc(14px * var(--rk, 1));
+  --r-l: calc(20px * var(--rk, 1));
+  --r-xl: calc(26px * var(--rk, 1));
+  --blur: blur(22px) saturate(1.6);
+  --rim: inset 0 1px 0 oklch(1 0 0 / 0.22);
+}
+:root[data-style='glass'][data-theme='dark'] {
+  --card: oklch(1 0 0 / 0.07);
+  --card-hover: oklch(1 0 0 / 0.12);
+  --field: oklch(1 0 0 / 0.09);
+  --hairline: oklch(1 0 0 / 0.14);
+  --border-strong: oklch(1 0 0 / 0.3);
+  --glass: oklch(0.18 0.02 var(--hue) / 0.5);
+  --sheet: oklch(0.2 0.025 var(--hue) / 0.66);
+  --seg-pill: oklch(1 0 0 / 0.16);
+  --shadow-card: 0 10px 30px -14px oklch(0 0 0 / 0.55), inset 0 1px 0 oklch(1 0 0 / 0.16);
+}
+:root[data-style='glass'][data-theme='light'] {
+  --bg: oklch(0.95 0.012 var(--hue));
+  --card: oklch(1 0 0 / 0.55);
+  --card-hover: oklch(1 0 0 / 0.75);
+  --field: oklch(1 0 0 / 0.6);
+  --hairline: oklch(1 0 0 / 0.75);
+  --border-strong: oklch(0.3 0.03 255 / 0.28);
+  --glass: oklch(1 0 0 / 0.55);
+  --sheet: oklch(1 0 0 / 0.72);
+  --seg-pill: oklch(1 0 0 / 0.9);
+  --shadow-card: 0 10px 30px -14px oklch(0.3 0.05 var(--hue) / 0.35), inset 0 1px 0 oklch(1 0 0 / 0.9);
+}
+:root[data-style='glass'][data-black='true'] { --bg: oklch(0.06 0.01 var(--hue)); }
+
+:root[data-style='glass'] .aurora::before,
+:root[data-style='glass'] .aurora::after {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(38% 30% at 18% 14%, oklch(0.62 calc(0.2 * var(--tone, 1)) var(--hue) / 0.75), transparent 70%),
+    radial-gradient(34% 28% at 88% 38%, oklch(0.6 calc(0.18 * var(--tone, 1)) calc(var(--hue) + 70) / 0.6), transparent 70%),
+    radial-gradient(42% 32% at 28% 92%, oklch(0.56 calc(0.17 * var(--tone, 1)) calc(var(--hue) - 60) / 0.6), transparent 70%);
+}
+:root[data-style='glass'] .aurora::after {
+  opacity: 0.55;
+  transform: rotate(180deg) scale(1.1);
+}
+:root[data-style='glass'][data-theme='light'] .aurora::before,
+:root[data-style='glass'][data-theme='light'] .aurora::after { opacity: 0.5; }
+:root[data-style='glass'][data-theme='light'] .aurora::after { opacity: 0.3; }
+:root[data-style='glass']:not([data-fx='off']) .aurora::before { animation: glassdrift 28s ease-in-out infinite alternate; }
+@keyframes glassdrift { from { transform: translate3d(-3%, -2%, 0) scale(1); } to { transform: translate3d(4%, 3%, 0) scale(1.12); } }
+
+:root[data-style='glass'] .card,
+:root[data-style='glass'] .group,
+:root[data-style='glass'] .hero,
+:root[data-style='glass'] .parcel,
+:root[data-style='glass'] .occ,
+:root[data-style='glass'] .occ-card,
+:root[data-style='glass'] .occ-tile,
+:root[data-style='glass'] .timeline__card,
+:root[data-style='glass'] .list-card,
+:root[data-style='glass'] .person-row,
+:root[data-style='glass'] .ltile,
+:root[data-style='glass'] .lstats,
+:root[data-style='glass'] .stat,
+:root[data-style='glass'] .tiles,
+:root[data-style='glass'] .settiles,
+:root[data-style='glass'] .sumcard,
+:root[data-style='glass'] .adopt,
+:root[data-style='glass'] .shops,
+:root[data-style='glass'] .moverow,
+:root[data-style='glass'] .pw,
+:root[data-style='glass'] .fsec,
+:root[data-style='glass'] .budget,
+:root[data-style='glass'] .linkcard,
+:root[data-style='glass'] .setsearch,
+:root[data-style='glass'] .stylepick__opt {
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+  box-shadow: var(--shadow-card);
+  border-color: var(--hairline);
+}
+:root[data-style='glass'] .sheet,
+:root[data-style='glass'] .dialog,
+:root[data-style='glass'] .tabbar,
+:root[data-style='glass'] .page__bar-bg,
+:root[data-style='glass'] .toast {
+  -webkit-backdrop-filter: blur(30px) saturate(1.7);
+  backdrop-filter: blur(30px) saturate(1.7);
+  border-color: var(--hairline);
+}
+:root[data-style='glass'] .sheet { box-shadow: var(--shadow-pop), var(--rim); }
+:root[data-style='glass'] .item { box-shadow: var(--rim); border-radius: var(--r-l); }
+:root[data-style='glass'] .group > li + li::before { content: none; }
+:root[data-style='glass'] .group > li + li { border-top: 1px solid var(--hairline); }
+:root[data-style='glass'] .spot::before,
+:root[data-style='glass'] .lstats__grid::before,
+:root[data-style='glass'] .lstats__grid::after { content: none; }
+:root[data-style='glass'] .field input,
+:root[data-style='glass'] .field textarea,
+:root[data-style='glass'] .field select,
+:root[data-style='glass'] .segmented,
+:root[data-style='glass'] .chip,
+:root[data-style='glass'] .icon-btn,
+:root[data-style='glass'] .listchip { box-shadow: var(--rim); border-color: var(--hairline); }
+:root[data-style='glass'] .btn--primary {
+  background: linear-gradient(180deg, oklch(1 0 0 / 0.28), transparent 55%), var(--accent);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.5), 0 8px 22px -8px var(--accent);
+}
+:root[data-style='glass'] .tabbar { border-top: 1px solid var(--hairline); }
+
+.stylepick__prev[data-s='glass'] { border-radius: 16px; border-color: oklch(1 0 0 / 0.3); background: radial-gradient(70% 90% at 15% 10%, var(--accent), transparent 70%), radial-gradient(60% 80% at 95% 100%, var(--accent-2), transparent 70%), var(--bg); }
+.stylepick__prev[data-s='glass'] i { border-radius: 8px; background: oklch(1 0 0 / 0.28); box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.5); }
+.stylepick__prev[data-s='glass'] b { background: oklch(1 0 0 / 0.7); }
+
+@media (prefers-reduced-transparency: reduce) {
+  :root[data-style='glass'] * { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+  :root[data-style='glass'][data-theme='dark'] { --card: oklch(0.22 0.02 255); --field: oklch(0.26 0.02 255); --sheet: oklch(0.2 0.02 255); --glass: oklch(0.17 0.015 255); }
+  :root[data-style='glass'][data-theme='light'] { --card: oklch(0.99 0.004 255); --field: oklch(0.95 0.006 255); --sheet: oklch(0.99 0.004 255); --glass: oklch(0.97 0.004 255); }
+}

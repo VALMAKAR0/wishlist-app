@@ -52,7 +52,7 @@ export function MoreScreen() {
   const dateExample = settings.dateFmt === 'auto' ? t('Automatisch') : longDate(Date.now())
   const summary: Record<SettingsPageId, string> = {
     data: days === null ? t('Noch kein Backup') : days === 0 ? t('Heute gesichert') : t('Backup vor {n} Tagen', { n: days }),
-    look: `${settings.style === 'tag' ? t('Anhänger') : settings.style === 'calm' ? t('Ruhig') : t('Kontrast')} · ${settings.theme === 'system' ? t('Auto') : settings.theme === 'dark' ? t('Dunkel') : settings.theme === 'black' ? t('Schwarz') : t('Hell')}`,
+    look: `${settings.style === 'tag' ? t('Anhänger') : settings.style === 'calm' ? t('Ruhig') : settings.style === 'glass' ? t('Glas') : t('Kontrast')} · ${settings.theme === 'system' ? t('Auto') : settings.theme === 'dark' ? t('Dunkel') : settings.theme === 'black' ? t('Schwarz') : t('Hell')}`,
     cards: `${settings.density === 'compact' ? t('Kompakt') : settings.density === 'airy' ? t('Luftig') : t('Normal')} · ${t('Wischen')}`,
     nav: settings.tabsHidden.length ? t('{n} ausgeblendet', { n: settings.tabsHidden.length }) : t('Alle Reiter'),
     money: `${settings.currency} · ${dateExample}`,

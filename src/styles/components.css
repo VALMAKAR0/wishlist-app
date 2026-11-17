@@ -1786,7 +1786,8 @@
 .swipe__act[data-act='favorite'] { color: oklch(0.78 0.15 70); background: oklch(0.78 0.15 70 / 0.16); }
 .swipe__act[data-act='trash'] { color: var(--bad); background: oklch(0.65 0.2 25 / 0.2); }
 
-.stylepick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.stylepick { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; }
+@media (min-width: 560px) { .stylepick { grid-template-columns: repeat(4, 1fr); } }
 .stylepick__opt {
   display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 10px; text-align: left;
   background: var(--card); border: 1px solid var(--hairline); border-radius: var(--r-l); color: var(--text);

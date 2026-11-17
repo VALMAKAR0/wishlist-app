@@ -1315,4 +1315,6 @@ export const en: Record<string, string> = {
   'Nichts': 'Nothing',
   'Reiter': 'Tabs',
   'Nie': 'Never',
+  'Glas': 'Glass',
+  'Durchscheinend, mit Unschärfe und Farbverlauf': 'Translucent, with blur and colour glow',
 }

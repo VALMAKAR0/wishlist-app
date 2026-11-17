@@ -233,6 +233,7 @@ const STYLES: { id: StyleName; name: string; text: string }[] = [
   { id: 'tag', name: 'Anhänger', text: 'Standard: Lochung, Stanzlinien, Stempel' },
   { id: 'calm', name: 'Ruhig', text: 'Flach, weich, ohne Zierlinien' },
   { id: 'bold', name: 'Kontrast', text: 'Kräftige Linien, gut bei Sonne' },
+  { id: 'glass', name: 'Glas', text: 'Durchscheinend, mit Unschärfe und Farbverlauf' },
 ]
 
 function LookPage() {

@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 17.11.2026 · Status: V0.19.0 (Anpassungen: Stilvarianten, Karten, Wischgesten, Reiter, Preisschwelle; V0.18.0 Preis-Hinweise mit Richtung und Verlauf, Tageskurse automatisch, Wischen bei erhaltenen Listen, Listen-Symbole statt Emojis; V0.17.0 Geschenkanhänger: neues Erscheinungsbild für die ganze App; V0.16.2: Update-Karte und Statuszeile zusammengeführt; V0.16.1: Update-Knopf nicht mehr abgeschnitten, ehrliche Texte zur Preisprüfung; V0.16.0: Umbenennung in Wishlist, eigene Symbole, neues Eintragsfenster, vier Wisch-Stufen, Filter-Fenster, aufgeräumtes Teilen; V0.15: Teilen als PDF, Bild und Text; V0.14: Feinschliff: Preisdiagramm immer sichtbar; V0.13: Sortieren, Filter, Suche, Wichtigkeit, Wunschpreis, neues Preisdiagramm, Budget, kurze Namen, bessere Art-Erkennung; V0.12: Weitere Shops, Update-Download über den Android-Downloader; Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
+Stand: 17.11.2026 · Status: V0.20.0 (Neuer Stil Glas; V0.19.0 Anpassungen: Stilvarianten, Karten, Wischgesten, Reiter, Preisschwelle; V0.18.0 Preis-Hinweise mit Richtung und Verlauf, Tageskurse automatisch, Wischen bei erhaltenen Listen, Listen-Symbole statt Emojis; V0.17.0 Geschenkanhänger: neues Erscheinungsbild für die ganze App; V0.16.2: Update-Karte und Statuszeile zusammengeführt; V0.16.1: Update-Knopf nicht mehr abgeschnitten, ehrliche Texte zur Preisprüfung; V0.16.0: Umbenennung in Wishlist, eigene Symbole, neues Eintragsfenster, vier Wisch-Stufen, Filter-Fenster, aufgeräumtes Teilen; V0.15: Teilen als PDF, Bild und Text; V0.14: Feinschliff: Preisdiagramm immer sichtbar; V0.13: Sortieren, Filter, Suche, Wichtigkeit, Wunschpreis, neues Preisdiagramm, Budget, kurze Namen, bessere Art-Erkennung; V0.12: Weitere Shops, Update-Download über den Android-Downloader; Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -682,3 +682,10 @@ Jeden Punkt abhaken oder mit einem Satz melden, was hakt.
 - **Preise:** „Kleine Preisänderungen ignorieren“ (2, 5, 10 %) für „Alle Preise prüfen“ und die Hintergrund-Prüfung (`applyCheck(…, minPct)`). Die native Hintergrund-Laufzeit (`runner/core.ts`) kennt die Schwelle noch nicht.
 - Alle neuen Werte stehen in `SYNC_KEYS` (Backup) und werden in `normalize()` einzeln geprüft.
 - **Test:** `v0190.cjs`.
+
+## 49. V0.20.0 Stil „Glas“
+- Vierte Stilvariante neben Anhänger (Standard), Ruhig und Kontrast: **Glas** (Einstellungen → Aussehen → Stil).
+- Durchscheinende Karten mit Unschärfe (`backdrop-filter`), heller Kante, Farbverlauf-Leuchten im Hintergrund in der Akzentfarbe, glänzender Hauptknopf, größere Rundungen; Fenster und Leiste mit stärkerer Unschärfe.
+- Eintrags-Karten (`.item`) bekommen bewusst keine Unschärfe, damit das Wischen flüssig bleibt.
+- Hintergrund-Bewegung entfällt bei „Effekte aus“; bei `prefers-reduced-transparency` gibt es deckende Flächen.
+- Gespeichert in `wl.ui.style = 'glass'`; unbekannte Werte fallen weiter auf „Anhänger“ zurück.

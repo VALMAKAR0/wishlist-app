@@ -194,7 +194,7 @@ export function normalize(raw: unknown, base: UiSettings = defaults()): UiSettin
     priceSearch: bool(r.priceSearch) ?? base.priceSearch,
     priceBg: bool(r.priceBg) ?? base.priceBg,
     kindAuto: bool(r.kindAuto) ?? base.kindAuto,
-    style: oneOf<StyleName>(r.style, ['tag', 'calm', 'bold']) ?? base.style,
+    style: oneOf<StyleName>(r.style, ['tag', 'calm', 'bold', 'glass']) ?? base.style,
     radius: oneOf<RadiusSetting>(r.radius, ['sharp', 'normal', 'round']) ?? base.radius,
     density: oneOf<Density>(r.density, ['compact', 'normal', 'airy']) ?? base.density,
     tone: oneOf<Tone>(r.tone, ['soft', 'normal', 'vivid']) ?? base.tone,
