@@ -1,3 +1,4 @@
+import { listChar } from './icons'
 import { Share } from '@capacitor/share'
 import { isoLabel, longDate, priceText, toHref } from './format'
 import type { TFn } from './i18n'
@@ -12,7 +13,7 @@ export function makeText(o: { from: string; lists: ReceivedCollection[]; t: TFn;
   const total = o.lists.reduce((n, c) => n + c.items.length, 0)
   const out: string[] = [`🎁 ${t('Wunschliste von {name}', { name: o.from })}`, `${t.n(total, 'Wunsch', 'Wünsche')} · ${t('Stand {date}', { date: longDate(o.now ?? Date.now()) })}`]
   for (const c of o.lists) {
-    out.push('', RULE, [`${c.emoji} ${c.name}`, c.date ? isoLabel(c.date) : '', t.n(c.items.length, 'Wunsch', 'Wünsche')].filter(Boolean).join(' · '), RULE)
+    out.push('', RULE, [`${listChar(c.emoji)} ${c.name}`, c.date ? isoLabel(c.date) : '', t.n(c.items.length, 'Wunsch', 'Wünsche')].filter(Boolean).join(' · '), RULE)
     const items = c.items.map((it, n) => ({ it, n })).sort((a, b) => (b.it.prio ?? 0) - (a.it.prio ?? 0) || a.n - b.n)
     items.forEach(({ it }, n) => {
       const head = [`${n + 1}. ${it.name}`, it.price === undefined ? '' : priceText(it.price, it.cur).main, it.prio ? '♥'.repeat(it.prio) : ''].filter(Boolean).join(' · ')

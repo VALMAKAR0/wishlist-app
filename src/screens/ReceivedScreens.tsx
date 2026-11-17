@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
-import { CalendarDays, Check, ChevronRight, Download, ExternalLink, Eye, EyeOff, Link as LinkIcon, Link2Off, Plus, Trash2, TriangleAlert, Undo2, UserPlus } from 'lucide-react'
+import { AnimatePresence, animate, motion, useMotionValue, useTransform } from 'motion/react'
+import { CalendarDays, Check, ChevronRight, Download, ExternalLink, Eye, EyeOff, Link as LinkIcon, Lightbulb, Link2Off, Plus, Trash2, TriangleAlert, Undo2, UserPlus } from 'lucide-react'
 import { AddButton, Page, Section } from '../components/Page'
-import { Avatar, Chip, Cover, CountUp, EmptyState, PriceTag, PrioMark } from '../components/Primitives'
+import { Avatar, Chip, Cover, CountUp, EmptyState, ListMark, PriceTag, PrioMark } from '../components/Primitives'
 import { findTaken, targetList } from '../lib/received'
 import { buildAdopt, conflictOf, type Part as AdoptPart } from '../lib/adopt'
 import { listTitle } from '../lib/lists'
@@ -105,30 +105,31 @@ type RowProps = {
   owned?: boolean
   taken?: Item
   person?: Person
-  onToggle?: () => void
+  /** Wisch nach links: als Idee übernehmen oder wieder zurücknehmen. */
+  onIdea?: () => void
+  /** Wisch nach rechts: für mich übernehmen. */
+  onMine?: () => void
   onPerson?: () => void
 }
 
-function ReceivedRow({ it, index, owned, taken, person, onToggle, onPerson }: RowProps) {
+const SWIPE = 88
+const PULL = 0.85
+
+function ReceivedRow({ it, index, owned, taken, person, onIdea, onMine, onPerson }: RowProps) {
   const t = useT()
-  const tap = !owned && !!onToggle
-  return (
-    <motion.li
-      className="item item--static"
-      data-owned={owned}
-      data-taken={!!taken}
-      data-tap={tap}
-      role={tap ? 'button' : undefined}
-      tabIndex={tap ? 0 : undefined}
-      aria-pressed={tap ? !!taken : undefined}
-      aria-label={tap ? `${taken ? t('Übernahme zurücknehmen') : t('Als Geschenkidee übernehmen')}: ${it.name}` : undefined}
-      onClick={tap ? onToggle : undefined}
-      onKeyDown={tap ? (e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onToggle?.() } } : undefined}
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
-      transition={{ type: 'spring', stiffness: 300, damping: 28, delay: 0.1 + Math.min(index, 8) * 0.05 }}
-    >
+  const ui = useUI()
+  const x = useMotionValue(0)
+  const [stage, setStage] = useState(0)
+  const rightBg = useTransform(x, [0, SWIPE * PULL * 0.6], [0, 1])
+  const leftBg = useTransform(x, [-SWIPE * PULL * 0.6, 0], [1, 0])
+  const rightScale = useTransform(x, [0, SWIPE * PULL], [0.6, 1])
+  const leftScale = useTransform(x, [-SWIPE * PULL, 0], [1, 0.6])
+  const swipeable = !owned && !!onIdea && !!onMine
+  const stageOf = (v: number) => (v > SWIPE ? 1 : v < -SWIPE ? -1 : 0)
+  const snapBack = () => animate(x, 0, { type: 'spring', stiffness: 520, damping: 38 })
+
+  const body = (
+    <>
       <Cover emoji={it.emoji} hue={it.hue} size={44} imageId={it.imageId} />
       <div className="item__main">
         <div className="item__title">
@@ -146,23 +147,75 @@ function ReceivedRow({ it, index, owned, taken, person, onToggle, onPerson }: Ro
         {it.note && <p className="item__note">{it.note}</p>}
         {owned && <span className="item__owned">{it.boughtAt ? t('Hat schon, gekauft am {date}', { date: longDate(it.boughtAt) }) : t('Hat schon')}</span>}
         {taken && person && (
-          <button
-            className="takenchip"
-            onClick={(e) => {
-              e.stopPropagation()
-              onPerson?.()
-            }}
-            aria-label={t('Zu den Ideen für {name}', { name: person.name })}
-          >
+          <button className="takenchip" onClick={(e) => { e.stopPropagation(); onPerson?.() }} aria-label={t('Zu den Ideen für {name}', { name: person.name })}>
             <Check size={12} strokeWidth={3.2} /> {t('Übernommen · Ideen für {name}', { name: person.name })} <ChevronRight size={12} />
           </button>
         )}
       </div>
-      {tap && (
-        <span className={taken ? 'icon-btn icon-btn--done' : 'icon-btn'} aria-hidden>
-          {taken ? <Check size={17} strokeWidth={3} /> : <Plus size={17} />}
-        </span>
-      )}
+    </>
+  )
+
+  if (!swipeable) {
+    return (
+      <motion.li
+        className="item item--static"
+        data-owned={owned}
+        data-taken={!!taken}
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+        transition={{ type: 'spring', stiffness: 300, damping: 28, delay: 0.1 + Math.min(index, 8) * 0.05 }}
+      >
+        {body}
+      </motion.li>
+    )
+  }
+
+  return (
+    <motion.li
+      className="swipe"
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+      transition={{ type: 'spring', stiffness: 300, damping: 28, delay: 0.1 + Math.min(index, 8) * 0.05 }}
+    >
+      <div className="swipe__bg" aria-hidden>
+        <motion.span className="swipe__act swipe__act--good" style={{ opacity: rightBg }}>
+          <motion.span style={{ scale: rightScale }}><UserPlus size={22} /></motion.span>
+          {t('Für mich')}
+        </motion.span>
+        <motion.span className="swipe__act swipe__act--idea" style={{ opacity: leftBg }}>
+          {taken ? t('Zurücknehmen') : t('Als Idee')}
+          <motion.span style={{ scale: leftScale }}>{taken ? <Undo2 size={22} /> : <Lightbulb size={22} />}</motion.span>
+        </motion.span>
+      </div>
+      <motion.div
+        className="item item--static spot"
+        data-taken={!!taken}
+        data-testid="received-row"
+        style={{ x }}
+        drag="x"
+        dragDirectionLock
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={PULL}
+        dragMomentum={false}
+        onDrag={(_, info) => {
+          const next = stageOf(info.offset.x)
+          if (next !== stage) {
+            setStage(next)
+            if (next !== 0) ui.haptic(10)
+          }
+        }}
+        onDragEnd={(_, info) => {
+          const st = stageOf(info.offset.x)
+          snapBack()
+          setStage(0)
+          if (st === 1) onMine?.()
+          else if (st === -1) onIdea?.()
+        }}
+      >
+        {body}
+      </motion.div>
     </motion.li>
   )
 }
@@ -328,7 +381,7 @@ export function ReceivedDetailScreen({ id, listId }: { id: string; listId?: stri
     <Page
       title={single ? t(single.name) : pkg.from}
       eyebrow={single ? t('Liste von {name}', { name: pkg.from }) : undefined}
-      subtitle={single ? `${single.emoji} ${t.n(wishesOf(single).length, 'Wunsch', 'Wünsche')}${singleDays !== null ? ` · ${distanceLabel(singleDays, t)}` : ''}` : `${t.n(pkg.lists.length, 'Liste', 'Listen')} · ${t('erhalten {when}', { when: agoLabel(pkg.receivedAt, t) })}`}
+      subtitle={single ? `${t.n(wishesOf(single).length, 'Wunsch', 'Wünsche')}${singleDays !== null ? ` · ${distanceLabel(singleDays, t)}` : ''}` : `${t.n(pkg.lists.length, 'Liste', 'Listen')} · ${t('erhalten {when}', { when: agoLabel(pkg.receivedAt, t) })}`}
       onBack={back}
       actions={
         single ? undefined : (
@@ -397,7 +450,7 @@ export function ReceivedDetailScreen({ id, listId }: { id: string; listId?: stri
                   whileTap={{ scale: 0.97 }}
                 >
                   <span className="ltile__top">
-                    <span className="ltile__icon" aria-hidden>{l.emoji}</span>
+                    <span className="ltile__icon" aria-hidden><ListMark icon={l.emoji} hue={l.hue} size={38} /></span>
                     <span className="ltile__name">
                       <strong>{t(l.name)}</strong>
                       <small>{t.n(wishes.length, 'Wunsch', 'Wünsche')}</small>
@@ -466,10 +519,11 @@ export function ReceivedDetailScreen({ id, listId }: { id: string; listId?: stri
         </span>
       </div>
 
+      {rows.length > 0 && <p className="hint swipehint">{t('Wisch einen Wunsch nach rechts, um ihn für dich zu übernehmen, oder nach links, um ihn als Geschenkidee zu merken.')}</p>}
       <ul className="group">
         <AnimatePresence initial>
           {rows.map(({ it, col }, i) => (
-            <ReceivedRow key={`${col.id}:${it.id}`} it={it} index={i} taken={takenOf(it)} person={linked} onToggle={() => toggleRow(it, col)} onPerson={() => linked && open({ type: 'person', id: linked.id })} />
+            <ReceivedRow key={`${col.id}:${it.id}`} it={it} index={i} taken={takenOf(it)} person={linked} onIdea={() => toggleRow(it, col)} onMine={() => startMine([{ ...col, items: [it] }])} onPerson={() => linked && open({ type: 'person', id: linked.id })} />
           ))}
         </AnimatePresence>
       </ul>
@@ -661,7 +715,7 @@ function AdoptSheet({ from, initial, onRun, onClose }: { from: string; initial: 
         return (
           <div key={p.col.id} className="adopt" data-conflict={!!p.why}>
             <div className="adopt__head">
-              <span className="adopt__icon" aria-hidden>{p.col.emoji}</span>
+              <span className="adopt__icon" aria-hidden><ListMark icon={p.col.emoji} hue={p.col.hue} size={38} /></span>
               <strong>{t(p.col.name)}</strong>
               <small>{t.n(p.items.length, 'Wunsch', 'Wünsche')}</small>
             </div>

@@ -3,7 +3,7 @@ import { animate, motion, useMotionValue, useTransform } from 'motion/react'
 import { Check, Heart } from 'lucide-react'
 import { initial, priceText } from '../lib/format'
 import { useImageUrl } from '../lib/images'
-import { iconOf } from '../lib/icons'
+import { iconOf, listIcon } from '../lib/icons'
 import { Glyph } from './Glyph'
 
 type HueStyle = CSSProperties & { '--h'?: number }
@@ -68,6 +68,11 @@ export function Cover({ emoji, hue, size = 56, radius, imageId, src }: { emoji: 
       )}
     </div>
   )
+}
+
+/** Symbol einer Liste: kleine Farbfläche mit eigenem Vektorsymbol. Alte Emoji-Listen werden dem passenden Symbol zugeordnet. */
+export function ListMark({ icon, hue, size = 24 }: { icon?: string; hue?: number; size?: number }) {
+  return <Cover emoji={listIcon(icon)} hue={hue ?? 260} size={size} radius={Math.max(5, size * 0.28)} />
 }
 
 export function CountUp({

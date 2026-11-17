@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { motion } from 'motion/react'
 import { Page, Section } from '../components/Page'
-import { Avatar, CountUp, EmptyState } from '../components/Primitives'
+import { Avatar, CountUp, EmptyState, ListMark } from '../components/Primitives'
 import { money, monthShort, priceOf } from '../lib/format'
 import { listTitle } from '../lib/lists'
 import { overview } from '../lib/stats'
@@ -137,7 +137,7 @@ export function StatsScreen() {
                 .map((l, i) => (
                   <Bar
                     key={l.list.id}
-                    lead={<span className="hbar__emoji" aria-hidden>{l.list.emoji}</span>}
+                    lead={<span className="hbar__emoji" aria-hidden><ListMark icon={l.list.emoji} hue={l.list.hue} size={32} /></span>}
                     label={l.ownerName ? `${l.list.name} · ${l.ownerName}` : l.list.name}
                     note={`${money(l.stats.total)} · ${t.n(l.stats.count, 'Eintrag', 'Einträge')}`}
                     value={l.stats.total}

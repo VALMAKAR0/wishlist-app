@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Check, Plus } from 'lucide-react'
 import { uid } from '../lib/format'
+import { listChar } from '../lib/icons'
 import { listTitle } from '../lib/lists'
 import type { Item, Owner } from '../lib/types'
 import { useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
+import { ListMark } from './Primitives'
 import { Sheet } from './Sheet'
 
 interface Props {
@@ -41,10 +43,10 @@ export function MoveSheet({ owner, picked, onClose, onDone }: Props) {
       else {
         dest = uid()
         created = true
-        dispatch({ type: 'addList', list: { id: dest, owner, name: newName, emoji: '⭐', hue: Math.floor(Math.random() * 360), createdAt: Date.now() } })
+        dispatch({ type: 'addList', list: { id: dest, owner, name: newName, emoji: 'ic:star', hue: Math.floor(Math.random() * 360), createdAt: Date.now() } })
       }
     }
-    const list = created ? { name: newName, emoji: '⭐', isDefault: false } : own.find((l) => l.id === dest)
+    const list = created ? { name: newName, emoji: 'ic:star', isDefault: false } : own.find((l) => l.id === dest)
     const moves = picked.filter((i) => i.listId !== dest).map((i) => ({ id: i.id, listId: dest }))
     const back = picked.filter((i) => i.listId !== dest).map((i) => ({ id: i.id, listId: i.listId }))
     if (!moves.length || !list) return
@@ -52,7 +54,7 @@ export function MoveSheet({ owner, picked, onClose, onDone }: Props) {
     ui.haptic(14)
     ui.toast({
       message: t('{n} nach „{list}“ verschoben', { n: t.n(moves.length, 'Eintrag', 'Einträge'), list: listTitle(list as { name: string; isDefault?: boolean }, t) }),
-      emoji: list.emoji,
+      emoji: listChar(list.emoji),
       actionLabel: t('Rückgängig'),
       onAction: () => {
         dispatch({ type: 'moveItems', moves: back })
@@ -92,7 +94,7 @@ export function MoveSheet({ owner, picked, onClose, onDone }: Props) {
                 setTarget(l.id)
               }}
             >
-              <span className="moverow__emoji" aria-hidden>{l.emoji}</span>
+              <span className="moverow__emoji" aria-hidden><ListMark icon={l.emoji} hue={l.hue} size={36} /></span>
               <span className="moverow__main">
                 <strong>{listTitle(l, t)}</strong>
                 <small>

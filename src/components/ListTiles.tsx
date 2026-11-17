@@ -6,6 +6,7 @@ import type { ListStats } from '../lib/stats'
 import type { Wishlist } from '../lib/types'
 import { useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
+import { ListMark } from './Primitives'
 
 export interface TileRow {
   list: Wishlist
@@ -59,7 +60,7 @@ export function ListTiles({ rows, onOpen, onNew }: Props) {
           >
             <span className="ltile__top">
               <span className="ltile__icon" aria-hidden>
-                {list.emoji}
+                <ListMark icon={list.emoji} hue={list.hue} size={38} />
               </span>
               <span className="ltile__name">
                 <strong>{listTitle(list, t)}</strong>

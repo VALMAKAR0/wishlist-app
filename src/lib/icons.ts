@@ -84,10 +84,31 @@ export const ICONS: Icon[] = [
   { id: 'bag', label: 'Tasche', char: '👜', shapes: [['M17 19V14C17 10 20 7 24 7S31 10 31 14V19', 'S', 3], ['M8 18H40L38.4 40C38.3 41.2 37.4 42 36.2 42H11.8C10.6 42 9.7 41.2 9.6 40Z', 'F'], [circ(24, 28.5, 2.8), 'a']] },
   { id: 'scent', label: 'Pflege', char: '🧴', shapes: [[rr(18, 4.5, 12, 8, 2), 'F'], [rr(20.5, 12, 7, 5), 'a'], [rr(11, 16.5, 26, 26, 6.5), 'F'], [rr(16.5, 25, 15, 9.5, 2.2), 'a']] },
   { id: 'home', label: 'Zuhause', char: '🏠', shapes: [['M24 5.5L4.5 22.5H11V40.5C11 41.4 11.6 42 12.5 42H35.5C36.4 42 37 41.4 37 40.5V22.5H43.5Z', 'F'], [rr(19.5, 28, 9, 14), 'a']] },
+  { id: 'pin', label: 'Pinnnadel', char: '📌', shapes: [['M24 30V43', 'S', 2.6], ['M17.5 9H30.5L29 24C33.5 26 36.5 28.5 36.5 31.5H11.5C11.5 28.5 14.5 26 19 24Z', 'F'], [rr(15, 4.5, 18, 5, 2.5), 'F'], ['M20.5 13V22', 'l', 2]] },
+  { id: 'tree', label: 'Tannenbaum', char: '🎄', shapes: [[rr(21, 38, 6, 6, 1), 'a'], ['M24 22L42 40H6Z', 'F'], ['M24 12.5L38 30H10Z', 'F'], ['M24 4L34.5 19H13.5Z', 'F'], [circ(15, 36, 1.9), 'a'], [circ(29.5, 34.5, 1.9), 'a'], [circ(24, 25, 1.7), 'a'], [circ(25.5, 14, 1.5), 'a']] },
+  { id: 'cake', label: 'Torte', char: '🎂', shapes: [[rr(4, 41, 40, 3.4, 1.7), 'a'], [rr(7, 28, 34, 13.5, 3), 'F'], [rr(12, 18.5, 24, 10, 3), 'F'], ['M7 33C10.5 36 13.5 30 17 33C20.5 36 23.5 30 27 33C30.5 36 33.5 30 36.5 33C38.5 35 40 33.5 41 33', 'l', 2], ['M12 23C15 26 17.5 21 20.5 23C23.5 25.5 26 21 29 23C31.5 25 34 22.5 36 23', 'l', 1.8], [rr(22.6, 9.5, 2.8, 9.5, 1), 'a'], ['M24 2.5C26.8 5.3 27.2 7.4 24 9.3C20.8 7.4 21.2 5.3 24 2.5Z', 'f']] },
+  { id: 'plane', label: 'Reise', char: '✈️', shapes: [['M24 3.5C26.2 3.5 27.5 5.6 27.5 8.5V19L43 28.5V33L27.5 28.5V38.5L32.5 42V45L24 42.8L15.5 45V42L20.5 38.5V28.5L5 33V28.5L20.5 19V8.5C20.5 5.6 21.8 3.5 24 3.5Z', 'F'], [rr(22.4, 8.5, 3.2, 5, 1.6), 'a']] },
+  { id: 'grad', label: 'Abschluss', char: '🎓', shapes: [['M12 23V31C12 34.5 17.5 38 24 38S36 34.5 36 31V23L24 28Z', 'F'], ['M24 7L45 17L24 27L3 17Z', 'F'], ['M41 19.5V31', 'S', 2.4], [circ(41, 33.5, 2.6), 'a']] },
+  { id: 'baby', label: 'Baby', char: '🍼', shapes: [[rr(15, 7, 18, 5, 2), 'a'], ['M24 2.5C27 2.5 28.6 4.5 28.6 7.5H19.4C19.4 4.5 21 2.5 24 2.5Z', 'F'], [rr(13, 11.5, 22, 6.5, 2.5), 'F'], [rr(14.5, 17, 19, 26, 6), 'F'], ['M14.5 29H33.5V37C33.5 40.6 30.6 43 27 43H21C17.4 43 14.5 40.6 14.5 37Z', 'a'], ['M26.5 22.5H33.5M26.5 26.5H33.5', 'l', 2.2]] },
+  { id: 'cart', label: 'Einkauf', char: '🛒', shapes: [['M3.5 7H9.2L15 32H37.5', 'S', 3.2], ['M11 14H43L38.8 29.5H15.4Z', 'F'], ['M21 17V27M27.5 17V27M34 17V27', 'l', 1.8], [circ(18, 39, 3.6), 'F'], [circ(35, 39, 3.6), 'F']] },
 ]
 
 const BY_ID = new Map(ICONS.map((i) => [i.id, i]))
 const PREFIX = 'ic:'
+
+/** Symbole für Listen, in der Reihenfolge der Auswahl. */
+export const LIST_ICONS = ['pin', 'tree', 'cake', 'heart', 'home', 'plane', 'grad', 'baby', 'ring', 'gift', 'cart', 'star']
+
+const LEGACY: Record<string, string> = { '📌': 'pin', '🎄': 'tree', '🎂': 'cake', '💝': 'heart', '🏠': 'home', '✈️': 'plane', '🎓': 'grad', '🍼': 'baby', '💍': 'ring', '🎁': 'gift', '🛒': 'cart', '⭐': 'star', '🎅': 'gift', '🐣': 'star', '💐': 'plant', '🥂': 'wine', '🗓️': 'star' }
+
+/** Listen speichern Symbole als "ic:<id>"; alte Listen mit Emoji werden beim Anzeigen dem passenden Symbol zugeordnet. */
+export function listIcon(v?: string): string {
+  if (iconOf(v)) return v as string
+  const id = v ? LEGACY[v] : undefined
+  return id ? PREFIX + id : v || PREFIX + 'star'
+}
+
+export const listChar = (v?: string): string => emojiChar(listIcon(v))
 
 export const GIFTS = ['gift', 'gift2', 'gift3', 'gift4']
 

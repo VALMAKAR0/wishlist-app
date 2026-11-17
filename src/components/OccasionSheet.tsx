@@ -4,13 +4,14 @@ import { Trash2 } from 'lucide-react'
 import { isNative } from '../lib/backupFiles'
 import { parseMonthDay, toInputDate, uid } from '../lib/format'
 import { listTitle } from '../lib/lists'
+import { listIcon } from '../lib/icons'
 import { OCCASION_PRESETS, presetOf } from '../lib/occasions'
 import type { Occasion, Person } from '../lib/types'
 import { useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
 import { DateField } from './DateField'
 import { LeadChips } from './ReminderSettings'
-import { Segmented } from './Primitives'
+import { ListMark, Segmented } from './Primitives'
 import { Sheet } from './Sheet'
 
 interface Props {
@@ -100,7 +101,7 @@ export function OccasionSheet({ person, occasion, onClose }: Props) {
         <div className="occ-presets occ-presets--top">
           {OCCASION_PRESETS.map((p) => (
             <button key={p.label} className="listchip" data-active={preset?.label === p.label} onClick={() => use(p.label)}>
-              <span aria-hidden>{p.emoji}</span> {t(p.label)}
+              <ListMark icon={listIcon(p.emoji)} hue={260} size={20} /> {t(p.label)}
             </button>
           ))}
         </div>
@@ -129,7 +130,7 @@ export function OccasionSheet({ person, occasion, onClose }: Props) {
                 data-dim={other}
                 onClick={() => setLinked((cur) => (on ? cur.filter((x) => x !== l.id) : [...cur, l.id]))}
               >
-                <span aria-hidden>{l.emoji}</span> {listTitle(l, t)}
+                <ListMark icon={l.emoji} hue={l.hue} size={20} /> {listTitle(l, t)}
               </button>
             )
           })}

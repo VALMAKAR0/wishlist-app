@@ -26,7 +26,7 @@ import { downloadApk } from '../lib/apkDownload'
 import { applyResults, bgCheckNow, bgCollect, bgStatus, bgSync } from '../lib/bgRunner'
 import { checkable, checkAll } from '../lib/priceCheck'
 import { notifyState } from '../lib/reminders'
-import { fetchRates } from '../lib/rates'
+import { fetchRates, usedCurrencies } from '../lib/rates'
 import type { DateFmt, FontScale, FxSetting, Lang, ListLayout, SortMode, StartTab, ThemeSetting } from '../lib/types'
 import { useBackup } from '../state/backup'
 import { useUpdate } from '../state/update'
@@ -318,9 +318,7 @@ function MoneyPage() {
   const [drafts, setDrafts] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
 
-  const used = new Set<string>(['EUR', main])
-  for (const i of items) if (i.currency) used.add(i.currency)
-  for (const r of received) for (const l of r.lists) for (const x of l.items) if (x.cur) used.add(x.cur)
+  const used = usedCurrencies(main, items, received)
   const rows = CURRENCIES.filter((c) => used.has(c) && c !== main)
   const rateMain = main === 'EUR' ? 1 : settings.rates[main]
   const perMain = (c: string): number | undefined => {
@@ -340,9 +338,9 @@ function MoneyPage() {
     })
     if (!Number.isFinite(x) || x <= 0) return
     if (c === 'EUR') {
-      if (main !== 'EUR') setSettings({ rates: { ...settings.rates, [main]: 1 / x }, ratesAt: Date.now() })
+      if (main !== 'EUR') setSettings({ rates: { ...settings.rates, [main]: 1 / x }, ratesAt: Date.now(), ratesAuto: false })
     } else if (rateMain) {
-      setSettings({ rates: { ...settings.rates, [c]: x * rateMain }, ratesAt: Date.now() })
+      setSettings({ rates: { ...settings.rates, [c]: x * rateMain }, ratesAt: Date.now(), ratesAuto: false })
     }
   }
 
@@ -374,44 +372,58 @@ function MoneyPage() {
 
       <Section title={t('Wechselkurse')}>
         <div className="card">
-          {rows.length === 0 && <p className="hint hint--pad">{t('Alle Preise sind in der Hauptwährung. Wähle beim Preis eine andere Währung, dann erscheint sie hier.')}</p>}
-          {rows.map((c) => {
-            const v = perMain(c)
-            const locked = c !== 'EUR' && !rateMain
-            return (
-              <div key={c} className="setting rate-row">
-                <div>
-                  <strong>
-                    1 {main} =
-                  </strong>
-                </div>
-                <div className="rate-row__in">
-                  <input
-                    inputMode="decimal"
-                    aria-label={t('Kurs {cur}', { cur: c })}
-                    disabled={locked}
-                    placeholder={t('fehlt')}
-                    value={drafts[c] ?? (v === undefined ? '' : show(v))}
-                    onChange={(e) => setDrafts((d) => ({ ...d, [c]: e.target.value.replace(/[^0-9.,]/g, '') }))}
-                    onBlur={() => commit(c)}
-                    onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                  />
-                  <b>{c}</b>
-                </div>
-              </div>
-            )
-          })}
-          {missing && <p className="hint hint--warn hint--pad">{t('Ohne Kurs zählt der Betrag unverändert in der Summe. Trag ihn ein oder hol die aktuellen Kurse.')}</p>}
+          <SwitchRow
+            title={t('Täglich automatisch aktualisieren')}
+            text={t('Holt beim Öffnen der App einmal am Tag die Tageskurse. Eigene Kurse gelten, solange das aus ist.')}
+            checked={settings.ratesAuto}
+            onChange={(ratesAuto) => {
+              setSettings({ ratesAuto })
+              if (ratesAuto && Date.now() - settings.ratesAt > 3_600_000) void load()
+            }}
+          />
           <div className="setting">
             <div>
-              <strong>{t('Kurse online holen')}</strong>
-              <p>{settings.ratesAt ? t('Stand: {when}', { when: timeLabel(settings.ratesAt) }) : t('Noch nie geladen')}</p>
+              <strong>{t('Letzte Aktualisierung')}</strong>
+              <p>{settings.ratesAt ? timeLabel(settings.ratesAt) : t('Noch nie geladen')}</p>
             </div>
             <button className="btn btn--ghost btn--small" onClick={() => void load()} disabled={busy}>
-              <RefreshCw size={15} className={busy ? 'spin' : undefined} /> {t('Holen')}
+              <RefreshCw size={15} className={busy ? 'spin' : undefined} /> {t('Jetzt holen')}
             </button>
           </div>
-          <p className="hint hint--pad">{t('Tageskurse der Europäischen Zentralbank über frankfurter.dev. Die App fragt nur, wenn du auf „Holen“ tippst, ohne Konto und ohne Daten von dir. Echte Kartenkurse weichen ab.')}</p>
+          {rows.length === 0 ? (
+            <p className="hint hint--pad">{t('Alle Preise sind in der Hauptwährung. Wähle beim Preis eine andere Währung, dann erscheint sie hier.')}</p>
+          ) : (
+            <>
+              <p className="rates__head">{t('Kurse für 1 {cur}', { cur: main })}</p>
+              {rows.map((c) => {
+                const v = perMain(c)
+                const locked = c !== 'EUR' && !rateMain
+                return (
+                  <div key={c} className="setting rate-row">
+                    <div>
+                      <strong>{c}</strong>
+                      <p>{v === undefined ? t('fehlt') : `1 ${c} = ${String(Math.round((1 / v) * 1e4) / 1e4).replace('.', ',')} ${main}`}</p>
+                    </div>
+                    <div className="rate-row__in">
+                      <input
+                        inputMode="decimal"
+                        aria-label={t('Kurs {cur}', { cur: c })}
+                        disabled={locked}
+                        placeholder={t('fehlt')}
+                        value={drafts[c] ?? (v === undefined ? '' : show(v))}
+                        onChange={(e) => setDrafts((d) => ({ ...d, [c]: e.target.value.replace(/[^0-9.,]/g, '') }))}
+                        onBlur={() => commit(c)}
+                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                      />
+                      <b>{c}</b>
+                    </div>
+                  </div>
+                )
+              })}
+            </>
+          )}
+          {missing && <p className="hint hint--warn hint--pad">{t('Ohne Kurs zählt der Betrag unverändert in der Summe. Trag ihn ein oder hol die aktuellen Kurse.')}</p>}
+          <p className="hint hint--pad">{t('Tageskurse der Europäischen Zentralbank über frankfurter.dev, ohne Konto und ohne Daten von dir. Echte Kartenkurse weichen ab.')}</p>
         </div>
       </Section>
 

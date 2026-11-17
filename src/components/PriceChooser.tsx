@@ -32,7 +32,7 @@ export function PriceChooser({ candidates, current, spot, cur, onPick, onClose }
               <strong>{t('Aktuell')}: {money(current, cur)}</strong> {t('Dieser Preis steht nicht in der Liste, er ist von dir eingetragen oder die Seite zeigt ihn nicht mehr.')}
             </p>
           )}
-          <ul className="pchoice" data-testid="price-chooser">
+          <ul className="pchoices" data-testid="price-chooser">
             {sorted.map((c, i) => {
               const now = isNow(c) && !marked
               if (now) marked = true

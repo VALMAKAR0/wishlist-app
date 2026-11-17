@@ -5,6 +5,7 @@ import { AppLock } from './components/AppLock'
 import { AutoBackup } from './components/AutoBackup'
 import { IncomingFile } from './components/IncomingFile'
 import { IncomingLink } from './components/IncomingLink'
+import { AutoRates } from './components/AutoRates'
 import { BackgroundPrices } from './components/BackgroundPrices'
 import { Reminders } from './components/Reminders'
 import { InstallNotice } from './components/InstallNotice'
@@ -121,6 +122,7 @@ function Shell() {
       <IncomingLink />
       <Reminders />
       <BackgroundPrices />
+      <AutoRates />
       <UpdateCheck />
       <PwaNotice />
       <InstallNotice />

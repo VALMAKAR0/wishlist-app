@@ -208,6 +208,8 @@ export interface UiSettings {
   /** Kurse: Einheiten der Währung für 1 Euro (Euro selbst = 1). */
   rates: Record<string, number>
   ratesAt: number
+  /** Kurse einmal täglich selbst holen. */
+  ratesAuto: boolean
   dateFmt: DateFmt
   fontScale: FontScale
   haptics: boolean

@@ -29,6 +29,7 @@ export const defaults = (): UiSettings => ({
   currency: 'EUR',
   rates: {},
   ratesAt: 0,
+  ratesAuto: true,
   dateFmt: 'auto',
   fontScale: 'normal',
   haptics: true,
@@ -57,7 +58,7 @@ export const defaults = (): UiSettings => ({
 /** Einstellungen, die ins Backup wandern. Gerätegebundenes (Kennung, Update-Stand, PIN, Erinnerungs-Schalter) bleibt draußen. */
 export const SYNC_KEYS = [
   'theme', 'fx', 'lang', 'hue', 'remindDays', 'remindTime', 'updateCheck', 'showPlanned', 'autoBackup', 'shareName',
-  'currency', 'rates', 'ratesAt', 'dateFmt', 'fontScale', 'haptics', 'trashDays', 'autoKeep', 'startTab', 'sort', 'listLayout', 'shareDefaults', 'linkImport', 'linkImages', 'linkAuto', 'linkPrice', 'linkOverwrite', 'linkKeepName', 'linkShortName', 'priceWatch', 'priceSearch', 'priceBg', 'kindAuto',
+  'currency', 'rates', 'ratesAt', 'ratesAuto', 'dateFmt', 'fontScale', 'haptics', 'trashDays', 'autoKeep', 'startTab', 'sort', 'listLayout', 'shareDefaults', 'linkImport', 'linkImages', 'linkAuto', 'linkPrice', 'linkOverwrite', 'linkKeepName', 'linkShortName', 'priceWatch', 'priceSearch', 'priceBg', 'kindAuto',
 ] as const satisfies readonly (keyof UiSettings)[]
 
 export type SyncSettings = Pick<UiSettings, (typeof SYNC_KEYS)[number]>
@@ -122,6 +123,7 @@ export function normalize(raw: unknown, base: UiSettings = defaults()): UiSettin
     currency: cur,
     rates: cleanRates(r.rates) ?? base.rates,
     ratesAt: typeof r.ratesAt === 'number' ? r.ratesAt : base.ratesAt,
+    ratesAuto: bool(r.ratesAuto) ?? base.ratesAuto,
     dateFmt: oneOf<DateFmt>(r.dateFmt, ['auto', 'dmy', 'mdy', 'iso']) ?? base.dateFmt,
     fontScale: oneOf<FontScale>(r.fontScale, ['small', 'normal', 'large', 'xl']) ?? base.fontScale,
     haptics: bool(r.haptics) ?? base.haptics,

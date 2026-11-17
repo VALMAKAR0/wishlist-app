@@ -1,5 +1,5 @@
 import { APP_NAME } from './brand'
-import { drawIcon, iconOf } from './icons'
+import { drawIcon, iconOf, listIcon } from './icons'
 import { isoLabel, longDate, priceText, toHref } from './format'
 import type { TFn } from './i18n'
 import { A4, buildPdf, safeUrl, type PdfLink } from './pdf'
@@ -229,9 +229,23 @@ function drawHead(ctx: Ctx, o: ExportInput, r: Row) {
   const t = o.t
   const a = accent(col.hue)
   ctx.textBaseline = 'alphabetic'
-  ctx.font = `22px ${BODY}`
   ctx.fillStyle = INK
-  ctx.fillText(col.emoji, M, r.y + 28)
+  const lic = listIcon(col.emoji)
+  if (iconOf(lic)) {
+    ctx.save()
+    roundRect(ctx, M, r.y + 5, 26, 26, 8)
+    ctx.clip()
+    const g = ctx.createLinearGradient(M, r.y + 5, M + 26, r.y + 31)
+    g.addColorStop(0, `hsl(${col.hue} 72% 64%)`)
+    g.addColorStop(1, `hsl(${(col.hue + 35) % 360} 66% 46%)`)
+    ctx.fillStyle = g
+    ctx.fillRect(M, r.y + 5, 26, 26)
+    ctx.restore()
+    drawIcon(ctx, lic, M + 3.5, r.y + 8.5, 19)
+  } else {
+    ctx.font = `22px ${BODY}`
+    ctx.fillText(col.emoji, M, r.y + 28)
+  }
   ctx.font = `800 17px ${DISPLAY}`
   ctx.fillText(col.name, M + 32, r.y + 27)
   const right: string[] = []

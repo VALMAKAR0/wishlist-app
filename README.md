@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 17.11.2026 · Status: V0.17.0 (Geschenkanhänger: neues Erscheinungsbild für die ganze App; V0.16.2: Update-Karte und Statuszeile zusammengeführt; V0.16.1: Update-Knopf nicht mehr abgeschnitten, ehrliche Texte zur Preisprüfung; V0.16.0: Umbenennung in Wishlist, eigene Symbole, neues Eintragsfenster, vier Wisch-Stufen, Filter-Fenster, aufgeräumtes Teilen; V0.15: Teilen als PDF, Bild und Text; V0.14: Feinschliff: Preisdiagramm immer sichtbar; V0.13: Sortieren, Filter, Suche, Wichtigkeit, Wunschpreis, neues Preisdiagramm, Budget, kurze Namen, bessere Art-Erkennung; V0.12: Weitere Shops, Update-Download über den Android-Downloader; Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
+Stand: 17.11.2026 · Status: V0.18.0 (Preis-Hinweise mit Richtung und Verlauf, Tageskurse automatisch, Wischen bei erhaltenen Listen, Listen-Symbole statt Emojis; V0.17.0 Geschenkanhänger: neues Erscheinungsbild für die ganze App; V0.16.2: Update-Karte und Statuszeile zusammengeführt; V0.16.1: Update-Knopf nicht mehr abgeschnitten, ehrliche Texte zur Preisprüfung; V0.16.0: Umbenennung in Wishlist, eigene Symbole, neues Eintragsfenster, vier Wisch-Stufen, Filter-Fenster, aufgeräumtes Teilen; V0.15: Teilen als PDF, Bild und Text; V0.14: Feinschliff: Preisdiagramm immer sichtbar; V0.13: Sortieren, Filter, Suche, Wichtigkeit, Wunschpreis, neues Preisdiagramm, Budget, kurze Namen, bessere Art-Erkennung; V0.12: Weitere Shops, Update-Download über den Android-Downloader; Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -663,3 +663,12 @@ Jeden Punkt abhaken oder mit einem Satz melden, was hakt.
 - **Ecken:** Fenster 18 px, Karten und Felder 14 px (`--r-l`), kleine Elemente 8–11 px, Etiketten mit `--r-tag`.
 - **Umgebaut:** Navigation (Leiste und Tablet-Rail), Listenkacheln, Einträge, Statistik, Einstellungen, Fenster, Auswahllisten, Hinweise, Konfetti, Sperrbildschirm, leere Zustände, Preisdiagramm (Schraffur). Die kleinen Überschriften über den Seitentiteln sind einer Meta-Zeile darunter gewichen; die Kachel „Ø-Preis“ in der Statistik entfällt.
 - **Test:** alle bisherigen Tests laufen weiter.
+
+## 47. V0.18.0 Preis-Hinweise, Tageskurse, erhaltene Listen, Listen-Symbole
+
+- **Preis-Hinweis:** Der Vorschlag nennt die Richtung („Preis gesunken auf …“ / „gestiegen“) mit Prozent. Das Badge an der Karte heißt „Preis gesunken?“ bzw. „Preis gestiegen?“. Der alte Preis steht im Diagramm: `fullLog()` in `priceCheck.ts` ergänzt den bisherigen Preis als ersten Punkt, wenn er noch nicht im Verlauf steht. Warnboxen (`.pw__sug`, `.matchwarn`) mit sauber ausgerichtetem Symbol.
+- **Tageskurse:** Einstellung `ratesAuto` (Standard an). `AutoRates.tsx` holt beim Öffnen und alle 30 Minuten (bei Bedarf) die EZB-Kurse, höchstens einmal in 20 Stunden, Wiederholung nach einer Stunde, nur wenn eine Fremdwährung vorkommt (`needsRates`). Seite „Währung und Format“: Schalter, Stand, „Jetzt holen“, Kursliste mit Umkehrwert; eigene Kurse schalten das Automatische aus.
+- **Erhaltene Listen:** Wischen wie bei Wünschen: rechts = für mich übernehmen, links = als Geschenkidee merken. Die +-Knöpfe entfallen.
+- **Fenster:** Personenauswahl („Wünsche übernehmen“, „Verknüpfen mit“) und Übernehmen-Fenster neu gestaltet (`.pchoice`, `.adopt`); die Auswahl im Preis-Fenster heißt jetzt `.pchoices`, damit sich die Klassen nicht mehr überschreiben.
+- **Listen-Symbole:** Sieben neue eigene Symbole (Pinnnadel, Tannenbaum, Torte, Reise, Abschluss, Baby, Einkauf), `LIST_ICONS`, `listIcon()` ordnet alte Emojis zu (keine Datenmigration), `ListMark` zeigt sie überall (Chips, Kacheln, Teilen, Verschieben, Statistik, Export-Kopf). „Liste bearbeiten“: Vorschau neben dem Namen, Symbolraster, Farben.
+- **Test:** `v0180.cjs`.

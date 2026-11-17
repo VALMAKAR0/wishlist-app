@@ -52,7 +52,7 @@ interface ItemListProps {
   items: Item[]
   onOpen: (item: Item) => void
   badgeFor?: (item: Item) => string | undefined
-  listLabelFor?: (item: Item) => string | undefined
+  listLabelFor?: (item: Item) => { icon: string; hue: number } | undefined
   selected?: Set<string> | null
   onLongPress?: (item: Item) => void
   onMove?: (item: Item) => void

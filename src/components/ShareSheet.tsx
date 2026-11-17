@@ -11,7 +11,7 @@ import { loadImages } from '../lib/backup'
 import type { ShareBought } from '../lib/types'
 import { useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
-import { Cover, Segmented } from './Primitives'
+import { Cover, ListMark, Segmented } from './Primitives'
 import { Sheet } from './Sheet'
 
 type Fmt = 'file' | 'pdf' | 'png' | 'text'
@@ -228,7 +228,7 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
             return (
               <button key={l.id} className="sharelist" data-on={on} role="checkbox" aria-checked={on} onClick={() => toggle(l.id)}>
                 <span className="sharelist__box">{on && <Check size={13} strokeWidth={3.4} />}</span>
-                <span aria-hidden>{l.emoji}</span>
+                <ListMark icon={l.emoji} hue={l.hue} size={22} />
                 <b>{listTitle(l, t)}</b>
                 <em>{n}</em>
               </button>

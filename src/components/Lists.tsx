@@ -6,14 +6,15 @@ import type { TFn } from '../lib/i18n'
 import { parsePriceInput, priceText } from '../lib/priceInput'
 import { PriceInput } from './PriceInput'
 import { listTitle } from '../lib/lists'
-import { occasionEmoji } from '../lib/occasions'
+import { LIST_ICONS, iconOf, listIcon } from '../lib/icons'
+import { occasionIcon } from '../lib/occasions'
 import type { ListStats } from '../lib/stats'
 import type { Owner, Person, Wishlist } from '../lib/types'
 import { uid } from '../lib/format'
 import { useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
 import { DateField } from './DateField'
-import { CountUp } from './Primitives'
+import { Cover, CountUp, ListMark } from './Primitives'
 import { Presence } from './Presence'
 import { Sheet } from './Sheet'
 
@@ -38,7 +39,7 @@ export function ListBar({ lists, counts, total, value, onChange, onAdd }: ListBa
       </button>
       {lists.map((l) => (
         <button key={l.id} className="listchip" role="tab" aria-selected={value === l.id} data-active={value === l.id} onClick={() => onChange(l.id)}>
-          <span aria-hidden>{l.emoji}</span> {listTitle(l, t)} <em>{counts[l.id] ?? 0}</em>
+          <ListMark icon={l.emoji} hue={l.hue} size={20} /> {listTitle(l, t)} <em>{counts[l.id] ?? 0}</em>
         </button>
       ))}
       <button className="listchip listchip--add" onClick={onAdd} aria-label={t('Neue Liste')}>
@@ -51,6 +52,7 @@ export function ListBar({ lists, counts, total, value, onChange, onAdd }: ListBa
 interface StatsCardProps {
   title: string
   emoji?: string
+  hue?: number
   stats: ListStats
   onEdit?: () => void
   /** Budget (nur Geschenkideen): gekauft und geplant gegen das Budget. */
@@ -81,7 +83,7 @@ function statCells(s: ListStats, t: TFn): Cell[] {
 }
 
 /** Kleine Kennzahlen zu einer Liste. */
-export function ListStatsCard({ title, emoji, stats, onEdit, budget }: StatsCardProps) {
+export function ListStatsCard({ title, emoji, hue, stats, onEdit, budget }: StatsCardProps) {
   const t = useT()
   const done = stats.count ? stats.bought / stats.count : 0
   const cells = statCells(stats, t)
@@ -89,7 +91,7 @@ export function ListStatsCard({ title, emoji, stats, onEdit, budget }: StatsCard
     <section className="lstats spot">
       <div className="lstats__head">
         <strong>
-          {emoji && <span aria-hidden>{emoji}</span>} {title}
+          {emoji && <ListMark icon={emoji} hue={hue} size={24} />} {title}
         </strong>
         {onEdit && (
           <button className="icon-btn icon-btn--sm" onClick={onEdit} aria-label={t('Liste bearbeiten')}>
@@ -144,7 +146,6 @@ function BudgetBar({ budget, spent, planned }: { budget: number; spent: number; 
   )
 }
 
-const EMOJIS = ['📌', '🎄', '🎂', '💝', '🏠', '✈️', '🎓', '🍼', '💍', '🎁', '🛒', '⭐']
 const HUES = [14, 45, 100, 150, 190, 230, 275, 320]
 
 interface ListSheetProps {
@@ -169,7 +170,7 @@ export function ListSheet({ owner: baseOwner, ownerChoices, list, onClose, onCre
   const linked = occasions.find((o) => o.id === occId)
   const [date, setDate] = useState(list?.date ?? '')
   const [name, setName] = useState(list && !list.isDefault ? list.name : '')
-  const [emoji, setEmoji] = useState(list?.emoji ?? '⭐')
+  const [emoji, setEmoji] = useState(listIcon(list?.emoji ?? 'ic:star'))
   const [hue, setHue] = useState(list?.hue ?? HUES[Math.floor(Math.random() * HUES.length)])
   const [shake, setShake] = useState(0)
   const [budget, setBudget] = useState(list?.budget !== undefined ? priceText(list.budget) : '')
@@ -247,10 +248,33 @@ export function ListSheet({ owner: baseOwner, ownerChoices, list, onClose, onCre
           </div>
         </div>
       )}
-      <motion.label key={shake} className="field" animate={shake ? { x: [0, -9, 9, -6, 6, 0] } : undefined} transition={{ duration: 0.4 }}>
-        <span>{t('Name')}</span>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder={list?.isDefault ? t('Allgemein') : t('z. B. Weihnachten')} autoFocus={!editing} data-invalid={shake > 0 && !name.trim() && !list?.isDefault} />
-      </motion.label>
+      <div className="lhero">
+        <motion.div key={emoji} className="lhero__mark" initial={{ scale: 0.82, rotate: -6 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 420, damping: 18 }}>
+          <ListMark icon={emoji} hue={hue} size={64} />
+        </motion.div>
+        <motion.label key={shake} className="field" animate={shake ? { x: [0, -9, 9, -6, 6, 0] } : undefined} transition={{ duration: 0.4 }}>
+          <span>{t('Name')}</span>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder={list?.isDefault ? t('Allgemein') : t('z. B. Weihnachten')} autoFocus={!editing} data-invalid={shake > 0 && !name.trim() && !list?.isDefault} />
+        </motion.label>
+      </div>
+      <div className="field">
+        <span>{t('Symbol')}</span>
+        <div className="lgrid" role="radiogroup" aria-label={t('Symbol')}>
+          {LIST_ICONS.map((id) => (
+            <button key={id} type="button" role="radio" aria-checked={emoji === 'ic:' + id} aria-label={iconOf('ic:' + id)?.label} data-active={emoji === 'ic:' + id} className="ipick" onClick={() => setEmoji('ic:' + id)}>
+              <Cover emoji={'ic:' + id} hue={hue} size={46} />
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="field">
+        <span>{t('Farbe')}</span>
+        <div className="swatches swatches--left" role="radiogroup" aria-label={t('Farbe')}>
+          {HUES.map((h) => (
+            <button key={h} type="button" role="radio" aria-checked={h === hue} aria-label={`${h}`} data-active={h === hue} className="swatch swatch--color" style={{ ['--h' as string]: h }} onClick={() => setHue(h)} />
+          ))}
+        </div>
+      </div>
       {occasions.length > 0 && (
         <div className="field">
           <span>{t('Anlass')} · {t('optional')}</span>
@@ -269,11 +293,11 @@ export function ListSheet({ owner: baseOwner, ownerChoices, list, onClose, onCre
                   setOccId(o.id)
                   if (!editing && !name.trim()) {
                     setName(t(o.label))
-                    if (emoji === '⭐') setEmoji(occasionEmoji(o.label))
+                    if (emoji === 'ic:star') setEmoji(occasionIcon(o.label))
                   }
                 }}
               >
-                <span aria-hidden>{occasionEmoji(o.label)}</span> {t(o.label)}
+                <ListMark icon={occasionIcon(o.label)} hue={hue} size={20} /> {t(o.label)}
               </button>
             ))}
           </div>
@@ -302,24 +326,6 @@ export function ListSheet({ owner: baseOwner, ownerChoices, list, onClose, onCre
           <small className="hint">{t('Zeigt, wie viel gekauft und geplant ist und was übrig bleibt.')}</small>
         </label>
       )}
-      <div className="field">
-        <span>{t('Symbol')}</span>
-        <div className="swatches swatches--left" role="radiogroup" aria-label={t('Symbol')}>
-          {EMOJIS.map((e) => (
-            <button key={e} role="radio" aria-checked={e === emoji} data-active={e === emoji} className="swatch swatch--emoji" onClick={() => setEmoji(e)}>
-              {e}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="field">
-        <span>{t('Farbe')}</span>
-        <div className="swatches swatches--left" role="radiogroup" aria-label={t('Farbe')}>
-          {HUES.map((h) => (
-            <button key={h} role="radio" aria-checked={h === hue} aria-label={`${h}`} data-active={h === hue} className="swatch swatch--color" style={{ ['--h' as string]: h }} onClick={() => setHue(h)} />
-          ))}
-        </div>
-      </div>
     </Sheet>
   )
 }

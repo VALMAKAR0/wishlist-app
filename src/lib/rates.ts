@@ -1,5 +1,6 @@
 import { CURRENCIES } from './format'
 import { httpGet } from './http'
+import type { Item, ReceivedList } from './types'
 
 const BASE = 'https://api.frankfurter.dev/v1/latest'
 
@@ -26,3 +27,14 @@ export async function fetchRates(): Promise<Record<string, number>> {
   if (!parsed) throw new Error('format')
   return parsed
 }
+
+/** Währungen, die in Einträgen und erhaltenen Listen vorkommen, dazu Euro und die Hauptwährung. */
+export function usedCurrencies(main: string, items: Pick<Item, 'currency'>[], received: Pick<ReceivedList, 'lists'>[]): Set<string> {
+  const used = new Set<string>(['EUR', main])
+  for (const i of items) if (i.currency) used.add(i.currency)
+  for (const r of received) for (const l of r.lists) for (const x of l.items) if (x.cur) used.add(x.cur)
+  return used
+}
+
+/** Kurse werden nur gebraucht, wenn mindestens eine Währung von der Hauptwährung abweicht. */
+export const needsRates = (main: string, items: Pick<Item, 'currency'>[], received: Pick<ReceivedList, 'lists'>[]): boolean => [...usedCurrencies(main, items, received)].some((c) => c !== main)

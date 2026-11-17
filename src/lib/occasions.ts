@@ -1,3 +1,4 @@
+import { listIcon } from './icons'
 import { daysUntil } from './format'
 import type { Person } from './types'
 
@@ -66,3 +67,4 @@ export const OCCASION_PRESETS: OccasionPreset[] = [
 
 export const presetOf = (label: string) => OCCASION_PRESETS.find((p) => p.label === label)
 export const occasionEmoji = (label: string) => presetOf(label)?.emoji ?? '🗓️'
+export const occasionIcon = (label: string) => listIcon(occasionEmoji(label))

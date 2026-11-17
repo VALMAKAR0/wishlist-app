@@ -31,6 +31,14 @@ export function pushLog(log: PricePoint[] | undefined, pt: PricePoint): PricePoi
   return out.length > LOG_MAX ? out.slice(out.length - LOG_MAX) : out
 }
 
+/** Verlauf mit dem aktuellen Preis als Anfang: Fehlt der gültige Preis im Verlauf, kommt er als erster Punkt dazu. */
+export function fullLog(i: Pick<Item, 'price' | 'priceLog' | 'createdAt' | 'priceState'>): PricePoint[] {
+  const log = i.priceLog ?? []
+  if (i.price === undefined || log.some((p) => same(p.p, i.price as number))) return log
+  const first = log[0]?.t ?? Number.POSITIVE_INFINITY
+  return [{ t: Math.min(i.createdAt, first - 3_600_000), p: i.price, k: i.priceState ?? 'user' }, ...log]
+}
+
 /** Änderung seit dem Hinzufügen: negativ = gesunken. Null, wenn nichts zu zeigen ist. */
 export function priceDelta(i: Pick<Item, 'price' | 'priceBase' | 'priceTrack'>): number | null {
   if (i.priceTrack === false || i.price === undefined || i.priceBase === undefined) return null
@@ -56,7 +64,7 @@ export function applyCheck(item: Item, found: Found | null | 'lost', now: number
   }
   if (item.priceNo !== undefined && same(found.price, item.priceNo)) return { patch, outcome: { kind: 'ignored' } }
   const trusted = item.priceState === 'sure' && (!found.guess || !!item.priceGuessOk)
-  const log = pushLog(item.priceLog, { t: now, p: found.price, k: trusted ? 'sure' : k })
+  const log = pushLog(fullLog(item), { t: now, p: found.price, k: trusted ? 'sure' : k })
   if (trusted) {
     return { patch: { ...patch, price: found.price, priceLog: log, priceSuggest: undefined, priceNo: undefined }, outcome: { kind: 'changed', from: item.price, to: found.price } }
   }
@@ -70,7 +78,7 @@ export function applyCheck(item: Item, found: Found | null | 'lost', now: number
 export function acceptSuggestion(item: Item, now: number): Partial<Item> {
   const s = item.priceSuggest
   if (!s) return {}
-  return { price: s.price, priceState: 'sure', priceGuessOk: s.guess || item.priceGuessOk ? true : undefined, priceSuggest: undefined, priceNo: undefined, priceLog: pushLog(item.priceLog, { t: now, p: s.price, k: 'sure' }) }
+  return { price: s.price, priceState: 'sure', priceGuessOk: s.guess || item.priceGuessOk ? true : undefined, priceSuggest: undefined, priceNo: undefined, priceLog: pushLog(fullLog(item), { t: now, p: s.price, k: 'sure' }) }
 }
 
 /** Lehnt den Vorschlag ab und merkt sich den Wert, damit er nicht gleich wiederkommt. */

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Check, CircleHelp, Info, ListChecks, Loader2, RefreshCw, Target, TrendingDown, TrendingUp, X } from 'lucide-react'
+import { Check, Info, ListChecks, Loader2, RefreshCw, Target, TrendingDown, TrendingUp, X } from 'lucide-react'
 import { isNative } from '../lib/backupFiles'
 import { agoLabel, curOf, longDate, money } from '../lib/format'
 import { linkFailExtra, linkFailText, type PriceCandidate } from '../lib/linkImport'
-import { acceptSuggestion, applyCheck, chooseCandidate, confirmPrice, priceDelta, readFound, rejectSuggestion, unconfirmPrice, type Outcome } from '../lib/priceCheck'
+import { acceptSuggestion, applyCheck, chooseCandidate, confirmPrice, fullLog, priceDelta, readFound, rejectSuggestion, unconfirmPrice, type Outcome } from '../lib/priceCheck'
 import type { Item } from '../lib/types'
 import { useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
@@ -39,7 +39,7 @@ export function PriceWatch({ item, link, onPrice }: { item: Item; link: string; 
   const native = isNative()
   const hasLink = !!link.trim()
   const delta = priceDelta(item)
-  const log = item.priceLog ?? []
+  const log = fullLog(item)
   const [range, setRange] = useState<Range>(0)
   const [now] = useState(() => Date.now())
   const view = inRange(log, range, now)
@@ -88,7 +88,7 @@ export function PriceWatch({ item, link, onPrice }: { item: Item; link: string; 
           tone: 'ok',
         }
       case 'suggest':
-        return { text: t('Neuer Preis gefunden, bitte bestätigen.'), tone: 'warn' }
+        return { text: o.to < o.from ? t('Günstigerer Preis gefunden, bitte bestätigen.') : t('Höherer Preis gefunden, bitte bestätigen.'), tone: 'warn' }
       case 'lost':
         return { text: t('Die gewählte Stelle ist auf der Seite nicht mehr zu finden. Wähle den Preis neu.'), tone: 'warn' }
     }
@@ -170,6 +170,9 @@ export function PriceWatch({ item, link, onPrice }: { item: Item; link: string; 
         : item.priceState === 'user'
           ? t('Von dir eingetragen. Neue Preise der Seite kommen nur als Vorschlag.')
           : ''
+  const sug = item.priceSuggest
+  const sugDown = !!sug && item.price !== undefined && sug.price < item.price
+  const sugPct = sug && item.price ? Math.round(((sug.price - item.price) / item.price) * 100) : null
   const flat = log.length >= 2 && log.every((p) => Math.abs(p.p - log[0].p) < 0.005)
 
   return (
@@ -211,9 +214,12 @@ export function PriceWatch({ item, link, onPrice }: { item: Item; link: string; 
           <AnimatePresence initial={false}>
             {item.priceSuggest && (
               <motion.div className="pw__sug" data-testid="price-suggest" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-                <CircleHelp size={18} />
+                <span className="pw__sugic" data-dir={sugDown ? 'down' : 'up'}>{sugDown ? <TrendingDown size={16} /> : <TrendingUp size={16} />}</span>
                 <div>
-                  <strong>{t('Neuer Preis: {p}', { p: money(item.priceSuggest.price, cur) })}</strong>
+                  <div className="pw__sughead">
+                    <strong>{sugDown ? t('Preis gesunken auf {p}', { p: money(item.priceSuggest.price, cur) }) : t('Preis gestiegen auf {p}', { p: money(item.priceSuggest.price, cur) })}</strong>
+                    {sugPct !== null && <span className="pw__pct" data-dir={sugDown ? 'down' : 'up'}>{sugPct > 0 ? '+' : '−'}{Math.abs(sugPct)} %</span>}
+                  </div>
                   <p>
                     {item.price !== undefined ? t('Bisher {p}.', { p: money(item.price, cur) }) : ''} {item.priceSuggest.guess ? t('Aus dem Seitentext geraten.') : t('Von der Seite gelesen.')} {t('Stimmt das?')}
                   </p>

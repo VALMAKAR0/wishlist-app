@@ -1,9 +1,9 @@
 import { useDeferredValue, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { FolderInput, Link2, Plus, Share2, X } from 'lucide-react'
+import { CalendarDays, FolderInput, Link2, Plus, Share2, X } from 'lucide-react'
 import { ListSheetHost, ListStatsCard } from '../components/Lists'
 import { AddButton, Page } from '../components/Page'
 import { Presence } from '../components/Presence'
-import { EmptyState, Segmented } from '../components/Primitives'
+import { EmptyState, ListMark, Segmented } from '../components/Primitives'
 import { ItemFormSheet } from '../components/ItemFormSheet'
 import { MoveSheet } from '../components/MoveSheet'
 import { ShareSheet } from '../components/ShareSheet'
@@ -102,7 +102,10 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) 
 
   const listLabelFor =
     !list && lists.length > 1
-      ? (i: Item) => lists.find((x) => x.id === i.listId)?.emoji
+      ? (i: Item) => {
+          const l = lists.find((x) => x.id === i.listId)
+          return l ? { icon: l.emoji, hue: l.hue } : undefined
+        }
       : undefined
 
   return (
@@ -139,8 +142,8 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) 
             onClick={list ? () => setListSheet(true) : undefined}
             aria-label={t('Datum der Liste')}
           >
-            <span className="occ-tile__emoji" aria-hidden>
-              {occ ? occasionEmoji(occ.label) : '🗓️'}
+            <span className="occ-tile__emoji" data-plain={!occ || undefined} aria-hidden>
+              {occ ? <ListMark icon={occasionEmoji(occ.label)} hue={list?.hue ?? 260} size={38} /> : <CalendarDays size={22} />}
             </span>
             <span className="occ-tile__main">
               <strong>{occ ? t(occ.label) : isoLabel(date)}</strong>
@@ -169,6 +172,7 @@ export function ListPage({ owner, listId, title, eyebrow, onBack, top }: Props) 
             key={list?.id ?? 'all'}
             title={list ? '' : t('Alle Listen')}
             emoji={list?.emoji}
+            hue={list?.hue}
             stats={stats}
             onEdit={list ? () => setListSheet(true) : undefined}
             budget={forMe ? undefined : list?.budget}

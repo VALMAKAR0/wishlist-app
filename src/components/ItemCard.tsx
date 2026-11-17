@@ -6,7 +6,7 @@ import { atLowest, targetHit } from '../lib/listQuery'
 import { priceDelta } from '../lib/priceCheck'
 import type { Item } from '../lib/types'
 import { useT, useUI } from '../state/ui'
-import { Cover, PriceTag, PrioMark } from './Primitives'
+import { Cover, ListMark, PriceTag, PrioMark } from './Primitives'
 
 interface ItemCardProps {
   item: Item
@@ -21,7 +21,7 @@ interface ItemCardProps {
   /** Hinweis-Badge, z. B. "Schon vorhanden". */
   badge?: string
   /** Name der Liste, wenn mehrere Listen gemischt angezeigt werden. */
-  listLabel?: string
+  listLabel?: { icon: string; hue: number }
   /** Auswahl-Modus: Antippen markiert, Wischen ist aus. */
   selectMode?: boolean
   selected?: boolean
@@ -205,7 +205,7 @@ export function ItemCard({ item, index, onOpen, onToggle, onTrash, onMove, onFav
             )}
             {asked && (
               <span className="item__ask" data-testid="price-ask">
-                <CircleHelp size={12} /> {t('Neuer Preis?')}
+                <CircleHelp size={12} /> {item.priceSuggest && item.price !== undefined && item.priceSuggest.price < item.price ? t('Preis gesunken?') : t('Preis gestiegen?')}
               </span>
             )}
             {item.link && (
@@ -215,7 +215,11 @@ export function ItemCard({ item, index, onOpen, onToggle, onTrash, onMove, onFav
             )}
             {item.note && <StickyNote size={13} aria-label={t('Notiz vorhanden')} />}
             {item.bought && item.boughtAt && <span className="item__when">{agoLabel(item.boughtAt, t)}</span>}
-            {listLabel && <span className="item__list">{listLabel}</span>}
+            {listLabel && (
+              <span className="item__list">
+                <ListMark icon={listLabel.icon} hue={listLabel.hue} size={18} />
+              </span>
+            )}
           </div>
           {badge && (
             <motion.span className="item__badge" initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.5 + index * 0.05, type: 'spring', stiffness: 380, damping: 18 }}>
