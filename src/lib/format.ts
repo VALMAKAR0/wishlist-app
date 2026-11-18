@@ -8,6 +8,16 @@ let locale = 'de-DE'
 export const setLocale = (l: string) => {
   locale = l
 }
+/** Führt eine Formatierung kurz in einer anderen Sprache aus (z. B. beim Teilen in Englisch). */
+export function withLocale<T>(l: string, fn: () => T): T {
+  const old = locale
+  locale = l
+  try {
+    return fn()
+  } finally {
+    locale = old
+  }
+}
 
 export const CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF', 'CZK', 'PLN', 'DKK', 'SEK', 'NOK', 'JPY', 'CAD', 'AUD']
 

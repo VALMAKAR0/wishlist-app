@@ -1,14 +1,17 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { AlignLeft, Check, ChevronDown, Copy, EyeOff, FileText, FolderDown, ImageIcon, Lock, Package, Send, type LucideIcon } from 'lucide-react'
 import { APP_VERSION } from '../lib/brand'
 import { exportFiles, isNative, saveFile, saveFiles, shareFile, type OutFile } from '../lib/backupFiles'
-import { makePdf, makePngs } from '../lib/exportList'
+import { makePdf, makePngs, makePreview, type ExportLook } from '../lib/exportList'
 import { canShareText, copyText, makeText, shareText } from '../lib/exportText'
+import { cap, makeT } from '../lib/i18n'
 import { listTitle } from '../lib/lists'
-import { buildShare, estimateBytes, exportFileName, pickShared, type ShareOptions } from '../lib/share'
+import { priceText } from '../lib/format'
+import { RADIUS_K } from '../lib/settings'
+import { buildShare, estimateBytes, exportFileName, isSelected, pickShared, type ShareOptions } from '../lib/share'
 import { loadImages } from '../lib/backup'
-import type { ShareBought } from '../lib/types'
+import type { Item, Lang, ShareBought } from '../lib/types'
 import { useStore } from '../state/store'
 import { useT, useUI } from '../state/ui'
 import { Cover, ListMark, Segmented } from './Primitives'
@@ -41,16 +44,40 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
   const [shake, setShake] = useState(0)
   const [busy, setBusy] = useState(false)
   const [bytes, setBytes] = useState<number | null>(null)
+  const [skip, setSkip] = useState<Set<string>>(() => new Set())
+  const [add, setAdd] = useState<Set<string>>(() => new Set())
+  const [itemsOpen, setItemsOpen] = useState(false)
+  const [lang, setLang] = useState<Lang>(settings.lang)
+  const [look, setLook] = useState<'app' | 'light'>('app')
+  const [prev, setPrev] = useState<{ url: string; pages: number } | null>(null)
+  const [prevBusy, setPrevBusy] = useState(false)
+  const prevUrl = useRef<string | null>(null)
 
   const mode: ShareBought = fmt === 'file' ? pick : 'exclude'
+  const tx = useMemo(() => (fmt === 'file' ? t : makeT(lang)), [fmt, lang, t])
 
-  const toggle = (id: string) =>
+  const toggle = (id: string) => {
     setPicked((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
       else next.add(id)
       return next
     })
+    const ids = new Set(items.filter((i) => i.listId === id).map((i) => i.id))
+    setSkip((prev) => new Set([...prev].filter((x) => !ids.has(x))))
+    setAdd((prev) => new Set([...prev].filter((x) => !ids.has(x))))
+  }
+
+  const toggleItem = (i: Item) => {
+    const flip = (prev: Set<string>) => {
+      const next = new Set(prev)
+      if (next.has(i.id)) next.delete(i.id)
+      else next.add(i.id)
+      return next
+    }
+    if (picked.has(i.listId)) setSkip(flip)
+    else setAdd(flip)
+  }
 
   const MODE_TEXT: Record<ShareBought, { title: string; text: string }> = {
     hidden: {
@@ -67,18 +94,21 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
     },
   }
 
+  const pickIds = useMemo(() => ({ listIds: [...picked], skip: [...skip], add: [...add] }), [picked, skip, add])
+
   const { open, done } = useMemo(() => {
-    const sel = items.filter((i) => i.owner === 'me' && !i.deletedAt && picked.has(i.listId))
+    const sel = items.filter((i) => i.owner === 'me' && !i.deletedAt && isSelected(pickIds, i))
     return { open: sel.filter((i) => !i.bought), done: sel.filter((i) => i.bought) }
-  }, [items, picked])
+  }, [items, pickIds])
 
   const visible = mode === 'only' ? [] : open
   const hidden = mode === 'exclude' ? [] : done
   const noteCount = notes ? visible.filter((w) => w.note).length : 0
   const strip = (mode === 'only' ? done : open).slice(0, 5)
-  const nothing = picked.size === 0 || visible.length + hidden.length === 0
+  const shown = useMemo(() => items.filter((i) => i.owner === 'me' && !i.deletedAt && (mode === 'only' ? i.bought : !i.bought)), [items, mode])
+  const nothing = visible.length + hidden.length === 0
 
-  const opts: ShareOptions = { listIds: [...picked], name: name.trim(), shareId: settings.shareId, hue: settings.hue, notes, price, images, listDate, bought: mode }
+  const opts: ShareOptions = { ...pickIds, name: name.trim(), shareId: settings.shareId, hue: settings.hue, notes, price, images, listDate, bought: mode }
   const optsKey = JSON.stringify({ ...opts, name: '' })
 
   useEffect(() => {
@@ -92,7 +122,49 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
     }
   }, [optsKey, items, lists, fmt])
 
-  const textOut = useMemo(() => (fmt === 'text' ? makeText({ from: name.trim() || t('Dein Name'), lists: pickShared({ items, lists }, opts, t).collections, t }) : ''), [fmt, name, optsKey, items, lists])
+  const textOut = useMemo(() => (fmt === 'text' ? makeText({ from: name.trim() || tx('Dein Name'), lists: pickShared({ items, lists }, opts, tx).collections, t: tx }) : ''), [fmt, name, optsKey, items, lists, tx])
+
+  const lookNow = (): ExportLook => {
+    const root = document.documentElement
+    if (look === 'light') return { scheme: 'light', style: 'tag', hue: settings.hue, rk: 1 }
+    return { scheme: root.dataset.black === 'true' ? 'black' : root.dataset.theme === 'light' ? 'light' : 'dark', style: settings.style, hue: settings.hue, rk: RADIUS_K[settings.radius] }
+  }
+
+  useEffect(() => {
+    if ((fmt !== 'pdf' && fmt !== 'png') || nothing) {
+      setPrev(null)
+      return
+    }
+    let off = false
+    const timer = setTimeout(async () => {
+      setPrevBusy(true)
+      try {
+        const { collections } = pickShared({ items, lists }, opts, tx)
+        const ids = [...new Set(collections.flatMap((c) => c.items.flatMap((i) => (i.imageId ? [i.imageId] : []))))]
+        const r = await makePreview({ from: name.trim() || tx('Dein Name'), hue: settings.hue, lists: collections, images: await loadImages(ids), t: tx, look: lookNow() }, fmt)
+        if (off) return
+        const url = URL.createObjectURL(r.blob)
+        if (prevUrl.current) URL.revokeObjectURL(prevUrl.current)
+        prevUrl.current = url
+        setPrev({ url, pages: r.pages })
+      } catch {
+        if (!off) setPrev(null)
+      } finally {
+        if (!off) setPrevBusy(false)
+      }
+    }, 350)
+    return () => {
+      off = true
+      clearTimeout(timer)
+    }
+  }, [fmt, optsKey, name, lang, look, items, lists, nothing])
+
+  useEffect(
+    () => () => {
+      if (prevUrl.current) URL.revokeObjectURL(prevUrl.current)
+    },
+    [],
+  )
 
   const sendText = async (copy: boolean) => {
     if (!name.trim()) {
@@ -109,7 +181,7 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
         if (ok) onClose()
         return
       }
-      if ((await shareText(textOut, t('Meine Wunschliste'))) === 'cancelled') return
+      if ((await shareText(textOut, tx('Meine Wunschliste'))) === 'cancelled') return
       ui.haptic(18)
       onClose()
     } catch {
@@ -134,16 +206,16 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
         const text = t('{name} schickt dir die Wunschliste. Öffne die Datei in der App „Wishlist“ unter „Erhalten“ → „Import“.', { name: name.trim() })
         r = save ? await saveFile(out.bytes, out.name) : await shareFile(out.bytes, out.name, text)
       } else {
-        const { collections } = pickShared({ items, lists }, opts, t)
+        const { collections } = pickShared({ items, lists }, opts, tx)
         const ids = [...new Set(collections.flatMap((c) => c.items.flatMap((i) => (i.imageId ? [i.imageId] : []))))]
-        const input = { from: name.trim(), hue: settings.hue, lists: collections, images: await loadImages(ids), t, now }
+        const input = { from: name.trim(), hue: settings.hue, lists: collections, images: await loadImages(ids), t: tx, now, look: lookNow() }
         let files: OutFile[]
         if (fmt === 'pdf') files = [{ bytes: await makePdf(input), name: exportFileName(name, 'pdf', at), type: 'application/pdf' }]
         else {
           const parts = await makePngs(input)
           files = parts.map((bytes, n) => ({ bytes, name: exportFileName(name, 'png', at, parts.length > 1 ? n + 1 : undefined), type: 'image/png' }))
         }
-        const text = t('Meine Wunschliste')
+        const text = tx('Meine Wunschliste')
         r = save ? await saveFiles(files) : await exportFiles(files, text)
       }
       if (r.where === 'cancelled') return
@@ -160,8 +232,8 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
   const mb = bytes === null ? '' : bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`
   const big = bytes !== null && bytes > 8 * 1024 * 1024
 
-  const sent = [price && t('Preise'), images && t('Bilder'), notes && t('Notizen'), listDate && t('Datum')].filter(Boolean).join(' · ')
-  const facts = [hidden.length ? `${hidden.length} ${t('unauffällig')}` : '', noteCount ? `${noteCount} ${t('Notizen')}` : '', fmt === 'file' && mb ? t('ca. {size}', { size: mb }) : ''].filter(Boolean)
+  const sent = [price && t('Preise'), images && cap(t('Bilder')), notes && t('Notizen'), listDate && t('Datum')].filter(Boolean).join(' · ')
+  const facts = [hidden.length ? `${hidden.length} ${t('unauffällig')}` : '', noteCount ? t.n(noteCount, 'Notiz', 'Notizen') : '', fmt === 'file' && mb ? t('ca. {size}', { size: mb }) : ''].filter(Boolean)
 
   return (
     <Sheet
@@ -198,9 +270,9 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
     >
       <div className="fmtgrid" role="tablist" aria-label={t('Format')}>
         {FMTS.map(({ value, label, icon: Icon }) => (
-          <button key={value} type="button" role="tab" aria-selected={fmt === value} aria-label={t(label)} className="fmt" data-on={fmt === value} onClick={() => setFmt(value)}>
+          <button key={value} type="button" role="tab" aria-selected={fmt === value} aria-label={cap(t(label))} className="fmt" data-on={fmt === value} onClick={() => setFmt(value)}>
             <Icon size={20} aria-hidden />
-            <span>{t(label)}</span>
+            <span>{cap(t(label))}</span>
           </button>
         ))}
       </div>
@@ -219,23 +291,94 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('So steht es beim Empfänger')} maxLength={40} data-invalid={shake > 0 && !name.trim()} />
       </motion.label>
 
+      {fmt !== 'file' && (
+        <div className="field">
+          <span>{t('Sprache')}</span>
+          <Segmented
+            id="share-lang"
+            value={lang}
+            onChange={setLang}
+            options={[
+              { value: 'de', label: 'Deutsch' },
+              { value: 'en', label: 'English' },
+            ]}
+          />
+        </div>
+      )}
+
+      {(fmt === 'pdf' || fmt === 'png') && (
+        <div className="field">
+          <span>{t('Aussehen')}</span>
+          <Segmented
+            id="share-look"
+            value={look}
+            onChange={setLook}
+            options={[
+              { value: 'app', label: t('Wie in der App') },
+              { value: 'light', label: t('Hell, zum Drucken') },
+            ]}
+          />
+        </div>
+      )}
+
       <div className="field">
         <span>{t('Welche Listen?')}</span>
         <div className="sharelists">
           {myLists.map((l) => {
             const on = picked.has(l.id)
-            const n = items.filter((i) => i.listId === l.id && !i.deletedAt).length
+            const mine = items.filter((i) => i.listId === l.id && !i.deletedAt)
+            const n = mine.length
+            const part = on ? mine.filter((i) => !skip.has(i.id)).length : mine.filter((i) => add.has(i.id)).length
             return (
               <button key={l.id} className="sharelist" data-on={on} role="checkbox" aria-checked={on} onClick={() => toggle(l.id)}>
                 <span className="sharelist__box">{on && <Check size={13} strokeWidth={3.4} />}</span>
                 <ListMark icon={l.emoji} hue={l.hue} size={22} />
                 <b>{listTitle(l, t)}</b>
-                <em>{n}</em>
+                <em>{part > 0 && part < n ? `${part}/${n}` : n}</em>
               </button>
             )
           })}
         </div>
       </div>
+
+      <button className="reveal reveal--block optsbtn" data-testid="share-items-toggle" onClick={() => setItemsOpen((a) => !a)} aria-expanded={itemsOpen}>
+        <span className="optsbtn__t">{t('Einzelne Wünsche')}</span>
+        <small>{t('{n} von {m}', { n: visible.length + (mode === 'only' ? hidden.length : 0), m: shown.length })}</small>
+        <ChevronDown size={15} style={{ transform: itemsOpen ? 'rotate(180deg)' : undefined, transition: 'transform .2s' }} />
+      </button>
+      <AnimatePresence initial={false}>
+        {itemsOpen && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 32 }} style={{ overflow: 'hidden' }}>
+            <div className="shareitems" data-testid="share-items">
+              {myLists.map((l) => {
+                const rows = shown.filter((i) => i.listId === l.id)
+                if (!rows.length) return null
+                return (
+                  <div key={l.id} className="shareitems__grp" data-picked={picked.has(l.id)}>
+                    <div className="shareitems__head">
+                      <ListMark icon={l.emoji} hue={l.hue} size={20} />
+                      <b>{listTitle(l, t)}</b>
+                    </div>
+                    {rows.map((i) => {
+                      const on = isSelected(pickIds, i)
+                      return (
+                        <button key={i.id} className="shareitem" data-on={on} role="checkbox" aria-checked={on} onClick={() => toggleItem(i)}>
+                          <span className="sharelist__box">{on && <Check size={13} strokeWidth={3.4} />}</span>
+                          <Cover emoji={i.emoji} hue={i.hue} size={30} imageId={i.imageId} />
+                          <span className="shareitem__t">
+                            <b>{i.name}</b>
+                            {i.price !== undefined && <small>{priceText(i.price, i.currency).main}</small>}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="sumcard" data-testid="share-sum">
         <div className="sumcard__strip">
@@ -261,6 +404,16 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
         </div>
       )}
 
+      {(fmt === 'pdf' || fmt === 'png') && !nothing && (
+        <div className="field">
+          <span>{t('Vorschau')}</span>
+          <div className="shareprev" data-kind={fmt} data-busy={prevBusy} data-testid="share-preview">
+            {prev ? <img src={prev.url} alt={t('Vorschau')} draggable={false} /> : <div className="shareprev__wait" />}
+            {prev && prev.pages > 1 && <small>{fmt === 'pdf' ? t('Seite {n} von {m}', { n: 1, m: prev.pages }) : t('Teil {n} von {m}', { n: 1, m: prev.pages })}</small>}
+          </div>
+        </div>
+      )}
+
       <button className="reveal reveal--block optsbtn" onClick={() => setAdv((a) => !a)} aria-expanded={adv}>
         <span className="optsbtn__t">{t('Erweiterte Einstellungen')}</span>
         <small>{sent || t('Nichts extra')}</small>
@@ -275,7 +428,7 @@ export function ShareSheet({ onClose, initialList }: { onClose: () => void; init
               <div className="optchips">
                 {([
                   [t('Preise'), t('Preise mitsenden'), price, setPrice],
-                  [t('Bilder'), t('Bilder mitsenden'), images, setImages],
+                  [cap(t('Bilder')), t('Bilder mitsenden'), images, setImages],
                   [t('Notizen'), t('Notizen mitsenden'), notes, setNotes],
                   [t('Datum'), t('Datum der Liste mitsenden'), listDate, setListDate],
                 ] as Array<[string, string, boolean, (v: boolean) => void]>).map(([label, aria, on, set]) => (

@@ -190,25 +190,26 @@
 }
 :root[data-style='glass'][data-black='true'] { --bg: oklch(0.06 0.01 var(--hue)); }
 
-:root[data-style='glass'] .aurora::before,
-:root[data-style='glass'] .aurora::after {
-  content: '';
-  position: absolute;
-  inset: -20%;
-  background:
-    radial-gradient(38% 30% at 18% 14%, oklch(0.62 calc(0.2 * var(--tone, 1)) var(--hue) / 0.75), transparent 70%),
-    radial-gradient(34% 28% at 88% 38%, oklch(0.6 calc(0.18 * var(--tone, 1)) calc(var(--hue) + 70) / 0.6), transparent 70%),
-    radial-gradient(42% 32% at 28% 92%, oklch(0.56 calc(0.17 * var(--tone, 1)) calc(var(--hue) - 60) / 0.6), transparent 70%);
-}
-:root[data-style='glass'] .aurora::after {
-  opacity: 0.55;
-  transform: rotate(180deg) scale(1.1);
-}
-:root[data-style='glass'][data-theme='light'] .aurora::before,
-:root[data-style='glass'][data-theme='light'] .aurora::after { opacity: 0.5; }
-:root[data-style='glass'][data-theme='light'] .aurora::after { opacity: 0.3; }
-:root[data-style='glass']:not([data-fx='off']) .aurora::before { animation: glassdrift 28s ease-in-out infinite alternate; }
-@keyframes glassdrift { from { transform: translate3d(-3%, -2%, 0) scale(1); } to { transform: translate3d(4%, 3%, 0) scale(1.12); } }
+.aurora__glow, .aurora__light { display: none; }
+:root[data-style='glass'] .aurora__glow { display: block; position: absolute; inset: 0; transform: translate3d(calc(var(--tx, 0) * 26px), calc(var(--ty, 0) * 26px + var(--sy, 0) * -0.035px), 0); transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.aurora__blob { position: absolute; width: min(125vw, 920px); aspect-ratio: 1; border-radius: 50%; will-change: transform; }
+.aurora__blob--a { left: -52vw; top: -34vw; background: radial-gradient(closest-side, oklch(0.6 calc(0.15 * var(--tone, 1)) var(--hue) / 0.5), transparent); }
+.aurora__blob--b { right: -66vw; top: 22%; background: radial-gradient(closest-side, oklch(0.58 calc(0.13 * var(--tone, 1)) calc(var(--hue) + 70) / 0.38), transparent); }
+.aurora__blob--c { left: -46vw; bottom: -52vw; background: radial-gradient(closest-side, oklch(0.55 calc(0.12 * var(--tone, 1)) calc(var(--hue) - 60) / 0.36), transparent); }
+:root[data-style='glass'][data-theme='light'] .aurora__blob--a { background: radial-gradient(closest-side, oklch(0.85 calc(0.1 * var(--tone, 1)) var(--hue) / 0.7), transparent); }
+:root[data-style='glass'][data-theme='light'] .aurora__blob--b { background: radial-gradient(closest-side, oklch(0.86 calc(0.09 * var(--tone, 1)) calc(var(--hue) + 70) / 0.6), transparent); }
+:root[data-style='glass'][data-theme='light'] .aurora__blob--c { background: radial-gradient(closest-side, oklch(0.87 calc(0.09 * var(--tone, 1)) calc(var(--hue) - 60) / 0.55), transparent); }
+:root[data-style='glass'][data-black='true'] .aurora__blob { opacity: 0.7; }
+:root[data-style='glass']:not([data-fx='off']) .aurora__blob--a { animation: glassdrift-a 31s ease-in-out infinite alternate; }
+:root[data-style='glass']:not([data-fx='off']) .aurora__blob--b { animation: glassdrift-b 43s ease-in-out infinite alternate; }
+:root[data-style='glass']:not([data-fx='off']) .aurora__blob--c { animation: glassdrift-c 37s ease-in-out infinite alternate; }
+@keyframes glassdrift-a { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(14vw, 10vw, 0) scale(1.14); } }
+@keyframes glassdrift-b { from { transform: translate3d(0, 0, 0) scale(1.08); } to { transform: translate3d(-16vw, 8vw, 0) scale(0.94); } }
+@keyframes glassdrift-c { from { transform: translate3d(0, 0, 0) scale(0.96); } to { transform: translate3d(12vw, -12vw, 0) scale(1.12); } }
+/* Licht folgt dem Finger oder Zeiger (nur Effekte „Voll“) */
+:root[data-style='glass'][data-fx='full'] .aurora__light { display: block; position: absolute; left: 0; top: 0; width: 380px; height: 380px; margin: -190px 0 0 -190px; border-radius: 50%; opacity: 0; background: radial-gradient(closest-side, oklch(1 0 0 / 0.16), transparent); transition: transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1), opacity 0.6s; will-change: transform; }
+:root[data-style='glass'][data-fx='full'] .aurora__light[data-on='true'] { opacity: 1; }
+:root[data-style='glass'][data-theme='light'][data-fx='full'] .aurora__light { background: radial-gradient(closest-side, oklch(1 0 0 / 0.7), transparent); }
 
 :root[data-style='glass'] .card,
 :root[data-style='glass'] .group,
@@ -250,7 +251,9 @@
   border-color: var(--hairline);
 }
 :root[data-style='glass'] .sheet { box-shadow: var(--shadow-pop), var(--rim); }
-:root[data-style='glass'] .item { box-shadow: var(--rim); border-radius: var(--r-l); }
+:root[data-style='glass'] .item { box-shadow: none; border-radius: 0; background: transparent; }
+:root[data-style='glass'] .swipe { background: transparent; }
+:root[data-style='glass'] .item:active { background: var(--card-hover); }
 :root[data-style='glass'] .group > li + li::before { content: none; }
 :root[data-style='glass'] .group > li + li { border-top: 1px solid var(--hairline); }
 :root[data-style='glass'] .spot::before,
@@ -278,3 +281,13 @@
   :root[data-style='glass'][data-theme='dark'] { --card: oklch(0.22 0.02 255); --field: oklch(0.26 0.02 255); --sheet: oklch(0.2 0.02 255); --glass: oklch(0.17 0.015 255); }
   :root[data-style='glass'][data-theme='light'] { --card: oklch(0.99 0.004 255); --field: oklch(0.95 0.006 255); --sheet: oklch(0.99 0.004 255); --glass: oklch(0.97 0.004 255); }
 }
+
+/* Sanfter Einstieg der Seiteninhalte (nur Effekte „Voll“) */
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } }
+:root[data-fx='full'] .page__inner > :not(.page__head) { animation: rise 0.45s var(--ease-out, ease) backwards; }
+:root[data-fx='full'] .page__inner > :not(.page__head):nth-child(3) { animation-delay: 0.04s; }
+:root[data-fx='full'] .page__inner > :not(.page__head):nth-child(4) { animation-delay: 0.08s; }
+:root[data-fx='full'] .page__inner > :not(.page__head):nth-child(5) { animation-delay: 0.12s; }
+:root[data-fx='full'] .page__inner > :not(.page__head):nth-child(6) { animation-delay: 0.16s; }
+:root[data-fx='full'] .page__inner > :not(.page__head):nth-child(n + 7) { animation-delay: 0.2s; }
+@media (prefers-reduced-motion: reduce) { :root[data-fx] .page__inner > * { animation: none !important; } }

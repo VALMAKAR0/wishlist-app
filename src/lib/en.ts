@@ -1315,6 +1315,10 @@ export const en: Record<string, string> = {
   'Nichts': 'Nothing',
   'Reiter': 'Tabs',
   'Nie': 'Never',
+  'WUNSCHLISTE': 'WISH LIST',
+  'Wie in der App': 'Like in the app',
+  'Hell, zum Drucken': 'Light, for printing',
+  'Einzelne Wünsche': 'Single wishes',
   'Glas': 'Glass',
   'Durchscheinend, mit Unschärfe und Farbverlauf': 'Translucent, with blur and colour glow',
 }

@@ -1,10 +1,19 @@
 import { APP_NAME } from './brand'
 import { drawIcon, iconOf, listIcon } from './icons'
-import { isoLabel, longDate, priceText, toHref } from './format'
+import { isoLabel, longDate, priceText, toHref, withLocale } from './format'
 import type { TFn } from './i18n'
 import { A4, buildPdf, safeUrl, type PdfLink } from './pdf'
 import type { Packable } from './backup'
-import type { ReceivedCollection, ReceivedItem } from './types'
+import type { ReceivedCollection, ReceivedItem, StyleName } from './types'
+
+/** Aussehen der Ausgabe nach den Einstellungen des Absenders. Ohne Angabe: hell wie früher. */
+export interface ExportLook {
+  scheme: 'light' | 'dark' | 'black'
+  style: StyleName
+  hue: number
+  /** Rundung aus der Einstellung (1 = normal). */
+  rk: number
+}
 
 export interface ExportInput {
   from: string
@@ -13,6 +22,7 @@ export interface ExportInput {
   images: Packable
   t: TFn
   now?: number
+  look?: ExportLook
 }
 
 const W = A4.w
@@ -31,10 +41,73 @@ const PNG_MAX_H = 4800
 const DISPLAY = '"Archivo Variable", Archivo, "Arial Narrow", system-ui, sans-serif'
 const BODY = '"Instrument Sans Variable", "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif'
 
-const INK = '#151a21'
-const SOFT = '#5c6572'
-const LINE = '#dfe4ea'
-const CARD = '#f5f7fa'
+interface Pal {
+  dark: boolean
+  glass: boolean
+  style: StyleName
+  rk: number
+  hue: number
+  bg: string
+  ink: string
+  soft: string
+  line: string
+  card: string
+  title: string
+  accent: string
+  heart: string
+  rim: string
+}
+
+function palette(o: ExportInput): Pal {
+  const l = o.look
+  const scheme = l?.scheme ?? 'light'
+  const hue = l?.hue ?? o.hue
+  const style = l?.style ?? 'tag'
+  const rk = l?.rk ?? 1
+  const glass = style === 'glass'
+  if (scheme === 'light') {
+    return {
+      dark: false, glass, style, rk, hue,
+      bg: glass ? `hsl(${hue} 30% 95%)` : '#ffffff',
+      ink: '#151a21', soft: '#5c6572', line: '#dfe4ea',
+      card: glass ? 'rgba(255,255,255,0.62)' : style === 'calm' ? '#f1f4f8' : '#f5f7fa',
+      title: glass ? 'rgba(255,255,255,0.6)' : tint(hue, 96),
+      accent: accent(hue), heart: '#e0446a', rim: 'rgba(255,255,255,0.95)',
+    }
+  }
+  const black = scheme === 'black'
+  return {
+    dark: true, glass, style, rk, hue,
+    bg: glass ? (black ? '#050608' : '#0d1016') : black ? '#000000' : '#10131a',
+    ink: '#f1f3f6', soft: '#9aa4b2', line: black ? '#262a32' : '#2a313d',
+    card: glass ? 'rgba(255,255,255,0.075)' : black ? '#101216' : '#1a1f29',
+    title: glass ? 'rgba(255,255,255,0.08)' : `hsl(${hue} 38% 16%)`,
+    accent: `hsl(${hue} 72% 70%)`, heart: '#ff7b9c', rim: 'rgba(255,255,255,0.2)',
+  }
+}
+
+/** Rundung je Stil, skaliert mit der Einstellung des Absenders. */
+const radiusOf = (p: Pal, base: number, h: number) => Math.min(h / 2, Math.round(base * (p.style === 'calm' ? 1.35 : p.style === 'bold' ? 0.6 : p.glass ? 1.5 : 1) * p.rk))
+
+function paintBackground(ctx: Ctx, p: Pal, h: number) {
+  ctx.fillStyle = p.bg
+  ctx.fillRect(0, 0, W, h)
+  if (!p.glass) return
+  const blob = (x: number, y: number, r: number, hue: number, a: number) => {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r)
+    const l = p.dark ? 52 : 78
+    g.addColorStop(0, `hsla(${(hue + 360) % 360} ${p.dark ? 62 : 70}% ${l}% / ${a})`)
+    g.addColorStop(1, `hsla(${(hue + 360) % 360} 60% ${l}% / 0)`)
+    ctx.fillStyle = g
+    ctx.fillRect(x - r, y - r, r * 2, r * 2)
+  }
+  const k = p.dark ? 1 : 0.9
+  for (let y0 = 0; y0 < h + 200; y0 += 820) {
+    blob(W * 0.05, y0 + 60, 360, p.hue, 0.42 * k)
+    blob(W * 1.0, y0 + 330, 320, p.hue + 70, 0.34 * k)
+    blob(W * 0.15, y0 + 640, 360, p.hue - 60, 0.3 * k)
+  }
+}
 
 type Ctx = CanvasRenderingContext2D
 
@@ -123,7 +196,7 @@ function roundRect(ctx: Ctx, x: number, y: number, w: number, h: number, r: numb
   ctx.closePath()
 }
 
-const priceLine = (i: ReceivedItem) => (i.price === undefined ? undefined : priceText(i.price, i.cur).main)
+const priceLine = (o: ExportInput, i: ReceivedItem) => (i.price === undefined ? undefined : withLocale(o.t.locale, () => priceText(i.price as number, i.cur).main))
 
 /** Sortiert die wichtigsten Wünsche nach oben, sonst bleibt die Reihenfolge der Liste. */
 function ordered(items: ReceivedItem[]): ReceivedItem[] {
@@ -197,20 +270,35 @@ async function bitmapOf(o: ExportInput, id?: string): Promise<ImageBitmap | null
 
 function drawTitle(ctx: Ctx, o: ExportInput, y: number, count: number) {
   const t = o.t
-  const a = accent(o.hue)
-  ctx.fillStyle = tint(o.hue, 96)
-  roundRect(ctx, M, y, W - 2 * M, 96, 18)
+  const P = palette(o)
+  const a = P.accent
+  const r = radiusOf(P, 18, 96)
+  if (P.style === 'bold') {
+    ctx.fillStyle = P.dark ? 'rgba(255,255,255,0.25)' : 'rgba(21,26,33,0.85)'
+    roundRect(ctx, M + 1.5, y + 3, W - 2 * M, 96, r)
+    ctx.fill()
+  }
+  ctx.fillStyle = P.title
+  roundRect(ctx, M, y, W - 2 * M, 96, r)
   ctx.fill()
+  if (P.glass || P.style === 'bold') {
+    ctx.strokeStyle = P.style === 'bold' ? (P.dark ? 'rgba(255,255,255,0.55)' : 'rgba(21,26,33,0.85)') : P.rim
+    ctx.lineWidth = P.style === 'bold' ? 1.6 : 1
+    roundRect(ctx, M + 0.5, y + 0.5, W - 2 * M - 1, 95, r)
+    ctx.stroke()
+  }
   ctx.fillStyle = a
-  roundRect(ctx, M, y + 18, 5, 60, 3)
-  ctx.fill()
+  if (P.style !== 'calm') {
+    roundRect(ctx, M, y + 18, 5, 60, 3)
+    ctx.fill()
+  }
   ctx.textBaseline = 'alphabetic'
   ctx.fillStyle = a
   ctx.font = `800 9.5px ${BODY}`
   ctx.letterSpacing = '1.6px'
   ctx.fillText(APP_NAME.toUpperCase(), M + 24, y + 30)
   ctx.letterSpacing = '0px'
-  ctx.fillStyle = INK
+  ctx.fillStyle = P.ink
   const title = t('Wunschliste von {name}', { name: o.from })
   let size = 26
   ctx.font = `800 ${size}px ${DISPLAY}`
@@ -219,17 +307,18 @@ function drawTitle(ctx: Ctx, o: ExportInput, y: number, count: number) {
     ctx.font = `800 ${size}px ${DISPLAY}`
   }
   ctx.fillText(title, M + 24, y + 60)
-  ctx.fillStyle = SOFT
+  ctx.fillStyle = P.soft
   ctx.font = `600 10.5px ${BODY}`
-  ctx.fillText(`${t.n(count, 'Wunsch', 'Wünsche')} · ${t('Stand {date}', { date: longDate(o.now ?? Date.now()) })}`, M + 24, y + 82)
+  ctx.fillText(`${t.n(count, 'Wunsch', 'Wünsche')} · ${t('Stand {date}', { date: withLocale(t.locale, () => longDate(o.now ?? Date.now())) })}`, M + 24, y + 82)
 }
 
 function drawHead(ctx: Ctx, o: ExportInput, r: Row) {
   const col = r.col!
   const t = o.t
-  const a = accent(col.hue)
+  const P = palette(o)
+  const a = P.accent
   ctx.textBaseline = 'alphabetic'
-  ctx.fillStyle = INK
+  ctx.fillStyle = P.ink
   const lic = listIcon(col.emoji)
   if (iconOf(lic)) {
     ctx.save()
@@ -249,9 +338,9 @@ function drawHead(ctx: Ctx, o: ExportInput, r: Row) {
   ctx.font = `800 17px ${DISPLAY}`
   ctx.fillText(col.name, M + 32, r.y + 27)
   const right: string[] = []
-  if (col.date) right.push(isoLabel(col.date))
+  if (col.date) right.push(withLocale(t.locale, () => isoLabel(col.date as string)))
   right.push(t.n(col.items.length, 'Wunsch', 'Wünsche'))
-  ctx.fillStyle = SOFT
+  ctx.fillStyle = P.soft
   ctx.font = `600 10px ${BODY}`
   ctx.textAlign = 'right'
   ctx.fillText(right.join(' · '), W - M, r.y + 26)
@@ -262,22 +351,52 @@ function drawHead(ctx: Ctx, o: ExportInput, r: Row) {
   ctx.globalAlpha = 1
 }
 
-function drawItem(ctx: Ctx, r: Row, bmp: ImageBitmap | null, hue: number): PdfLink | null {
+function drawItem(ctx: Ctx, o: ExportInput, r: Row, bmp: ImageBitmap | null, hue: number): PdfLink | null {
+  const P = palette(o)
   const i = r.item!
   const x = M
   const w = W - 2 * M
-  ctx.fillStyle = CARD
-  roundRect(ctx, x, r.y, w, r.h, 12)
+  const cr = radiusOf(P, 12, r.h)
+  if (P.style === 'bold') {
+    ctx.fillStyle = P.dark ? 'rgba(255,255,255,0.22)' : 'rgba(21,26,33,0.8)'
+    roundRect(ctx, x + 1, r.y + 2.6, w, r.h, cr)
+    ctx.fill()
+  }
+  if (P.glass) {
+    ctx.save()
+    ctx.shadowColor = P.dark ? 'rgba(0,0,0,0.35)' : `hsla(${P.hue} 40% 30% / 0.18)`
+    ctx.shadowBlur = 10
+    ctx.shadowOffsetY = 4
+    ctx.fillStyle = P.card
+    roundRect(ctx, x, r.y, w, r.h, cr)
+    ctx.fill()
+    ctx.restore()
+  }
+  ctx.fillStyle = P.card
+  roundRect(ctx, x, r.y, w, r.h, cr)
   ctx.fill()
-  ctx.strokeStyle = LINE
-  ctx.lineWidth = 0.9
-  roundRect(ctx, x + 0.45, r.y + 0.45, w - 0.9, r.h - 0.9, 12)
-  ctx.stroke()
+  if (P.style !== 'calm') {
+    ctx.strokeStyle = P.style === 'bold' ? (P.dark ? 'rgba(255,255,255,0.55)' : 'rgba(21,26,33,0.85)') : P.glass ? P.rim : P.line
+    ctx.lineWidth = P.style === 'bold' ? 1.5 : 0.9
+    roundRect(ctx, x + 0.45, r.y + 0.45, w - 0.9, r.h - 0.9, cr)
+    ctx.stroke()
+  }
+  if (P.style === 'tag') {
+    ctx.save()
+    ctx.strokeStyle = P.line
+    ctx.lineWidth = 1
+    ctx.setLineDash([3, 3.5])
+    ctx.beginPath()
+    ctx.moveTo(x + THUMB + PAD * 2 + 3.5, r.y + 8)
+    ctx.lineTo(x + THUMB + PAD * 2 + 3.5, r.y + r.h - 8)
+    ctx.stroke()
+    ctx.restore()
+  }
 
   const ty = r.y + (r.h - THUMB) / 2
   const tx = x + PAD
   ctx.save()
-  roundRect(ctx, tx, ty, THUMB, THUMB, 10)
+  roundRect(ctx, tx, ty, THUMB, THUMB, Math.min(THUMB / 2, Math.round(10 * P.rk * (P.style === 'calm' ? 1.3 : 1))))
   ctx.clip()
   if (bmp) {
     ctx.fillStyle = '#fff'
@@ -297,12 +416,12 @@ function drawItem(ctx: Ctx, r: Row, bmp: ImageBitmap | null, hue: number): PdfLi
       const sz = THUMB * 0.66
       drawIcon(ctx, i.emoji, tx + (THUMB - sz) / 2, ty + (THUMB - sz) / 2, sz)
     } else {
-      ctx.fillStyle = tint(i.hue ?? hue, 91)
+      ctx.fillStyle = P.dark ? `hsl(${i.hue ?? hue} 40% 22%)` : tint(i.hue ?? hue, 91)
       ctx.fillRect(tx, ty, THUMB, THUMB)
       ctx.font = `28px ${BODY}`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillStyle = INK
+      ctx.fillStyle = P.ink
       ctx.fillText(i.emoji, tx + THUMB / 2, ty + THUMB / 2 + 2)
       ctx.textAlign = 'left'
     }
@@ -311,7 +430,7 @@ function drawItem(ctx: Ctx, r: Row, bmp: ImageBitmap | null, hue: number): PdfLi
   if (bmp) {
     ctx.strokeStyle = 'rgba(0,0,0,0.07)'
     ctx.lineWidth = 0.8
-    roundRect(ctx, tx + 0.4, ty + 0.4, THUMB - 0.8, THUMB - 0.8, 10)
+    roundRect(ctx, tx + 0.4, ty + 0.4, THUMB - 0.8, THUMB - 0.8, Math.min(THUMB / 2, Math.round(10 * P.rk * (P.style === 'calm' ? 1.3 : 1))))
     ctx.stroke()
   }
 
@@ -321,7 +440,7 @@ function drawItem(ctx: Ctx, r: Row, bmp: ImageBitmap | null, hue: number): PdfLi
   const textH = nameLines.length * 16 + (noteLines.length ? 4 + noteLines.length * 13 : 0)
   let cy = r.y + (r.h - textH) / 2
   const nx = tx + THUMB + 14
-  ctx.fillStyle = INK
+  ctx.fillStyle = P.ink
   ctx.font = `700 12.5px ${DISPLAY}`
   for (const l of nameLines) {
     cy += 16
@@ -329,7 +448,7 @@ function drawItem(ctx: Ctx, r: Row, bmp: ImageBitmap | null, hue: number): PdfLi
   }
   if (noteLines.length) {
     cy += 4
-    ctx.fillStyle = SOFT
+    ctx.fillStyle = P.soft
     ctx.font = `500 9.8px ${BODY}`
     for (const l of noteLines) {
       cy += 13
@@ -338,12 +457,12 @@ function drawItem(ctx: Ctx, r: Row, bmp: ImageBitmap | null, hue: number): PdfLi
   }
 
   const rx = x + w - PAD
-  const price = priceLine(i)
+  const price = priceLine(o, i)
   const hearts = i.prio ?? 0
   const blockH = (price ? 16 : 0) + (price && hearts ? 8 : 0) + (hearts ? 10 : 0)
   let ry = r.y + (r.h - blockH) / 2
   if (price) {
-    ctx.fillStyle = INK
+    ctx.fillStyle = P.ink
     ctx.font = `800 13px ${DISPLAY}`
     ctx.textAlign = 'right'
     ry += 13
@@ -355,7 +474,7 @@ function drawItem(ctx: Ctx, r: Row, bmp: ImageBitmap | null, hue: number): PdfLi
   if (hearts) {
     const hs = 3.6
     const step = 10.5
-    const c = '#e0446a'
+    const c = P.heart
     for (let n = 0; n < 3; n++) heart(ctx, rx - hs * 1.5 - (2 - n) * step, ry + 5, hs, n < hearts, c)
   }
 
@@ -365,7 +484,7 @@ function drawItem(ctx: Ctx, r: Row, bmp: ImageBitmap | null, hue: number): PdfLi
 
 function drawFooter(ctx: Ctx, o: ExportInput, y: number, label: string, tip: boolean) {
   ctx.textBaseline = 'alphabetic'
-  ctx.fillStyle = SOFT
+  ctx.fillStyle = palette(o).soft
   ctx.globalAlpha = 0.85
   ctx.font = `600 8.4px ${BODY}`
   ctx.fillText(tip ? `${o.t('Erstellt mit Wishlist')} · ${o.t('Wunsch antippen öffnet den Shop')}` : o.t('Erstellt mit Wishlist'), M, y)
@@ -395,7 +514,14 @@ async function fonts() {
 const toBlob = (c: HTMLCanvasElement, type: string, q?: number) =>
   new Promise<Blob>((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('canvas'))), type, q))
 
-async function render(o: ExportInput, mode: 'pdf' | 'png'): Promise<RenderedPage[]> {
+interface RenderOpts {
+  /** Nur die erste Seite, für die Vorschau. */
+  first?: boolean
+  /** Breite in Pixeln, überschreibt die Standardschärfe. */
+  width?: number
+}
+
+async function render(o: ExportInput, mode: 'pdf' | 'png', opts: RenderOpts = {}): Promise<{ pages: RenderedPage[]; total: number }> {
   await fonts()
   const measure = document.createElement('canvas').getContext('2d')!
   const pdf = mode === 'pdf'
@@ -403,49 +529,59 @@ async function render(o: ExportInput, mode: 'pdf' | 'png'): Promise<RenderedPage
   const total = o.lists.reduce((n, c) => n + c.items.length, 0)
   const anyLink = o.lists.some((c) => c.items.some((i) => i.link && safeUrl(toHref(i.link))))
   const out: RenderedPage[] = []
+  const todo = opts.first ? pages.slice(0, 1) : pages
   const bmps = new Map<string, ImageBitmap | null>()
-  for (const c of o.lists) for (const i of c.items) if (i.imageId && !bmps.has(i.imageId)) bmps.set(i.imageId, await bitmapOf(o, i.imageId))
+  for (const pg of todo) for (const r of pg.rows) {
+    const id = r.item?.imageId
+    if (id && !bmps.has(id)) bmps.set(id, await bitmapOf(o, id))
+  }
+  const P = palette(o)
 
-  for (let n = 0; n < pages.length; n++) {
-    const pg = pages[n]
+  for (let n = 0; n < todo.length; n++) {
+    const pg = todo[n]
     const hPt = pdf ? H : Math.max(260, pg.used + BOTTOM - 14)
-    const scale = pdf ? PDF_SCALE : PNG_WIDTH / W
+    const scale = opts.width ? opts.width / W : pdf ? PDF_SCALE : PNG_WIDTH / W
     const canvas = document.createElement('canvas')
     canvas.width = Math.round(W * scale)
     canvas.height = Math.round(hPt * scale)
     const ctx = canvas.getContext('2d')!
     ctx.scale(scale, scale)
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, W, hPt)
+    paintBackground(ctx, P, hPt)
     const links: PdfLink[] = []
     for (const r of pg.rows) {
       if (r.kind === 'title') drawTitle(ctx, o, r.y, total)
       else if (r.kind === 'head') drawHead(ctx, o, r)
       else {
-        const l = drawItem(ctx, r, r.item!.imageId ? (bmps.get(r.item!.imageId) ?? null) : null, r.col!.hue)
+        const l = drawItem(ctx, o, r, r.item!.imageId ? (bmps.get(r.item!.imageId) ?? null) : null, r.col!.hue)
         if (l) links.push(l)
       }
     }
     const label = pages.length > 1 ? (pdf ? o.t('Seite {n} von {m}', { n: n + 1, m: pages.length }) : o.t('Teil {n} von {m}', { n: n + 1, m: pages.length })) : ''
     drawFooter(ctx, o, hPt - 22, label, pdf && anyLink)
-    const blob = await toBlob(canvas, pdf ? 'image/jpeg' : 'image/png', 0.9)
+    const blob = await toBlob(canvas, opts.first ? 'image/jpeg' : pdf ? 'image/jpeg' : 'image/png', opts.first ? 0.86 : 0.9)
     out.push({ blob, px: { w: canvas.width, h: canvas.height }, size: { w: W, h: hPt }, links: pdf ? links : [] })
     canvas.width = 1
     canvas.height = 1
   }
   for (const b of bmps.values()) b?.close()
-  return out
+  return { pages: out, total: pages.length }
 }
 
 const bytesOf = async (b: Blob) => new Uint8Array(await b.arrayBuffer())
 
 export async function makePdf(o: ExportInput): Promise<Uint8Array> {
-  const pages = await render(o, 'pdf')
+  const { pages } = await render(o, 'pdf')
   const ready = await Promise.all(pages.map(async (p) => ({ jpeg: await bytesOf(p.blob), px: p.px, links: p.links })))
   return buildPdf(ready, o.t('Wunschliste von {name}', { name: o.from }), A4, new Date(o.now ?? Date.now()))
 }
 
 export async function makePngs(o: ExportInput): Promise<Uint8Array[]> {
-  const pages = await render(o, 'png')
+  const { pages } = await render(o, 'png')
   return Promise.all(pages.map((p) => bytesOf(p.blob)))
+}
+
+/** Erste Seite als Vorschau (kleines JPEG) und Zahl aller Seiten bzw. Teile. */
+export async function makePreview(o: ExportInput, kind: 'pdf' | 'png', width = 760): Promise<{ blob: Blob; px: { w: number; h: number }; pages: number }> {
+  const { pages, total } = await render(o, kind, { first: true, width })
+  return { blob: pages[0].blob, px: pages[0].px, pages: total }
 }

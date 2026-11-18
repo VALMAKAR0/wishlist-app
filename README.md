@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 17.11.2026 · Status: V0.20.0 (Neuer Stil Glas; V0.19.0 Anpassungen: Stilvarianten, Karten, Wischgesten, Reiter, Preisschwelle; V0.18.0 Preis-Hinweise mit Richtung und Verlauf, Tageskurse automatisch, Wischen bei erhaltenen Listen, Listen-Symbole statt Emojis; V0.17.0 Geschenkanhänger: neues Erscheinungsbild für die ganze App; V0.16.2: Update-Karte und Statuszeile zusammengeführt; V0.16.1: Update-Knopf nicht mehr abgeschnitten, ehrliche Texte zur Preisprüfung; V0.16.0: Umbenennung in Wishlist, eigene Symbole, neues Eintragsfenster, vier Wisch-Stufen, Filter-Fenster, aufgeräumtes Teilen; V0.15: Teilen als PDF, Bild und Text; V0.14: Feinschliff: Preisdiagramm immer sichtbar; V0.13: Sortieren, Filter, Suche, Wichtigkeit, Wunschpreis, neues Preisdiagramm, Budget, kurze Namen, bessere Art-Erkennung; V0.12: Weitere Shops, Update-Download über den Android-Downloader; Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
+Stand: 17.11.2026 · Status: V0.21.0 (Teilen mit Vorschau, App-Stil, Sprache und einzelnen Wünschen; Glas gedämpft und lebendiger; V0.20.0 Neuer Stil Glas; V0.19.0 Anpassungen: Stilvarianten, Karten, Wischgesten, Reiter, Preisschwelle; V0.18.0 Preis-Hinweise mit Richtung und Verlauf, Tageskurse automatisch, Wischen bei erhaltenen Listen, Listen-Symbole statt Emojis; V0.17.0 Geschenkanhänger: neues Erscheinungsbild für die ganze App; V0.16.2: Update-Karte und Statuszeile zusammengeführt; V0.16.1: Update-Knopf nicht mehr abgeschnitten, ehrliche Texte zur Preisprüfung; V0.16.0: Umbenennung in Wishlist, eigene Symbole, neues Eintragsfenster, vier Wisch-Stufen, Filter-Fenster, aufgeräumtes Teilen; V0.15: Teilen als PDF, Bild und Text; V0.14: Feinschliff: Preisdiagramm immer sichtbar; V0.13: Sortieren, Filter, Suche, Wichtigkeit, Wunschpreis, neues Preisdiagramm, Budget, kurze Namen, bessere Art-Erkennung; V0.12: Weitere Shops, Update-Download über den Android-Downloader; Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -689,3 +689,10 @@ Jeden Punkt abhaken oder mit einem Satz melden, was hakt.
 - Eintrags-Karten (`.item`) bekommen bewusst keine Unschärfe, damit das Wischen flüssig bleibt.
 - Hintergrund-Bewegung entfällt bei „Effekte aus“; bei `prefers-reduced-transparency` gibt es deckende Flächen.
 - Gespeichert in `wl.ui.style = 'glass'`; unbekannte Werte fallen weiter auf „Anhänger“ zurück.
+
+## 50. V0.21.0 Teilen-Fenster, Glas-Feinschliff, lebendigerer Hintergrund
+- **Teilen:** Vorschau für PDF (erste Seite) und Bild (Anfang); PDF und Bild übernehmen Hell/Dunkel/Schwarz, Stil, Akzentfarbe und Rundung des Absenders. Alternative „Hell, zum Drucken“ (weiß). Sprache der Ausgabe (Deutsch/English) für PDF, Bild und Text. Listen wählen, danach einzelne Wünsche abwählen oder aus nicht gewählten Listen hinzufügen (`ShareOptions.skip/add`, `isSelected`).
+- **Text:** WhatsApp-Format mit `*fett*`, `_kursiv_` und `>`-Zitat für Links, Listenkopf mit Symbol-Zeichen.
+- **Glas:** Einträge ohne eigene Rundung auf einer gemeinsamen Glasfläche; Farben gedämpft; drei driftende Farbflächen im Hintergrund, Licht folgt Finger/Zeiger, Parallaxe beim Scrollen und Kippen (nur Effekte „Voll“).
+- **Allgemein:** Seiteninhalt blendet sanft ein (nur Effekte „Voll“). Symbol-Auswahlring liegt bündig um das Symbol.
+- Test `t2/v0210.cjs`; v0151 an das neue Textformat angepasst.

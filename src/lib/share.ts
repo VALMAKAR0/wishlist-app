@@ -22,7 +22,15 @@ export interface ShareOptions {
   images: boolean
   listDate: boolean
   bought: ShareBought
+  /** Einzelne Wünsche aus gewählten Listen, die nicht mitgehen. */
+  skip?: string[]
+  /** Einzelne Wünsche aus nicht gewählten Listen, die trotzdem mitgehen. */
+  add?: string[]
 }
+
+/** Geht dieser Eintrag mit? Gewählte Liste: alles außer den abgewählten. Andere Liste: nur die einzeln hinzugefügten. */
+export const isSelected = (o: Pick<ShareOptions, 'listIds' | 'skip' | 'add'>, i: { id: string; listId: string }): boolean =>
+  o.listIds.includes(i.listId) ? !o.skip?.includes(i.id) : !!o.add?.includes(i.id)
 
 export const DEFAULT_SHARE: Omit<ShareOptions, 'listIds' | 'name' | 'shareId' | 'hue'> = {
   notes: false,
@@ -55,7 +63,7 @@ interface Source {
 
 /** Wählt aus, was beim Teilen mitgeht. Geschenkideen für andere sind nie dabei. */
 export function pickShared(src: Source, o: ShareOptions, t: TFn) {
-  const chosen = src.lists.filter((l) => l.owner === 'me' && o.listIds.includes(l.id))
+  const chosen = src.lists.filter((l) => l.owner === 'me' && (o.listIds.includes(l.id) || src.items.some((i) => i.listId === l.id && o.add?.includes(i.id))))
   const collections: ReceivedCollection[] = []
   let visible = 0
   let owned = 0
@@ -63,6 +71,7 @@ export function pickShared(src: Source, o: ShareOptions, t: TFn) {
     const mine = src.items.filter((i) => i.owner === 'me' && !i.deletedAt && i.listId === l.id)
     const items: ReceivedItem[] = []
     for (const i of mine) {
+      if (!isSelected(o, i)) continue
       if (!i.bought && o.bought === 'only') continue
       if (i.bought && o.bought === 'exclude') continue
       const isOwned = i.bought

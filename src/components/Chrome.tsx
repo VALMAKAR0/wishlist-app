@@ -10,8 +10,70 @@ import { useUpdate } from '../state/update'
 import { Logo } from './Primitives'
 
 export function Aurora() {
+  const { settings } = useUI()
+  const light = useRef<HTMLSpanElement>(null)
+  const live = settings.style === 'glass' && settings.fx === 'full'
+
+  // Bewegung im Hintergrund: Licht folgt dem Finger, Blasen schieben sich beim Scrollen und Kippen leicht mit
+  useEffect(() => {
+    const root = document.documentElement
+    root.style.setProperty('--sy', '0')
+    root.style.setProperty('--tx', '0')
+    root.style.setProperty('--ty', '0')
+    if (!live) return
+    let frame = 0
+    let sy = 0
+    let tx = 0
+    let ty = 0
+    const flush = () => {
+      frame = 0
+      root.style.setProperty('--sy', String(Math.round(sy)))
+      root.style.setProperty('--tx', tx.toFixed(2))
+      root.style.setProperty('--ty', ty.toFixed(2))
+    }
+    const queue = () => {
+      if (!frame) frame = requestAnimationFrame(flush)
+    }
+    const point = (e: PointerEvent) => {
+      const el = light.current
+      if (!el) return
+      el.style.transform = `translate3d(${Math.round(e.clientX)}px, ${Math.round(e.clientY)}px, 0)`
+      el.dataset.on = 'true'
+    }
+    const scroll = (e: Event) => {
+      const el = e.target
+      if (el instanceof HTMLElement && el.classList.contains('page')) {
+        sy = el.scrollTop
+        queue()
+      }
+    }
+    const tilt = (e: DeviceOrientationEvent) => {
+      if (e.gamma === null || e.beta === null) return
+      tx = Math.max(-1, Math.min(1, e.gamma / 30))
+      ty = Math.max(-1, Math.min(1, (e.beta - 50) / 30))
+      queue()
+    }
+    window.addEventListener('pointermove', point, { passive: true })
+    window.addEventListener('pointerdown', point, { passive: true })
+    document.addEventListener('scroll', scroll, { capture: true, passive: true })
+    window.addEventListener('deviceorientation', tilt, { passive: true })
+    return () => {
+      window.removeEventListener('pointermove', point)
+      window.removeEventListener('pointerdown', point)
+      document.removeEventListener('scroll', scroll, { capture: true })
+      window.removeEventListener('deviceorientation', tilt)
+      if (frame) cancelAnimationFrame(frame)
+    }
+  }, [live])
+
   return (
     <div className="aurora" aria-hidden>
+      <div className="aurora__glow">
+        <span className="aurora__blob aurora__blob--a" />
+        <span className="aurora__blob aurora__blob--b" />
+        <span className="aurora__blob aurora__blob--c" />
+      </div>
+      <span className="aurora__light" ref={light} />
       <span className="aurora__grain" />
     </div>
   )
