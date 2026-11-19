@@ -69,25 +69,6 @@ function Screens() {
   )
 }
 
-/** Leuchtfleck unter dem Finger bzw. Mauszeiger auf allen Karten mit der Klasse .spot. */
-function useSpotlight() {
-  useEffect(() => {
-    const move = (e: PointerEvent) => {
-      const el = (e.target as Element | null)?.closest<HTMLElement>('.spot')
-      if (!el) return
-      const r = el.getBoundingClientRect()
-      el.style.setProperty('--mx', `${e.clientX - r.left}px`)
-      el.style.setProperty('--my', `${e.clientY - r.top}px`)
-    }
-    document.addEventListener('pointermove', move, { passive: true })
-    document.addEventListener('pointerdown', move, { passive: true })
-    return () => {
-      document.removeEventListener('pointermove', move)
-      document.removeEventListener('pointerdown', move)
-    }
-  }, [])
-}
-
 /** Android-Zurück-Taste (in der App) und Escape (im Browser): erst Fenster, dann Ansicht, dann erster Reiter, erst danach beenden. */
 function useBackKey() {
   useEffect(() => {
@@ -109,7 +90,6 @@ function useBackKey() {
 function Shell() {
   const { settings } = useUI()
   const [splash, setSplash] = useState(settings.fx !== 'off')
-  useSpotlight()
   useBackKey()
 
   return (

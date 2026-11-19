@@ -11,10 +11,9 @@ import { Logo } from './Primitives'
 
 export function Aurora() {
   const { settings } = useUI()
-  const light = useRef<HTMLSpanElement>(null)
-  const live = settings.style === 'glass' && settings.fx === 'full'
+  const live = settings.fx === 'full'
 
-  // Bewegung im Hintergrund: Licht folgt dem Finger, Blasen schieben sich beim Scrollen und Kippen leicht mit
+  // Bewegung im Hintergrund: Farbflächen schieben sich beim Scrollen und Kippen leicht mit
   useEffect(() => {
     const root = document.documentElement
     root.style.setProperty('--sy', '0')
@@ -34,12 +33,6 @@ export function Aurora() {
     const queue = () => {
       if (!frame) frame = requestAnimationFrame(flush)
     }
-    const point = (e: PointerEvent) => {
-      const el = light.current
-      if (!el) return
-      el.style.transform = `translate3d(${Math.round(e.clientX)}px, ${Math.round(e.clientY)}px, 0)`
-      el.dataset.on = 'true'
-    }
     const scroll = (e: Event) => {
       const el = e.target
       if (el instanceof HTMLElement && el.classList.contains('page')) {
@@ -53,13 +46,9 @@ export function Aurora() {
       ty = Math.max(-1, Math.min(1, (e.beta - 50) / 30))
       queue()
     }
-    window.addEventListener('pointermove', point, { passive: true })
-    window.addEventListener('pointerdown', point, { passive: true })
     document.addEventListener('scroll', scroll, { capture: true, passive: true })
     window.addEventListener('deviceorientation', tilt, { passive: true })
     return () => {
-      window.removeEventListener('pointermove', point)
-      window.removeEventListener('pointerdown', point)
       document.removeEventListener('scroll', scroll, { capture: true })
       window.removeEventListener('deviceorientation', tilt)
       if (frame) cancelAnimationFrame(frame)
@@ -73,7 +62,6 @@ export function Aurora() {
         <span className="aurora__blob aurora__blob--b" />
         <span className="aurora__blob aurora__blob--c" />
       </div>
-      <span className="aurora__light" ref={light} />
       <span className="aurora__grain" />
     </div>
   )

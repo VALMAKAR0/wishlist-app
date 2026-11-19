@@ -23,7 +23,7 @@ import { PriceSearch } from './PriceSearch'
 import { parsePriceInput, priceText } from '../lib/priceInput'
 import { PriceWatch } from './PriceWatch'
 import { ShopList } from './ShopList'
-import { Cover, PrioPicker } from './Primitives'
+import { Combo, Cover, Dropdown, ListMark, PrioPicker } from './Primitives'
 import { CurrencyButton, CurrencyPanel } from './CurrencyPicker'
 import { Sheet } from './Sheet'
 
@@ -596,33 +596,17 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
               </button>
             )}
           </span>
-          <input
+          <Combo
             value={kind}
-            onChange={(e) => {
-              setKind(e.target.value)
+            options={kindChips}
+            label={t('Arten')}
+            testId="kind-drop"
+            placeholder={t('z. B. Grafikkarte')}
+            onChange={(v) => {
+              setKind(v)
               setKindTouched(true)
             }}
-            placeholder={t('z. B. Grafikkarte')}
           />
-          {kindChips.length > 0 && (
-            <div className="kindchips" role="listbox" aria-label={t('Arten')}>
-              {kindChips.map((k) => (
-                <button
-                  key={k}
-                  type="button"
-                  role="option"
-                  aria-selected={false}
-                  className="chip chip--button"
-                  onClick={() => {
-                    setKind(k)
-                    setKindTouched(true)
-                  }}
-                >
-                  {k}
-                </button>
-              ))}
-            </div>
-          )}
         </label>
 
         <div className="field">
@@ -642,13 +626,13 @@ export function ItemFormSheet({ owner, item, listId: initialList, initialLink, o
         {ownerLists.length > 1 && (
           <div className="field">
             <span>{t('Liste')}</span>
-            <div className="listbar listbar--form" role="radiogroup" aria-label={t('Liste')}>
-              {ownerLists.map((l) => (
-                <button key={l.id} type="button" role="radio" aria-checked={l.id === listId} className="listchip" data-active={l.id === listId} onClick={() => setListId(l.id)}>
-                  <span aria-hidden>{l.emoji}</span> {listTitle(l, t)}
-                </button>
-              ))}
-            </div>
+            <Dropdown
+              value={listId}
+              label={t('Liste')}
+              testId="list-drop"
+              onChange={setListId}
+              options={ownerLists.map((l) => ({ value: l.id, label: listTitle(l, t), icon: <ListMark icon={l.emoji} hue={l.hue} size={26} /> }))}
+            />
           </div>
         )}
 

@@ -1,6 +1,6 @@
-import { useEffect, useId, type CSSProperties, type ReactNode } from 'react'
-import { animate, motion, useMotionValue, useTransform } from 'motion/react'
-import { Check, Heart } from 'lucide-react'
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { AnimatePresence, animate, motion, useMotionValue, useTransform } from 'motion/react'
+import { Check, ChevronDown, Heart } from 'lucide-react'
 import { initial, priceText } from '../lib/format'
 import { useImageUrl } from '../lib/images'
 import { iconOf, listIcon } from '../lib/icons'
@@ -262,5 +262,105 @@ export function PriceTag({ price, cur }: { price: number; cur?: string }) {
       {p.main}
       {p.sub && <small className="item__conv"> {p.sub}</small>}
     </span>
+  )
+}
+
+export interface DropOption {
+  value: string
+  label: string
+  icon?: ReactNode
+}
+
+/** Schließt ein aufgeklapptes Menü beim Tippen daneben. */
+function useOutside(open: boolean, close: () => void) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const down = (e: PointerEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) close()
+    }
+    document.addEventListener('pointerdown', down, true)
+    const id = window.setTimeout(() => ref.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 220)
+    return () => {
+      window.clearTimeout(id)
+      document.removeEventListener('pointerdown', down, true)
+    }
+  }, [open, close])
+  return ref
+}
+
+function DropList({ options, value, onPick, label }: { options: DropOption[]; value?: string; onPick: (v: string) => void; label: string }) {
+  return (
+    <motion.div className="dd__list" role="listbox" aria-label={label} initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ type: 'spring', stiffness: 380, damping: 34 }}>
+      <div className="dd__in">
+        {options.map((o) => (
+          <button key={o.value} type="button" role="option" aria-selected={o.value === value} className="dd__opt" onClick={() => onPick(o.value)}>
+            {o.icon}
+            <span>{o.label}</span>
+            {o.value === value && <Check size={16} strokeWidth={3} />}
+          </button>
+        ))}
+      </div>
+    </motion.div>
+  )
+}
+
+/** Auswahl als Aufklappmenü: eine Zeile mit dem aktuellen Wert, darunter die Möglichkeiten. */
+export function Dropdown({ value, options, onChange, label, testId }: { value: string; options: DropOption[]; onChange: (v: string) => void; label: string; testId?: string }) {
+  const [open, setOpen] = useState(false)
+  const ref = useOutside(open, () => setOpen(false))
+  const cur = options.find((o) => o.value === value)
+  return (
+    <div className="dd" ref={ref} data-open={open}>
+      <button type="button" className="dd__btn" aria-haspopup="listbox" aria-expanded={open} aria-label={label} data-testid={testId} onClick={() => setOpen((a) => !a)}>
+        {cur?.icon}
+        <span>{cur?.label ?? ''}</span>
+        <ChevronDown size={18} className="dd__chev" />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <DropList
+            options={options}
+            value={value}
+            label={label}
+            onPick={(v) => {
+              onChange(v)
+              setOpen(false)
+            }}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+/** Eingabefeld mit Aufklappmenü für Vorschläge: freier Text bleibt möglich. */
+export function Combo({ value, onChange, options, placeholder, label, testId }: { value: string; onChange: (v: string, picked: boolean) => void; options: string[]; placeholder?: string; label: string; testId?: string }) {
+  const [open, setOpen] = useState(false)
+  const ref = useOutside(open, () => setOpen(false))
+  return (
+    <div className="dd dd--combo" ref={ref} data-open={open}>
+      <div className="dd__inrow">
+        <input value={value} onChange={(e) => onChange(e.target.value, false)} placeholder={placeholder} />
+        {options.length > 0 && (
+          <button type="button" className="dd__tog" aria-haspopup="listbox" aria-expanded={open} aria-label={label} data-testid={testId} onClick={() => setOpen((a) => !a)}>
+            <ChevronDown size={18} className="dd__chev" />
+          </button>
+        )}
+      </div>
+      <AnimatePresence initial={false}>
+        {open && options.length > 0 && (
+          <DropList
+            options={options.map((o) => ({ value: o, label: o }))}
+            value={value}
+            label={label}
+            onPick={(v) => {
+              onChange(v, true)
+              setOpen(false)
+            }}
+          />
+        )}
+      </AnimatePresence>
+    </div>
   )
 }

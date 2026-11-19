@@ -1,6 +1,6 @@
 # Wunschlisten-App – Plan (Arbeitstitel)
 
-Stand: 17.11.2026 · Status: V0.21.0 (Teilen mit Vorschau, App-Stil, Sprache und einzelnen Wünschen; Glas gedämpft und lebendiger; V0.20.0 Neuer Stil Glas; V0.19.0 Anpassungen: Stilvarianten, Karten, Wischgesten, Reiter, Preisschwelle; V0.18.0 Preis-Hinweise mit Richtung und Verlauf, Tageskurse automatisch, Wischen bei erhaltenen Listen, Listen-Symbole statt Emojis; V0.17.0 Geschenkanhänger: neues Erscheinungsbild für die ganze App; V0.16.2: Update-Karte und Statuszeile zusammengeführt; V0.16.1: Update-Knopf nicht mehr abgeschnitten, ehrliche Texte zur Preisprüfung; V0.16.0: Umbenennung in Wishlist, eigene Symbole, neues Eintragsfenster, vier Wisch-Stufen, Filter-Fenster, aufgeräumtes Teilen; V0.15: Teilen als PDF, Bild und Text; V0.14: Feinschliff: Preisdiagramm immer sichtbar; V0.13: Sortieren, Filter, Suche, Wichtigkeit, Wunschpreis, neues Preisdiagramm, Budget, kurze Namen, bessere Art-Erkennung; V0.12: Weitere Shops, Update-Download über den Android-Downloader; Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
+Stand: 17.11.2026 · Status: V0.23.0 (Mehr Bewegung; V0.22.0 Dropdowns, Konturen, Glas-Felder; V0.21.0 Teilen mit Vorschau, App-Stil, Sprache und einzelnen Wünschen; Glas gedämpft und lebendiger; V0.20.0 Neuer Stil Glas; V0.19.0 Anpassungen: Stilvarianten, Karten, Wischgesten, Reiter, Preisschwelle; V0.18.0 Preis-Hinweise mit Richtung und Verlauf, Tageskurse automatisch, Wischen bei erhaltenen Listen, Listen-Symbole statt Emojis; V0.17.0 Geschenkanhänger: neues Erscheinungsbild für die ganze App; V0.16.2: Update-Karte und Statuszeile zusammengeführt; V0.16.1: Update-Knopf nicht mehr abgeschnitten, ehrliche Texte zur Preisprüfung; V0.16.0: Umbenennung in Wishlist, eigene Symbole, neues Eintragsfenster, vier Wisch-Stufen, Filter-Fenster, aufgeräumtes Teilen; V0.15: Teilen als PDF, Bild und Text; V0.14: Feinschliff: Preisdiagramm immer sichtbar; V0.13: Sortieren, Filter, Suche, Wichtigkeit, Wunschpreis, neues Preisdiagramm, Budget, kurze Namen, bessere Art-Erkennung; V0.12: Weitere Shops, Update-Download über den Android-Downloader; Wünsche in andere Listen verschieben; Preisverlauf mit Prüfung, Diagramm, Etikett und Preis-Auswahl; tägliche Hintergrundprüfung mit Meldung bei Preissenkung; Link-Import mit Ergebnis-Karte) · Datenformat: v2
 
 ## 1. Ziel
 
@@ -696,3 +696,16 @@ Jeden Punkt abhaken oder mit einem Satz melden, was hakt.
 - **Glas:** Einträge ohne eigene Rundung auf einer gemeinsamen Glasfläche; Farben gedämpft; drei driftende Farbflächen im Hintergrund, Licht folgt Finger/Zeiger, Parallaxe beim Scrollen und Kippen (nur Effekte „Voll“).
 - **Allgemein:** Seiteninhalt blendet sanft ein (nur Effekte „Voll“). Symbol-Auswahlring liegt bündig um das Symbol.
 - Test `t2/v0210.cjs`; v0151 an das neue Textformat angepasst.
+
+## 51. V0.22.0 Dropdowns, Konturen, Glas-Felder
+- Klick-Licht im Glas-Stil entfernt; Farbflächen und Parallaxe bleiben.
+- Neuer Wunsch: **Liste** und **Art** sind Aufklappmenüs (`Dropdown`, `Combo` in Primitives). Das Listen-Symbol erscheint korrekt (vorher stand `ic:pin` als Text). Art bleibt frei eintippbar.
+- Einstellung **Konturen** (Normal/Deutlich): `data-edges`, Umrisse an Karten, Feldern und Chips. Dunkle Standardkonturen sind etwas kräftiger.
+- Glas: Karten farbig getönt statt grau, Felder als dunkle Mulden mit farbigem Rand und Fokus-Ring, Fenster dunkler.
+- Test `t2/v0220.cjs`.
+
+## 52. V0.23.0 Mehr Bewegung
+- Letzter Rest des Leuchtflecks unter dem Finger (`useSpotlight`) entfernt; es gibt keinen Beleuchtungskreis beim Tippen mehr.
+- Effekte „Voll“: Hintergrund mit langsam driftenden Farbflächen in allen Stilen (Anhänger/Ruhig/Kontrast dezent, Glas kräftiger), Parallaxe beim Scrollen und Kippen.
+- Listeneinträge blenden gestaffelt ein, Kacheln und Auswahlfelder federn beim Drücken, Reiter-Symbol „poppt“ beim Wechsel, Hinweispunkt pulsiert, Bilder blenden ein, leere Ansichten schweben, Hauptknopf mit sanftem Glanz.
+- „Dezent“ und „Aus“ lassen diese Bewegungen weg. Test `t2/v0230.cjs`.

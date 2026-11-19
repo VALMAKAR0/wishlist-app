@@ -1,6 +1,6 @@
 import { CURRENCIES } from './format'
 import { detectLang } from './i18n'
-import type { DateFmt, Density, FontFamily, FontScale, HapticLevel, ImgSize, ListLayout, RadiusSetting, ShareBought, ShareDefaults, SortMode, StartTab, StyleName, SwipeAct, SwipeDist, TabId, Tone, UiSettings } from './types'
+import type { DateFmt, Density, Edges, FontFamily, FontScale, HapticLevel, ImgSize, ListLayout, RadiusSetting, ShareBought, ShareDefaults, SortMode, StartTab, StyleName, SwipeAct, SwipeDist, TabId, Tone, UiSettings } from './types'
 
 export const TRASH_CHOICES = [7, 14, 30, 60, 90]
 export const KEEP_CHOICES = [3, 5, 10, 20]
@@ -67,6 +67,7 @@ export const defaults = (): UiSettings => ({
   radius: 'normal',
   density: 'normal',
   tone: 'normal',
+  edges: 'normal',
   fontFamily: 'default',
   hapticLevel: 'normal',
   imgSize: 'normal',
@@ -92,7 +93,7 @@ export const defaults = (): UiSettings => ({
 export const SYNC_KEYS = [
   'theme', 'fx', 'lang', 'hue', 'remindDays', 'remindTime', 'updateCheck', 'showPlanned', 'autoBackup', 'shareName',
   'currency', 'rates', 'ratesAt', 'ratesAuto', 'dateFmt', 'fontScale', 'haptics', 'trashDays', 'autoKeep', 'startTab', 'sort', 'listLayout', 'shareDefaults', 'linkImport', 'linkImages', 'linkAuto', 'linkPrice', 'linkOverwrite', 'linkKeepName', 'linkShortName', 'priceWatch', 'priceSearch', 'priceBg', 'kindAuto',
-  'style', 'radius', 'density', 'tone', 'fontFamily', 'hapticLevel', 'imgSize', 'nameLines', 'cardPrice', 'cardLink', 'cardNote', 'cardPrio', 'cardTags', 'swipeOn', 'swipeDist', 'swipeR1', 'swipeR2', 'swipeL1', 'swipeL2', 'tabOrder', 'tabsHidden', 'tabLabels', 'priceMinPct',
+  'style', 'radius', 'density', 'tone', 'edges', 'fontFamily', 'hapticLevel', 'imgSize', 'nameLines', 'cardPrice', 'cardLink', 'cardNote', 'cardPrio', 'cardTags', 'swipeOn', 'swipeDist', 'swipeR1', 'swipeR2', 'swipeL1', 'swipeL2', 'tabOrder', 'tabsHidden', 'tabLabels', 'priceMinPct',
 ] as const satisfies readonly (keyof UiSettings)[]
 
 export type SyncSettings = Pick<UiSettings, (typeof SYNC_KEYS)[number]>
@@ -198,6 +199,7 @@ export function normalize(raw: unknown, base: UiSettings = defaults()): UiSettin
     radius: oneOf<RadiusSetting>(r.radius, ['sharp', 'normal', 'round']) ?? base.radius,
     density: oneOf<Density>(r.density, ['compact', 'normal', 'airy']) ?? base.density,
     tone: oneOf<Tone>(r.tone, ['soft', 'normal', 'vivid']) ?? base.tone,
+    edges: oneOf<Edges>(r.edges, ['normal', 'strong']) ?? base.edges,
     fontFamily: oneOf<FontFamily>(r.fontFamily, ['default', 'system']) ?? base.fontFamily,
     hapticLevel: oneOf<HapticLevel>(r.hapticLevel, ['light', 'normal', 'strong']) ?? base.hapticLevel,
     imgSize: oneOf<ImgSize>(r.imgSize, ['off', 'small', 'normal', 'large']) ?? base.imgSize,

@@ -98,6 +98,7 @@ export function UIProvider({ children }: { children: ReactNode }) {
     root.dataset.style = settings.style
     root.dataset.font = settings.fontFamily
     root.dataset.density = settings.density
+    root.dataset.edges = settings.edges
     root.style.setProperty('--rk', String(RADIUS_K[settings.radius]))
     root.style.setProperty('--tone', String(TONE_K[settings.tone]))
     root.style.setProperty('--ipad', `${DENSITY_PAD[settings.density]}px`)

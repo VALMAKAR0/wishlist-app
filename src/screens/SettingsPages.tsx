@@ -27,7 +27,7 @@ import { applyResults, bgCheckNow, bgCollect, bgStatus, bgSync } from '../lib/bg
 import { checkable, checkAll } from '../lib/priceCheck'
 import { notifyState } from '../lib/reminders'
 import { fetchRates, usedCurrencies } from '../lib/rates'
-import type { DateFmt, Density, FontFamily, FontScale, FxSetting, HapticLevel, ImgSize, Lang, ListLayout, RadiusSetting, SortMode, StartTab, StyleName, SwipeAct, SwipeDist, TabId, ThemeSetting, Tone } from '../lib/types'
+import type { DateFmt, Density, FontFamily, FontScale, FxSetting, HapticLevel, ImgSize, Lang, ListLayout, RadiusSetting, SortMode, StartTab, StyleName, SwipeAct, SwipeDist, TabId, ThemeSetting, Tone, Edges } from '../lib/types'
 import { TAB_INFO } from '../components/Chrome'
 import { useBackup } from '../state/backup'
 import { useUpdate } from '../state/update'
@@ -287,6 +287,9 @@ function LookPage() {
           </div>
           <Choice title={t('Farbintensität')}>
             <ChipChoice<Tone> label={t('Farbintensität')} value={settings.tone} onChange={(tone) => setSettings({ tone })} options={[{ value: 'soft', label: t('Dezent') }, { value: 'normal', label: t('Normal') }, { value: 'vivid', label: t('Kräftig') }]} />
+          </Choice>
+          <Choice title={t('Konturen')} text={t('Rahmen und Kanten deutlicher, hilft bei Sonne und in dunklen Szenen.')}>
+            <ChipChoice<Edges> label={t('Konturen')} value={settings.edges} onChange={(edges) => setSettings({ edges })} options={[{ value: 'normal', label: t('Normal') }, { value: 'strong', label: t('Deutlich') }]} />
           </Choice>
           <Choice title={t('Ecken')} text={t('Wie rund Karten, Felder und Knöpfe sind.')}>
             <ChipChoice<RadiusSetting> label={t('Ecken')} value={settings.radius} onChange={(radius) => setSettings({ radius })} options={[{ value: 'sharp', label: t('Eckig') }, { value: 'normal', label: t('Normal') }, { value: 'round', label: t('Rund') }]} />

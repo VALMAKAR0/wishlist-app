@@ -41,6 +41,7 @@ export const SETTING_INDEX: SettingEntry[] = [
   { page: 'look', label: 'Ecken', words: 'rund eckig radius abgerundet' },
   { page: 'look', label: 'Farbton', words: 'akzent farbe regler beliebig' },
   { page: 'look', label: 'Farbintensität', words: 'sättigung kräftig blass dezent' },
+  { page: 'look', label: 'Konturen', words: 'kontrast rahmen kanten umriss sonne hell dunkel deutlich' },
   { page: 'look', label: 'Schriftart', words: 'font systemschrift' },
   { page: 'look', label: 'Vibrationsstärke', words: 'haptik stärke fest leicht' },
   { page: 'cards', label: 'Dichte', words: 'kompakt luftig abstand zeilen karten' },

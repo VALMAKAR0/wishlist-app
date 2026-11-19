@@ -170,6 +170,7 @@ export type StyleName = 'tag' | 'calm' | 'bold' | 'glass'
 export type RadiusSetting = 'sharp' | 'normal' | 'round'
 export type Density = 'compact' | 'normal' | 'airy'
 export type Tone = 'soft' | 'normal' | 'vivid'
+export type Edges = 'normal' | 'strong'
 export type FontFamily = 'default' | 'system'
 export type HapticLevel = 'light' | 'normal' | 'strong'
 export type ImgSize = 'off' | 'small' | 'normal' | 'large'
@@ -255,6 +256,7 @@ export interface UiSettings {
   radius: RadiusSetting
   density: Density
   tone: Tone
+  edges: Edges
   fontFamily: FontFamily
   hapticLevel: HapticLevel
   imgSize: ImgSize
